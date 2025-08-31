@@ -12,3 +12,18 @@
   background-image: url("/landing-background.png");
   background-size: cover;
 }
+
+.login-bg {
+  background-image: url("/onboarding-img.png");
+  background-size: cover;
+}
+
+.login-farmer-bg {
+  background-image: url("/login-farmer-bg.png");
+  background-size: cover;
+}
+
+.login-processor-bg {
+  background-image: url("/login-processor-bg.png");
+  background-size: cover;
+}

@@ -3,6 +3,7 @@ import Logo from "../assets/icons/Logo";
 import Connect from "../assets/icons/Connect";
 import Leaf from "../assets/icons/Leaf";
 import Tractor from "../assets/icons/Tractor";
+import Link from "next/link";
 
 export default function Hero() {
   return (
@@ -19,10 +20,10 @@ export default function Hero() {
         </div>
 
         <div className="flex gap-5 items-center text-sm">
-          Sign In
+        <Link href={'/login'}>Sign In</Link>  
           <button className="text-mainGreen px-3 py-2 rounded bg-white">
             {" "}
-            Get Started
+         <Link href={'/register'}>  Get Started</Link> 
           </button>
         </div>
       </div>
