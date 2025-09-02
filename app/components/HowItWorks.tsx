@@ -6,13 +6,29 @@ import JourneyCards from './JourneyCards'
 
 export default function HowItWorks() {
   return (
-    <div className='pb-12 px-[7%] relative'>
-        <div className='absolute -top-10 right-0'>
-            <Image src={settings} alt="leaf" width={250} height={100}/>
+    <div className='pb-8 sm:pb-12 px-4 sm:px-6 lg:px-[7%] relative'>
+        {/* Responsive settings image */}
+        <div className='absolute -top-6 sm:-top-10 right-2 sm:right-4 lg:right-0'>
+            <Image 
+              src={settings} 
+              alt="settings" 
+              width={150} 
+              height={60}
+              className='sm:w-[200px] sm:h-[80px] lg:w-[250px] lg:h-[100px]'
+            />
         </div>
-        <p className='text-3xl text-mainGreen'>How It Works</p>
-        <p className='mt-4 mb-6 text-lg'>Simple steps to connect farmers and processors with quality assurance built-in</p>
-            <JourneyCards/>
+        
+        {/* Responsive heading */}
+        <p className='text-xl sm:text-2xl lg:text-3xl text-mainGreen font-semibold'>
+          How It Works
+        </p>
+        
+        {/* Responsive description */}
+        <p className='mt-3 sm:mt-4 mb-4 sm:mb-6 text-base sm:text-lg leading-relaxed'>
+          Simple steps to connect farmers and processors with quality assurance built-in
+        </p>
+        
+        <JourneyCards/>
     </div>
   )
 }

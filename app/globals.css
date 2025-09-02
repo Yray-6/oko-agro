@@ -1,29 +1,74 @@
 @import "tailwindcss";
 
-
 @theme {
   --color-mainGreen: #004829;
   --color-lightGreen: #73ffc2;
   --color-mainYellow: #e0ce00;
 }
 
-
 .hero-bg {
   background-image: url("/landing-background.png");
   background-size: cover;
+  position: relative;
 }
+
+
 
 .login-bg {
   background-image: url("/onboarding-img.png");
   background-size: cover;
+  position: relative;
+}
+
+.login-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent,transparent,  theme('colors.mainGreen'));
+  z-index: 1;
+}
+
+.login-bg > * {
+  position: relative;
+  z-index: 2;
 }
 
 .login-farmer-bg {
   background-image: url("/login-farmer-bg.png");
   background-size: cover;
+  position: relative;
+}
+
+.login-farmer-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, transparent, theme('colors.mainGreen'));
+  z-index: 1;
+}
+
+.login-farmer-bg > * {
+  position: relative;
+  z-index: 2;
 }
 
 .login-processor-bg {
   background-image: url("/login-processor-bg.png");
   background-size: cover;
+  position: relative;
 }
+
+
+
+.register-processor {
+  background-image: url("/register-processor.png");
+  background-size: cover;
+  position: relative;
+}
+

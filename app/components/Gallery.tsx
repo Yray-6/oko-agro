@@ -9,7 +9,6 @@ import Image4 from '@/app/assets/images/image-4.png'
 import Image3 from '@/app/assets/images/image-3.png'
 import Image from 'next/image';
 
-
 export default function ServicesSection() {
   const services = [
     {
@@ -24,14 +23,14 @@ export default function ServicesSection() {
       icon: Quality,
       title: "Quality Assurance",
       description: "Professional quality inspections and certifications ensure premium products meet market standards.",
-      image:Image2
+      image: Image2
     },
     {
       id: 3,
       icon: Fair,
       title: "Fair & Fast Payment",
       description: "Transparent pricing with mobile money integration ensures farmers receive fair payment within 24 hours of delivery.",
-      image:Image3
+      image: Image3
     },
     {
       id: 4,
@@ -41,11 +40,12 @@ export default function ServicesSection() {
       image: Image4
     }
   ];
-
+ 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-green-50 py-16 ">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div className="py-8 sm:py-12 lg:py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Responsive grid - 1 col on mobile, 2 on tablet, 4 on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
           {services.map((service) => {
             const IconComponent = service.icon;
             return (
@@ -53,43 +53,39 @@ export default function ServicesSection() {
                 key={service.id}
                 className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden group"
               >
-                {/* Image Section */}
-                <div className="relative h-48 overflow-hidden">
+                {/* Responsive Image Section */}
+                <div className="relative h-40 sm:h-48 overflow-hidden">
                   <Image
                     src={service.image}
                     alt={service.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                     width={1000}
                     height={200}
-                    
-                  />
-               
+                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                  />                             
                 </div>
-
-                {/* Content Section */}
-                <div className="p-3">
-                  {/* Icon */}
-                  <div className="mb-3 inline-flex p-3 bg-mainGreen/20 rounded-full">
-                    <IconComponent className="w-6 h-6 text-mainGreen" />
+                
+                {/* Responsive Content Section */}
+                <div className="p-4 sm:p-5 lg:p-3 xl:p-4">
+                  {/* Responsive Icon */}
+                  <div className="mb-3 sm:mb-4 lg:mb-2 xl:mb-3 inline-flex p-2.5 sm:p-3 bg-mainGreen/20 rounded-full">
+                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 lg:w-4 lg:h-4 xl:w-5 xl:h-5 text-mainGreen" />
                   </div>
-
-                  {/* Title */}
-                  <h3 className="text-xl 0 mb-3 leading-tight">
+                  
+                  {/* Responsive Title */}
+                  <h3 className="text-lg sm:text-xl lg:text-lg xl:text-lg text-mainGreen mb-3 sm:mb-4 lg:mb-3 leading-tight font-semibold">
                     {service.title}
                   </h3>
-
-                  {/* Description */}
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  
+                  {/* Responsive Description */}
+                  <p className="text-gray-700 text-sm sm:text-base lg:text-sm xl:text-sm leading-relaxed">
                     {service.description}
-                  </p>
-
-      
+                  </p>       
                 </div>
               </div>
             );
           })}
         </div>
-
       </div>
     </div>
   );

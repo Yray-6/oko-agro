@@ -4,6 +4,20 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Leaf from '@/app/assets/icons/Leaf';
 import Link from 'next/link';
+import { 
+  TextField, 
+  SelectField, 
+  FileField,
+  countryOptions,
+  stateOptions,
+  unitOptions,
+  cropsOptions,
+  farmingExperienceOptions,
+  internetAccessOptions,
+  currentSellingMethodOptions,
+  bankOptions
+} from './FormFields'; // Import your reusable components
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // TypeScript interfaces
 interface FormValues {
@@ -163,16 +177,16 @@ const FarmerRegistrationForm: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white/80 rounded-lg shadow-lg">
-      <div className="mb-8 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-mainGreen mb-6">Farmer Registration</h1>
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white/80 rounded-lg shadow-lg">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-semibold text-mainGreen mb-4 sm:mb-6">Farmer Registration</h1>
         
         {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto pb-2">
           {steps.map((step, index) => (
-            <div key={index} className="flex items-center justify-center gap-4">
+            <div key={index} className="flex items-center justify-center gap-2 sm:gap-4 min-w-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium flex-shrink-0 ${
                   index <= currentStep
                     ? 'bg-mainGreen/50 text-mainGreen'
                     : 'bg-gray-200 text-mainGreen'
@@ -180,9 +194,21 @@ const FarmerRegistrationForm: React.FC = () => {
               >
                 {index + 1}
               </div>
-      
+              {/* Hide step names on mobile, show abbreviated versions on small screens */}
+              <span className={`hidden sm:block text-xs sm:text-sm font-medium whitespace-nowrap ${
+                index <= currentStep ? 'text-mainGreen' : 'text-gray-500'
+              }`}>
+                {step}
+              </span>
             </div>
           ))}
+        </div>
+        
+        {/* Current step indicator for mobile */}
+        <div className="block sm:hidden text-center mb-4">
+          <span className="text-sm font-medium text-mainGreen">
+            Step {currentStep + 1} of {steps.length}: {steps[currentStep]}
+          </span>
         </div>
       </div>
 
@@ -193,111 +219,76 @@ const FarmerRegistrationForm: React.FC = () => {
         enableReinitialize
       >
         {({ values, setFieldValue, validateForm, errors, touched }) => (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Step 1: Basic Information */}
             {currentStep === 0 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">👤</span>
-                  <h2 className="text-lg font-medium">Basic Information</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Basic Information</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Let's start with your basic details. This helps us create your farmer profile.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Let's start with your basic details. This helps us create your farmer profile.</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                    <Field
-                      name="firstName"
-                      type="text"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter your first name"
-                    />
-                    <ErrorMessage name="firstName" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                    <Field
-                      name="lastName"
-                      type="text"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter your last name"
-                    />
-                    <ErrorMessage name="lastName" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
-                    <Field
-                      name="email"
-                      type="email"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter your email address"
-                    />
-                    <ErrorMessage name="email" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm min-w-0 flex-shrink-0">
-                        +234
-                      </span>
-                      <Field
-                        name="phoneNumber"
-                        type="tel"
-                        className="w-full min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-r-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-                    <ErrorMessage name="phoneNumber" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                </div>
-
-                <div className='mb-6'>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm Location *</label>
-                  <Field
-                    as="textarea"
-                    name="farmLocation"
-                    rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your farm location"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="firstName"
+                    label="First Name"
+                    placeholder="Enter your first name"
+                    required
                   />
-                  <ErrorMessage name="farmLocation" component="div" className="text-red-500 text-xs mt-1" />
+                  
+                  <TextField
+                    name="lastName"
+                    label="Last Name"
+                    placeholder="Enter your last name"
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
-                    <Field
-                      as="select"
-                      name="country"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    >
-                      <option value="" className="text-[#A8A8A8]">Select country</option>
-                      <option value="Nigeria">Nigeria</option>
-                      <option value="Ghana">Ghana</option>
-                      <option value="Kenya">Kenya</option>
-                    </Field>
-                    <ErrorMessage name="country" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="email"
+                    label="Email Address"
+                    type="email"
+                    placeholder="Enter your email address"
+                    required
+                  />
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                    <Field
-                      as="select"
-                      name="state"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    >
-                      <option value="" className="text-[#A8A8A8]">Select state</option>
-                      <option value="Lagos">Lagos</option>
-                      <option value="Abuja">Abuja</option>
-                      <option value="Ogun">Ogun</option>
-                    </Field>
-                    <ErrorMessage name="state" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
+                  <TextField
+                    name="phoneNumber"
+                    label="Phone Number"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    prefix="+234"
+                    required
+                  />
+                </div>
+
+                <TextField
+                  name="farmLocation"
+                  label="Farm Location"
+                  as="textarea"
+                  rows={3}
+                  placeholder="Enter your farm location"
+                  required
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <SelectField
+                    name="country"
+                    label="Country"
+                    placeholder="Select country"
+                    options={countryOptions}
+                    required
+                  />
+                  
+                  <SelectField
+                    name="state"
+                    label="State"
+                    placeholder="Select state"
+                    options={stateOptions}
+                    required
+                  />
                 </div>
               </div>
             )}
@@ -305,82 +296,52 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 2: Farm Details */}
             {currentStep === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
-                <Leaf color='black'/>
-                  <h2 className="text-lg font-medium">Farm Details</h2>
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+                  <Leaf color='black'/>
+                  <h2 className="text-base sm:text-lg font-medium">Farm Details</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Tell us about your farm and what crops you grow.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Tell us about your farm and what crops you grow.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm Name *</label>
-                  <Field
-                    name="farmName"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your farm name"
+                <TextField
+                  name="farmName"
+                  label="Farm Name"
+                  placeholder="Enter your farm name"
+                  required
+                />
+
+                <SelectField
+                  name="cropsGrown"
+                  label="Crops you grow (Select all that apply)"
+                  options={cropsOptions}
+                  multiple={true}
+                  required
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="farmSize"
+                    label="Farm Size"
+                    placeholder="Enter farm size"
+                    required
                   />
-                  <ErrorMessage name="farmName" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Crops you grow (Select all that apply) *</label>
-                  <Field
-                    as="select"
-                    name="cropsGrown"
-                    multiple
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    size={4}
-                  >
-                    <option value="Rice">Rice</option>
-                    <option value="Maize">Maize</option>
-                    <option value="Cassava">Cassava</option>
-                    <option value="Yam">Yam</option>
-                    <option value="Plantain">Plantain</option>
-                    <option value="Tomato">Tomato</option>
-                    <option value="Pepper">Pepper</option>
-                    <option value="Onion">Onion</option>
-                  </Field>
-                  <ErrorMessage name="cropsGrown" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Farm Size *</label>
-                    <Field
-                      name="farmSize"
-                      type="text"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter farm size"
-                    />
-                    <ErrorMessage name="farmSize" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                    <Field
-                      as="select"
-                      name="unit"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    >
-                      <option value="" className="text-[#A8A8A8]">Select Unit</option>
-                      <option value="Hectares">Hectares</option>
-                      <option value="Acres">Acres</option>
-                      <option value="Square meters">Square meters</option>
-                    </Field>
-                    <ErrorMessage name="unit" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
+                  <SelectField
+                    name="unit"
+                    label="Unit"
+                    placeholder="Select Unit"
+                    options={unitOptions}
+                    required
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Annual Production *</label>
-                  <Field
+                  <TextField
                     name="estimatedAnnualProduction"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                    label="Estimated Annual Production"
                     placeholder="e.g 10 Tons per year"
+                    required
                   />
                   <p className="text-xs text-gray-500 mt-1">This helps processors understand your supply capacity</p>
-                  <ErrorMessage name="estimatedAnnualProduction" component="div" className="text-red-500 text-xs mt-1" />
                 </div>
               </div>
             )}
@@ -388,225 +349,149 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 3: Experience Assessment */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <Leaf color='black'/>
-                  <h2 className="text-lg font-medium">Experience Assessment</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Experience Assessment</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Help us customize your experience based on your background.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Help us customize your experience based on your background.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farming Experience *</label>
-                  <Field
-                    as="select"
-                    name="farmingExperience"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select your experience level</option>
-                    <option value="Less than 1 year">Less than 1 year</option>
-                    <option value="1-2 years">1-2 years</option>
-                    <option value="2-10 years">2-10 years</option>
-                    <option value="More than 10 years">More than 10 years</option>
-                  </Field>
-                  <ErrorMessage name="farmingExperience" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="farmingExperience"
+                  label="Farming Experience"
+                  placeholder="Select your experience level"
+                  options={farmingExperienceOptions}
+                  required
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Internet Access *</label>
-                  <Field
-                    as="select"
-                    name="internetAccess"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">How do you access the internet?</option>
-                    <option value="Smartphone with daily internet">Smartphone with daily internet</option>
-                    <option value="Smartphone with occasional internet">Smartphone with occasional internet</option>
-                    <option value="Computer/laptop">Computer/laptop</option>
-                    <option value="Internet cafe">Internet cafe</option>
-                    <option value="No regular internet access">No regular internet access</option>
-                  </Field>
-                  <ErrorMessage name="internetAccess" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="internetAccess"
+                  label="Internet Access"
+                  placeholder="How do you access the internet?"
+                  options={internetAccessOptions}
+                  required
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">How do you currently sell your crops? *</label>
-                  <Field
-                    as="select"
-                    name="currentSellingMethod"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select current method</option>
-                    <option value="Local markets">Local markets</option>
-                    <option value="Middlemen/traders">Middlemen/traders</option>
-                    <option value="Direct to consumers">Direct to consumers</option>
-                    <option value="Cooperatives">Cooperatives</option>
-                    <option value="Online platforms">Online platforms</option>
-                    <option value="Processing companies">Processing companies</option>
-                  </Field>
-                  <ErrorMessage name="currentSellingMethod" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="currentSellingMethod"
+                  label="How do you currently sell your crops?"
+                  placeholder="Select current method"
+                  options={currentSellingMethodOptions}
+                  required
+                />
               </div>
             )}
 
             {/* Step 4: Picture Verification */}
             {currentStep === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">📷</span>
-                  <h2 className="text-lg font-medium">Picture Verification</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Picture Verification</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Upload photos to verify your farm and build trust with buyers.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Upload photos to verify your farm and build trust with buyers.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Farm Photo *</label>
-                  <p className="text-xs text-gray-500 mb-3">Take a clear photo of your farm or crops to show buyers your growing operation</p>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <div className="space-y-2">
-                      <div className="text-gray-400">📤</div>
-                      <div>
-                        <input
-                          type="file"
-                          id="farmPhoto"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleFileUpload(e, setFieldValue, 'farmPhoto')}
-                        />
-                        <label
-                          htmlFor="farmPhoto"
-                          className="cursor-pointer text-mainGreen font-medium hover:text-mainGreen/80"
-                        >
-                          Upload Farm Photo
-                        </label>
-                      </div>
-                      <p className="text-xs text-gray-400">Max 10 MB files are allowed</p>
-                      {values.farmPhoto && (
-                        <p className="text-sm text-mainGreen">✓ {values.farmPhoto.name}</p>
-                      )}
-                    </div>
-                  </div>
-                  <ErrorMessage name="farmPhoto" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <FileField
+                  name="farmPhoto"
+                  label="Farm Photo"
+                  description="Take a clear photo of your farm or crops to show buyers your growing operation"
+                  onFileChange={handleFileUpload}
+                  currentFile={values.farmPhoto}
+                  required
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Farmer Photo *</label>
-                  <p className="text-xs text-gray-500 mb-3">A clear photo of yourself for profile verification and trust building</p>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <div className="space-y-2">
-                      <div className="text-gray-400">👤</div>
-                      <div>
-                        <input
-                          type="file"
-                          id="farmerPhoto"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleFileUpload(e, setFieldValue, 'farmerPhoto')}
-                        />
-                        <label
-                          htmlFor="farmerPhoto"
-                          className="cursor-pointer text-mainGreen font-medium hover:text-mainGreen/80"
-                        >
-                          Upload Profile Picture
-                        </label>
-                      </div>
-                      <p className="text-xs text-gray-400">Max 10 MB files are allowed</p>
-                      {values.farmerPhoto && (
-                        <p className="text-sm text-mainGreen">✓ {values.farmerPhoto.name}</p>
-                      )}
-                    </div>
-                  </div>
-                  <ErrorMessage name="farmerPhoto" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <FileField
+                  name="farmerPhoto"
+                  label="Farmer Photo"
+                  description="A clear photo of yourself for profile verification and trust building"
+                  icon={<span className="text-gray-400">👤</span>}
+                  onFileChange={handleFileUpload}
+                  currentFile={values.farmerPhoto}
+                  required
+                />
               </div>
             )}
 
             {/* Step 5: Payment Setup */}
             {currentStep === 4 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">💳</span>
-                  <h2 className="text-lg font-medium">Payment Setup</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Payment Setup</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Set up how you'd like to receive payments for your crops.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Set up how you'd like to receive payments for your crops.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
-                  <Field
-                    as="select"
-                    name="bankName"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select preferred bank</option>
-                    <option value="First Bank of Nigeria">First Bank of Nigeria</option>
-                    <option value="Zenith Bank">Zenith Bank</option>
-                    <option value="GTBank">GTBank</option>
-                    <option value="Access Bank">Access Bank</option>
-                    <option value="UBA">UBA</option>
-                    <option value="Fidelity Bank">Fidelity Bank</option>
-                    <option value="FCMB">FCMB</option>
-                    <option value="Stanbic IBTC">Stanbic IBTC</option>
-                  </Field>
-                  <ErrorMessage name="bankName" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="bankName"
+                  label="Bank Name"
+                  placeholder="Select preferred bank"
+                  options={bankOptions}
+                  required
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
-                  <Field
-                    name="accountNumber"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your account number"
-                  />
-                  <ErrorMessage name="accountNumber" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <TextField
+                  name="accountNumber"
+                  label="Account Number"
+                  placeholder="Enter your account number"
+                  required
+                />
               </div>
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6">
+            <div className="flex flex-col sm:flex-row justify-between pt-4 sm:pt-6 gap-3 sm:gap-0">
               {currentStep > 0 && (
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 border bg-white border-gray-300 rounded-md text-mainGreen hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors order-2 sm:order-1"
                 >
-                  ← Previous
+                  <ChevronLeft className="w-4 h-4"/> Previous
                 </button>
               )}
               
-              <div className="ml-auto">
+              <div className={`${currentStep === 0 ? 'w-full' : ''} sm:ml-auto order-1 sm:order-2`}>
                 {currentStep < steps.length - 1 ? (
                   <button
                     type="button"
                     onClick={() => handleNext(validateForm, values)}
-                    className="px-6 py-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors"
                   >
-                    Proceed →
+                    Proceed <ChevronRight className="w-4 h-4"/>
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-6 py-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base transition-colors"
                   >
-                    {isSubmitting ? 'Completing...' : 'Complete Registration'}
+                    {isSubmitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                          <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        Completing...
+                      </span>
+                    ) : (
+                      'Complete Registration'
+                    )}
                   </button>
                 )}
               </div>
             </div>
 
             {/* Footer Links */}
-            <div className="text-center pt-6 border-t border-gray-200">
+            <div className="text-center pt-4 sm:pt-6 border-t border-gray-200">
               {currentStep === 0 && (
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Already have an account?{' '}
-                  <Link href="login-farmer" className="text-mainGreen hover:text-mainGreen/80 font-medium">
+                  <Link href="login-farmer" className="text-mainGreen hover:text-mainGreen/80 font-medium transition-colors">
                     Login
                   </Link>
                 </p>
               )}
               <div className="mt-2">
-                <Link href="/" className="text-sm text-mainGreen hover:text-mainGreen/80">
+                <Link href="/" className="underline font-semibold text-mainGreen hover:text-mainGreen/80 text-xs sm:text-sm transition-colors inline-block hover:scale-105">
                   Back to Homepage
                 </Link>
               </div>

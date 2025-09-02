@@ -30,73 +30,96 @@ const Footer: React.FC<FooterProps> = ({
   companyDescription = defaultDescription
 }) => {
   return (
-    <footer className="bg-mainGreen text-white py-12 px-6">
+    <footer className="bg-mainGreen text-white pt-8 sm:pt-12 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-10 gap-8">
+        {/* Main footer content grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-10 gap-6 sm:gap-8">
           {/* Company Info Section */}
-          <div className="lg:col-span-4">
+          <div className="sm:col-span-2 lg:col-span-4">
             {/* Logo */}
-            <div className="flex items-center mb-4">
-           <Logo/>
-              <h2 className="text-2xl font-bold">Oko Agro</h2>
+            <div className="flex items-center mb-4 sm:mb-6">
+              <Logo/>
+              <h2 className="text-xl sm:text-2xl font-bold ml-2">Oko Agro</h2>
             </div>
 
             {/* Description */}
-            <p className="text-green-100 mb-6 text-sm leading-relaxed">
+            <p className="text-green-100 mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
               {companyDescription}
             </p>
 
             {/* Contact Information */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <div className="flex items-center">
-                <Mail className="w-4 h-4 mr-3 text-green-200" />
+                <Mail className="w-4 h-4 mr-2 sm:mr-3 text-green-200 flex-shrink-0" />
                 <a 
                   href={`mailto:${contactInfo.email}`}
-                  className="text-green-100 hover:text-white transition-colors text-sm"
+                  className="text-green-100 hover:text-white transition-colors text-sm sm:text-base break-all sm:break-normal"
                 >
                   {contactInfo.email}
                 </a>
               </div>
               
               <div className="flex items-center">
-                <Phone className="w-4 h-4 mr-3 text-green-200" />
+                <Phone className="w-4 h-4 mr-2 sm:mr-3 text-green-200 flex-shrink-0" />
                 <a 
                   href={`tel:${contactInfo.phone}`}
-                  className="text-green-100 hover:text-white transition-colors text-sm"
+                  className="text-green-100 hover:text-white transition-colors text-sm sm:text-base"
                 >
                   {contactInfo.phone}
                 </a>
               </div>
               
               <div className="flex items-center">
-                <MapPin className="w-4 h-4 mr-3 text-green-200" />
-                <span className="text-green-100 text-sm">
+                <MapPin className="w-4 h-4 mr-2 sm:mr-3 text-green-200 flex-shrink-0" />
+                <span className="text-green-100 text-sm sm:text-base">
                   {contactInfo.location}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Footer Sections */}
-          {sections.map((section, index) => (
-            <div key={index} className="lg:col-span-2">
-              <h3 className="text-lg font-semibold mb-4 text-white">
-                {section.title}
-              </h3>
-              <ul className="space-y-3">
-                {section.links.map((link, linkIndex) => (
-                  <li key={linkIndex}>
-                    <a
-                      href={link.href}
-                      className="text-green-100 hover:text-white transition-colors text-sm inline-block"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+          {/* Footer Sections - Responsive layout */}
+          <div className="sm:col-span-2 lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6 sm:gap-8">
+            {sections.map((section, index) => (
+              <div key={index} className="">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">
+                  {section.title}
+                </h3>
+                <ul className="space-y-2 sm:space-y-3">
+                  {section.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <a
+                        href={link.href}
+                        className="text-green-100 hover:text-white transition-colors text-sm sm:text-base inline-block"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Copyright section */}
+        <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-green-700">
+          <div className="flex flex-col sm:flex-row justify-between items-center">
+            <p className="text-green-100 text-xs sm:text-sm text-center sm:text-left mb-2 sm:mb-0">
+              © {new Date().getFullYear()} Oko Agro Solutions. All rights reserved.
+            </p>
+            <div className="flex space-x-4">
+              <a href="/privacy" className="text-green-100 hover:text-white text-xs sm:text-sm transition-colors">
+                Privacy
+              </a>
+              <a href="/terms" className="text-green-100 hover:text-white text-xs sm:text-sm transition-colors">
+                Terms
+              </a>
+              <a href="/cookies" className="text-green-100 hover:text-white text-xs sm:text-sm transition-colors">
+                Cookies
+              </a>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </footer>

@@ -1,28 +1,38 @@
 import React from "react";
 import Logo from "../assets/icons/Logo";
 import Tractor from "../assets/icons/Tractor";
-import FarmerRegistrationForm from "../components/forms/FarmerOnboarding";
 import Link from "next/link";
-import FarmerLoginForm from "../components/forms/LoginFarmer";
 import ProcessorLoginForm from "../components/forms/LoginProcessor";
 
 export default function page() {
   return (
-    <div className="min-h-screen login-processor-bg px-[7%]">
-      <div className="py-5 flex justify-between items-center">
-        <div className="flex gap-2 text-white items-center">
-          {" "}
-          <Logo /> Òkó Agro{" "}
-        </div>
-         <button className="  text-mainGreen px-3 py-2 rounded bg-white"> <Link href={'/login-farmer'} className="flex gap-3"><Tractor/>  Login as Farmer</Link> </button>
+    <div className="min-h-screen register-processor px-4 sm:px-6 lg:px-[7%]">
+      {/* Header */}
+      <div className="py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <Link href="/" className="flex gap-2 text-white items-center">
+          <Logo /> Òkó Agro
+        </Link>
+        
+        <button className="text-mainGreen px-3 py-2 rounded bg-white w-full sm:w-auto">
+          <Link href={'/login-farmer'} className="flex gap-3 items-center justify-center">
+            <Tractor/> Login as Farmer
+          </Link>
+        </button>
       </div>
-      <div className="grid grid-cols-2 py-12 gap-5">
-        <div className="bg-mainGreen/40 text-white p-6 col-span-1 self-end">
-            <p className="text-3xl">Welcome Back, Processor</p>
-            <p className="mt-6">Log in to discover certified farm produce, manage purchase orders, and connect directly with trusted farmers through the Oko Agro marketplace.</p>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 py-8 lg:py-12 gap-6 lg:gap-5 max-w-7xl mx-auto">
+        {/* Welcome Section */}
+        <div className="bg-mainGreen/70 text-white p-6 lg:p-8 md:block hidden rounded-lg lg:rounded-none lg:col-span-1 lg:self-end order-2 lg:order-1">
+          <p className="text-2xl sm:text-3xl font-semibold mb-4">Welcome Back, Processor 🏭</p>
+          <p className="text-sm sm:text-base leading-relaxed">
+            Log in to discover certified farm produce, manage purchase orders, and connect directly with trusted farmers through the Oko Agro marketplace.
+          </p>
         </div>
-        <div className=" col-span-1">
-            <ProcessorLoginForm/>
+
+        {/* Login Form Section */}
+        <div className="col-span-1 order-1 lg:order-2">
+          <ProcessorLoginForm/>
         </div>
       </div>
     </div>

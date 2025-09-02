@@ -5,12 +5,31 @@ import ServicesSection from './Gallery'
 
 export default function Choose() {
   return (
-    <div className='py-12 px-[7%] relative'>
-        <div className='absolute -top-10 right-[5%]'>
-            <Image src={leaf} alt="leaf" width={250} height={100}/>
+    <div className='py-8 sm:py-12 px-4 sm:px-6 lg:px-[7%] relative'>
+        {/* Responsive leaf positioning */}
+        <div className='absolute -top-6 sm:-top-10 right-2 sm:right-4 lg:right-[5%]'>
+            <Image 
+              src={leaf} 
+              alt="leaf" 
+              width={150} 
+              height={60}
+              className='sm:w-[200px] sm:h-[80px] lg:w-[250px] lg:h-[100px]'
+            />
         </div>
-        <p className='text-3xl text-mainGreen'>Why Choose Oko Agro Solutions</p>
-        <p className='mt-4 text-lg'>Our platform addresses the core challenges in African agricultural supply chains <br /> through technology and quality assurance.</p>
+        
+        {/* Responsive heading */}
+        <p className='text-xl sm:text-2xl lg:text-3xl text-mainGreen font-semibold'>
+          Why Choose Oko Agro Solutions
+        </p>
+        
+        {/* Responsive description */}
+        <p className='mt-3 sm:mt-4 text-base sm:text-lg leading-relaxed'>
+          Our platform addresses the core challenges in African agricultural supply chains 
+          <span className='hidden sm:inline'><br /></span>
+          <span className='sm:hidden'> </span>
+          through technology and quality assurance.
+        </p>
+       
        <ServicesSection/>
     </div>
   )

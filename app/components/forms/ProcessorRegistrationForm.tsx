@@ -1,9 +1,19 @@
 'use client'
 import React, { useState } from 'react';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik } from 'formik';
 import * as Yup from 'yup';
 import Leaf from '@/app/assets/icons/Leaf';
 import Link from 'next/link';
+import { 
+  TextField, 
+  SelectField, 
+  FileField,
+  countryOptions,
+  stateOptions,
+  cropsOptions,
+  bankOptions
+} from './FormFields'; // Import your reusable components
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // TypeScript interfaces
 interface ProcessorFormValues {
@@ -62,6 +72,49 @@ const initialValues: ProcessorFormValues = {
   accountNumber: '',
   preferredPaymentTerms: '',
 };
+
+// Additional option arrays specific to processor form
+const capacityUnitOptions = [
+  { value: "Tons per day", label: "Tons per day" },
+  { value: "Tons per week", label: "Tons per week" },
+  { value: "Tons per month", label: "Tons per month" },
+  { value: "Kilograms per day", label: "Kilograms per day" }
+];
+
+const facilityTypeOptions = [
+  { value: "Small-scale processing unit", label: "Small-scale processing unit" },
+  { value: "Medium-scale processing plant", label: "Medium-scale processing plant" },
+  { value: "Large-scale industrial facility", label: "Large-scale industrial facility" },
+  { value: "Mobile processing unit", label: "Mobile processing unit" },
+  { value: "Cooperative processing center", label: "Cooperative processing center" }
+];
+
+const certificationOptions = [
+  { value: "NAFDAC Registration", label: "NAFDAC Registration" },
+  { value: "ISO 22000", label: "ISO 22000 (Food Safety Management)" },
+  { value: "HACCP", label: "HACCP (Hazard Analysis Critical Control Points)" },
+  { value: "Organic Certification", label: "Organic Certification" },
+  { value: "Fair Trade Certification", label: "Fair Trade Certification" },
+  { value: "SON Standards", label: "SON (Standards Organization of Nigeria)" },
+  { value: "Halal Certification", label: "Halal Certification" },
+  { value: "None yet (planning to obtain)", label: "None yet (planning to obtain)" }
+];
+
+const qualityStandardsOptions = [
+  { value: "Premium grade only", label: "Premium grade only" },
+  { value: "Premium and standard grade", label: "Premium and standard grade" },
+  { value: "All grades accepted", label: "All grades accepted" },
+  { value: "Custom specifications", label: "Custom specifications" }
+];
+
+const paymentTermsOptions = [
+  { value: "Immediate payment on delivery", label: "Immediate payment on delivery" },
+  { value: "Payment within 7 days", label: "Payment within 7 days" },
+  { value: "Payment within 14 days", label: "Payment within 14 days" },
+  { value: "Payment within 30 days", label: "Payment within 30 days" },
+  { value: "50% advance, 50% on delivery", label: "50% advance, 50% on delivery" },
+  { value: "30% advance, 70% on delivery", label: "30% advance, 70% on delivery" }
+];
 
 // Validation schemas for each step
 const stepValidationSchemas = [
@@ -169,16 +222,16 @@ const ProcessorRegistrationForm: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white/80 rounded-lg shadow-lg">
-      <div className="mb-8 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-mainGreen mb-6">Processor Registration</h1>
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white/80 rounded-lg shadow-lg">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-semibold text-mainGreen mb-4 sm:mb-6">Processor Registration</h1>
         
         {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto pb-2">
           {steps.map((step, index) => (
-            <div key={index} className="flex items-center justify-center gap-4">
+            <div key={index} className="flex items-center justify-center gap-2 sm:gap-4 min-w-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium flex-shrink-0 ${
                   index <= currentStep
                     ? 'bg-mainGreen/50 text-mainGreen'
                     : 'bg-gray-200 text-mainGreen'
@@ -186,8 +239,21 @@ const ProcessorRegistrationForm: React.FC = () => {
               >
                 {index + 1}
               </div>
+              {/* Hide step names on mobile, show abbreviated versions on small screens */}
+              <span className={`hidden sm:block text-xs sm:text-sm font-medium whitespace-nowrap ${
+                index <= currentStep ? 'text-mainGreen' : 'text-gray-500'
+              }`}>
+                {step}
+              </span>
             </div>
           ))}
+        </div>
+        
+        {/* Current step indicator for mobile */}
+        <div className="block sm:hidden text-center mb-4">
+          <span className="text-sm font-medium text-mainGreen">
+            Step {currentStep + 1} of {steps.length}: {steps[currentStep]}
+          </span>
         </div>
       </div>
 
@@ -198,111 +264,76 @@ const ProcessorRegistrationForm: React.FC = () => {
         enableReinitialize
       >
         {({ values, setFieldValue, validateForm, errors, touched }) => (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Step 1: Basic Information */}
             {currentStep === 0 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">👤</span>
-                  <h2 className="text-lg font-medium">Basic Information</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Basic Information</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Let's start with your basic details. This helps us create your processor profile.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Let's start with your basic details. This helps us create your processor profile.</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                    <Field
-                      name="firstName"
-                      type="text"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter your first name"
-                    />
-                    <ErrorMessage name="firstName" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                    <Field
-                      name="lastName"
-                      type="text"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter your last name"
-                    />
-                    <ErrorMessage name="lastName" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
-                    <Field
-                      name="email"
-                      type="email"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter your email address"
-                    />
-                    <ErrorMessage name="email" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm min-w-0 flex-shrink-0">
-                        +234
-                      </span>
-                      <Field
-                        name="phoneNumber"
-                        type="tel"
-                        className="w-full min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-r-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-                    <ErrorMessage name="phoneNumber" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
-                </div>
-
-                <div className='mb-6'>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Location *</label>
-                  <Field
-                    as="textarea"
-                    name="companyLocation"
-                    rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your company location"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="firstName"
+                    label="First Name"
+                    placeholder="Enter your first name"
+                    required
                   />
-                  <ErrorMessage name="companyLocation" component="div" className="text-red-500 text-xs mt-1" />
+                  
+                  <TextField
+                    name="lastName"
+                    label="Last Name"
+                    placeholder="Enter your last name"
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
-                    <Field
-                      as="select"
-                      name="country"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    >
-                      <option value="" className="text-[#A8A8A8]">Select country</option>
-                      <option value="Nigeria">Nigeria</option>
-                      <option value="Ghana">Ghana</option>
-                      <option value="Kenya">Kenya</option>
-                    </Field>
-                    <ErrorMessage name="country" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="email"
+                    label="Email Address"
+                    type="email"
+                    placeholder="Enter your email address"
+                    required
+                  />
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                    <Field
-                      as="select"
-                      name="state"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    >
-                      <option value="" className="text-[#A8A8A8]">Select state</option>
-                      <option value="Lagos">Lagos</option>
-                      <option value="Abuja">Abuja</option>
-                      <option value="Ogun">Ogun</option>
-                    </Field>
-                    <ErrorMessage name="state" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
+                  <TextField
+                    name="phoneNumber"
+                    label="Phone Number"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    prefix="+234"
+                    required
+                  />
+                </div>
+
+                <TextField
+                  name="companyLocation"
+                  label="Company Location"
+                  as="textarea"
+                  rows={3}
+                  placeholder="Enter your company location"
+                  required
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <SelectField
+                    name="country"
+                    label="Country"
+                    placeholder="Select country"
+                    options={countryOptions}
+                    required
+                  />
+                  
+                  <SelectField
+                    name="state"
+                    label="State"
+                    placeholder="Select state"
+                    options={stateOptions}
+                    required
+                  />
                 </div>
               </div>
             )}
@@ -310,84 +341,49 @@ const ProcessorRegistrationForm: React.FC = () => {
             {/* Step 2: Company Details */}
             {currentStep === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">🏢</span>
-                  <h2 className="text-lg font-medium">Company Details</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Company Details</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Tell us about your processing company and operations.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Tell us about your processing company and operations.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
-                  <Field
-                    name="companyName"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your company name"
+                <TextField
+                  name="companyName"
+                  label="Company Name"
+                  placeholder="Enter your company name"
+                  required
+                />
+
+                <TextField
+                  name="businessRegistrationNumber"
+                  label="Business Registration Number"
+                  placeholder="Enter your business registration number"
+                  required
+                />
+
+                <SelectField
+                  name="cropsProcessed"
+                  label="Crops you process (Select all that apply)"
+                  options={cropsOptions}
+                  multiple={true}
+                  required
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="processingCapacity"
+                    label="Processing Capacity"
+                    placeholder="Enter processing capacity"
+                    required
                   />
-                  <ErrorMessage name="companyName" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Registration Number *</label>
-                  <Field
-                    name="businessRegistrationNumber"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your business registration number"
-                  />
-                  <ErrorMessage name="businessRegistrationNumber" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Crops you process (Select all that apply) *</label>
-                  <Field
-                    as="select"
-                    name="cropsProcessed"
-                    multiple
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    size={4}
-                  >
-                    <option value="Rice">Rice</option>
-                    <option value="Maize">Maize</option>
-                    <option value="Cassava">Cassava</option>
-                    <option value="Yam">Yam</option>
-                    <option value="Plantain">Plantain</option>
-                    <option value="Tomato">Tomato</option>
-                    <option value="Pepper">Pepper</option>
-                    <option value="Onion">Onion</option>
-                    <option value="Cocoa">Cocoa</option>
-                    <option value="Palm Oil">Palm Oil</option>
-                  </Field>
-                  <ErrorMessage name="cropsProcessed" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Processing Capacity *</label>
-                    <Field
-                      name="processingCapacity"
-                      type="text"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter processing capacity"
-                    />
-                    <ErrorMessage name="processingCapacity" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Capacity Unit *</label>
-                    <Field
-                      as="select"
-                      name="capacityUnit"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    >
-                      <option value="" className="text-[#A8A8A8]">Select Unit</option>
-                      <option value="Tons per day">Tons per day</option>
-                      <option value="Tons per week">Tons per week</option>
-                      <option value="Tons per month">Tons per month</option>
-                      <option value="Kilograms per day">Kilograms per day</option>
-                    </Field>
-                    <ErrorMessage name="capacityUnit" component="div" className="text-red-500 text-xs mt-1" />
-                  </div>
+                  <SelectField
+                    name="capacityUnit"
+                    label="Capacity Unit"
+                    placeholder="Select Unit"
+                    options={capacityUnitOptions}
+                    required
+                  />
                 </div>
               </div>
             )}
@@ -395,259 +391,173 @@ const ProcessorRegistrationForm: React.FC = () => {
             {/* Step 3: Facility Information */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">🏭</span>
-                  <h2 className="text-lg font-medium">Facility Information</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Facility Information</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Provide details about your processing facility and capabilities.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Provide details about your processing facility and capabilities.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Facility Type *</label>
-                  <Field
-                    as="select"
-                    name="facilityType"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select facility type</option>
-                    <option value="Small-scale processing unit">Small-scale processing unit</option>
-                    <option value="Medium-scale processing plant">Medium-scale processing plant</option>
-                    <option value="Large-scale industrial facility">Large-scale industrial facility</option>
-                    <option value="Mobile processing unit">Mobile processing unit</option>
-                    <option value="Cooperative processing center">Cooperative processing center</option>
-                  </Field>
-                  <ErrorMessage name="facilityType" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="facilityType"
+                  label="Facility Type"
+                  placeholder="Select facility type"
+                  options={facilityTypeOptions}
+                  required
+                />
+
+                <SelectField
+                  name="certifications"
+                  label="Certifications & Standards (Select all that apply)"
+                  options={certificationOptions}
+                  multiple={true}
+                  required
+                />
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Certifications & Standards (Select all that apply) *</label>
-                  <Field
-                    as="select"
-                    name="certifications"
-                    multiple
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    size={5}
-                  >
-                    <option value="NAFDAC Registration">NAFDAC Registration</option>
-                    <option value="ISO 22000">ISO 22000 (Food Safety Management)</option>
-                    <option value="HACCP">HACCP (Hazard Analysis Critical Control Points)</option>
-                    <option value="Organic Certification">Organic Certification</option>
-                    <option value="Fair Trade Certification">Fair Trade Certification</option>
-                    <option value="SON Standards">SON (Standards Organization of Nigeria)</option>
-                    <option value="Halal Certification">Halal Certification</option>
-                    <option value="None yet (planning to obtain)">None yet (planning to obtain)</option>
-                  </Field>
-                  <ErrorMessage name="certifications" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Storage Capacity *</label>
-                  <Field
+                  <TextField
                     name="storageCapacity"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                    label="Storage Capacity"
                     placeholder="e.g., 500 tons"
+                    required
                   />
                   <p className="text-xs text-gray-500 mt-1">This helps farmers understand your capacity to handle their produce</p>
-                  <ErrorMessage name="storageCapacity" component="div" className="text-red-500 text-xs mt-1" />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quality Standards *</label>
-                  <Field
-                    as="select"
-                    name="qualityStandards"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select quality requirements</option>
-                    <option value="Premium grade only">Premium grade only</option>
-                    <option value="Premium and standard grade">Premium and standard grade</option>
-                    <option value="All grades accepted">All grades accepted</option>
-                    <option value="Custom specifications">Custom specifications</option>
-                  </Field>
-                  <ErrorMessage name="qualityStandards" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="qualityStandards"
+                  label="Quality Standards"
+                  placeholder="Select quality requirements"
+                  options={qualityStandardsOptions}
+                  required
+                />
               </div>
             )}
 
             {/* Step 4: Business Verification */}
             {currentStep === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">📄</span>
-                  <h2 className="text-lg font-medium">Business Verification</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Business Verification</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Upload documents to verify your business and build trust with farmers.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Upload documents to verify your business and build trust with farmers.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Business License/Registration Certificate *</label>
-                  <p className="text-xs text-gray-500 mb-3">Upload your business registration certificate or license to verify your company</p>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <div className="space-y-2">
-                      <div className="text-gray-400">📄</div>
-                      <div>
-                        <input
-                          type="file"
-                          id="businessLicense"
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          onChange={(e) => handleFileUpload(e, setFieldValue, 'businessLicense')}
-                        />
-                        <label
-                          htmlFor="businessLicense"
-                          className="cursor-pointer text-mainGreen font-medium hover:text-mainGreen/80"
-                        >
-                          Upload Business License
-                        </label>
-                      </div>
-                      <p className="text-xs text-gray-400">Max 10 MB files are allowed (PDF, JPG, PNG)</p>
-                      {values.businessLicense && (
-                        <p className="text-sm text-mainGreen">✓ {values.businessLicense.name}</p>
-                      )}
-                    </div>
-                  </div>
-                  <ErrorMessage name="businessLicense" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <FileField
+                  name="businessLicense"
+                  label="Business License/Registration Certificate"
+                  description="Upload your business registration certificate or license to verify your company"
+                  icon={<span className="text-gray-400">📄</span>}
+                  accept="image/*,.pdf"
+                  maxSize="Max 10 MB files are allowed (PDF, JPG, PNG)"
+                  onFileChange={handleFileUpload}
+                  currentFile={values.businessLicense}
+                  required
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Facility Photo *</label>
-                  <p className="text-xs text-gray-500 mb-3">A clear photo of your processing facility to show farmers your operations</p>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <div className="space-y-2">
-                      <div className="text-gray-400">🏭</div>
-                      <div>
-                        <input
-                          type="file"
-                          id="facilityPhoto"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleFileUpload(e, setFieldValue, 'facilityPhoto')}
-                        />
-                        <label
-                          htmlFor="facilityPhoto"
-                          className="cursor-pointer text-mainGreen font-medium hover:text-mainGreen/80"
-                        >
-                          Upload Facility Photo
-                        </label>
-                      </div>
-                      <p className="text-xs text-gray-400">Max 10 MB files are allowed</p>
-                      {values.facilityPhoto && (
-                        <p className="text-sm text-mainGreen">✓ {values.facilityPhoto.name}</p>
-                      )}
-                    </div>
-                  </div>
-                  <ErrorMessage name="facilityPhoto" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <FileField
+                  name="facilityPhoto"
+                  label="Facility Photo"
+                  description="A clear photo of your processing facility to show farmers your operations"
+                  icon={<span className="text-gray-400">🏭</span>}
+                  onFileChange={handleFileUpload}
+                  currentFile={values.facilityPhoto}
+                  required
+                />
               </div>
             )}
 
             {/* Step 5: Payment & Contract Setup */}
             {currentStep === 4 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <span className="text-gray-600">💳</span>
-                  <h2 className="text-lg font-medium">Payment & Contract Setup</h2>
+                  <h2 className="text-base sm:text-lg font-medium">Payment & Contract Setup</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-6">Set up your payment details and preferred contract terms.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Set up your payment details and preferred contract terms.</p>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
-                  <Field
-                    as="select"
-                    name="bankName"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select preferred bank</option>
-                    <option value="First Bank of Nigeria">First Bank of Nigeria</option>
-                    <option value="Zenith Bank">Zenith Bank</option>
-                    <option value="GTBank">GTBank</option>
-                    <option value="Access Bank">Access Bank</option>
-                    <option value="UBA">UBA</option>
-                    <option value="Fidelity Bank">Fidelity Bank</option>
-                    <option value="FCMB">FCMB</option>
-                    <option value="Stanbic IBTC">Stanbic IBTC</option>
-                  </Field>
-                  <ErrorMessage name="bankName" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+                <SelectField
+                  name="bankName"
+                  label="Bank Name"
+                  placeholder="Select preferred bank"
+                  options={bankOptions}
+                  required
+                />
+
+                <TextField
+                  name="accountNumber"
+                  label="Account Number"
+                  placeholder="Enter your account number"
+                  required
+                />
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
-                  <Field
-                    name="accountNumber"
-                    type="text"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                    placeholder="Enter your account number"
-                  />
-                  <ErrorMessage name="accountNumber" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
-
-               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Payment Terms *</label>
-                  <Field
-                    as="select"
+                  <SelectField
                     name="preferredPaymentTerms"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                  >
-                    <option value="" className="text-[#A8A8A8]">Select payment terms</option>
-                    <option value="Immediate payment on delivery">Immediate payment on delivery</option>
-                    <option value="Payment within 7 days">Payment within 7 days</option>
-                    <option value="Payment within 14 days">Payment within 14 days</option>
-                    <option value="Payment within 30 days">Payment within 30 days</option>
-                    <option value="50% advance, 50% on delivery">50% advance, 50% on delivery</option>
-                    <option value="30% advance, 70% on delivery">30% advance, 70% on delivery</option>
-                  </Field>
+                    label="Preferred Payment Terms"
+                    placeholder="Select payment terms"
+                    options={paymentTermsOptions}
+                    required
+                  />
                   <p className="text-xs text-gray-500 mt-1">This helps farmers understand when they'll receive payment</p>
-                  <ErrorMessage name="preferredPaymentTerms" component="div" className="text-red-500 text-xs mt-1" />
                 </div>
               </div>
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6">
+            <div className="flex flex-col sm:flex-row justify-between pt-4 sm:pt-6 gap-3 sm:gap-0">
               {currentStep > 0 && (
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 border bg-white border-gray-300 rounded-md text-mainGreen hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors order-2 sm:order-1"
                 >
-                  ← Previous
+                  <ChevronLeft className="w-4 h-4"/> Previous
                 </button>
               )}
               
-              <div className="ml-auto">
+              <div className={`${currentStep === 0 ? 'w-full' : ''} sm:ml-auto order-1 sm:order-2`}>
                 {currentStep < steps.length - 1 ? (
                   <button
                     type="button"
                     onClick={() => handleNext(validateForm, values)}
-                    className="px-6 py-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/80 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors"
                   >
-                    Proceed →
+                    Proceed <ChevronRight className="w-4 h-4"/>
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-6 py-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/80 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base transition-colors"
                   >
-                    {isSubmitting ? 'Completing...' : 'Complete Registration'}
+                    {isSubmitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                          <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        Completing...
+                      </span>
+                    ) : (
+                      'Complete Registration'
+                    )}
                   </button>
                 )}
               </div>
             </div>
 
             {/* Footer Links */}
-            <div className="text-center pt-6 border-t border-gray-200">
+            <div className="text-center pt-4 sm:pt-6 border-t border-gray-200">
               {currentStep === 0 && (
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Already have an account?{' '}
-                  <Link href="login-processor" className="text-mainGreen hover:text-mainGreen/80 font-medium">
+                  <Link href="login-processor" className="text-mainGreen hover:text-mainGreen/80 font-medium transition-colors">
                     Login
                   </Link>
                 </p>
               )}
               <div className="mt-2">
-                <Link href="/" className="text-sm text-mainGreen hover:text-mainGreen/80">
+                <Link href="/" className="underline font-semibold text-mainGreen hover:text-mainGreen/80 text-xs sm:text-sm transition-colors inline-block hover:scale-105">
                   Back to Homepage
                 </Link>
               </div>
