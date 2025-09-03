@@ -26,7 +26,7 @@ export default function page() {
         <div className="bg-mainGreen/70 text-white p-6 lg:p-8 md:block hidden rounded-lg lg:rounded-none lg:col-span-1 lg:self-end order-2 lg:order-1">
           <p className="text-2xl sm:text-3xl font-semibold mb-4">Reset Your Password</p>
           <p className="text-sm sm:text-base leading-relaxed">
-            No worries! Enter your registered email address and we'll send you a verification code to reset your password securely.
+            No worries! Enter your registered email address and we&apos;ll send you a verification code to reset your password securely.
           </p>
         </div>
 

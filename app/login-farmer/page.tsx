@@ -1,7 +1,6 @@
 import React from "react";
 import Logo from "../assets/icons/Logo";
 import Tractor from "../assets/icons/Tractor";
-import FarmerRegistrationForm from "../components/forms/FarmerOnboarding";
 import Link from "next/link";
 import FarmerLoginForm from "../components/forms/LoginFarmer";
 

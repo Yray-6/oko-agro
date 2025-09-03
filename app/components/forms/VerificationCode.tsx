@@ -123,7 +123,7 @@ const VerifyForm: React.FC = () => {
         {/* Resend Code Link */}
         <div className="text-center">
           <p className="text-xs sm:text-sm text-gray-600">
-            Didn't receive the code?{' '}
+            Didn&apos;t receive the code?{' '}
             <button 
               type="button"
               onClick={handleResendCode}

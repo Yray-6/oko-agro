@@ -47,7 +47,7 @@ const ProcessorLoginForm: React.FC = () => {
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
       >
-        {({ values, isValid, touched }) => (
+        {() => (
           <Form className="space-y-4 sm:space-y-6">
             {/* Email Field */}
             <div>
@@ -128,7 +128,7 @@ const ProcessorLoginForm: React.FC = () => {
             {/* Sign Up Link */}
             <div className="text-center pt-3 sm:pt-4">
               <p className="text-xs sm:text-sm text-gray-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link 
                   href="/register-processor" 
                   className="text-mainGreen hover:text-mainGreen/80 font-medium transition-colors"

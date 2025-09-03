@@ -3,6 +3,7 @@ import Logo from './assets/icons/Logo';
 
 
 const AnimatedLoading: React.FC = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loadingText, setLoadingText] = useState('Loading');
   
   useEffect(() => {

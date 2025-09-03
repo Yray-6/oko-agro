@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Field, ErrorMessage } from 'formik';
 import { ChevronDown } from 'lucide-react';
@@ -174,7 +175,11 @@ export const FileField: React.FC<FileFieldProps> = ({
       )}
       
       <Field name={name}>
-        {({ field, form: { setFieldValue } }) => (
+        {({
+          form: { setFieldValue }
+        }: {
+          form: { setFieldValue: (field: string, value: any) => void }
+        }) => (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
             <div className="space-y-2">
               <div>{icon}</div>

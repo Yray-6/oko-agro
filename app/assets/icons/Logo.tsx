@@ -6,6 +6,7 @@ interface LogoProps {
   className?: string;
   fillColor?: string;
   circleColor?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

@@ -1,7 +1,6 @@
 import React from 'react'
 import settings from '@/app/assets/images/settings-01.png'
 import Image from 'next/image'
-import ServicesSection from './Gallery'
 import JourneyCards from './JourneyCards'
 
 export default function HowItWorks() {

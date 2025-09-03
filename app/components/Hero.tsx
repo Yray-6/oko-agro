@@ -243,13 +243,13 @@ export default function Hero() {
             <Link href={"/login-farmer"} className="w-full sm:w-auto">
               <button className="w-full sm:w-auto flex gap-3 justify-center items-center text-white px-6 py-3 rounded bg-mainGreen hover:bg-green-600 transition-colors">
                 <Leaf />
-                <span>I'm a Farmer</span>
+                <span>I&apos;m a Farmer</span>
               </button>
             </Link>
             <Link href={"/login-processor"} className="w-full sm:w-auto">
               <button className="w-full sm:w-auto flex gap-3 justify-center items-center text-mainGreen px-6 py-3 rounded bg-white hover:bg-gray-100 transition-colors">
                 <Tractor />
-                <span>I'm a Processor</span>
+                <span>I&apos;m a Processor</span>
               </button>
             </Link>
           </div>

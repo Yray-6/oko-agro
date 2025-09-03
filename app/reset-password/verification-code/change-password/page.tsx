@@ -26,7 +26,7 @@ export default function page() {
         <div className="bg-mainGreen/70 text-white p-6 lg:p-8 md:block hidden rounded-lg lg:rounded-none lg:col-span-1 lg:self-end order-2 lg:order-1">
           <p className="text-2xl sm:text-3xl font-semibold mb-4">Create Your New Password</p>
           <p className="text-sm sm:text-base leading-relaxed">
-            You're almost done! Create a strong, secure password for your account. Make sure it's something you'll remember but others can't easily guess.
+            You&apos;re almost done! Create a strong, secure password for your account. Make sure it&apos;s something you&apos;ll remember but others can&apos;t easily guess.
           </p>
         </div>
 

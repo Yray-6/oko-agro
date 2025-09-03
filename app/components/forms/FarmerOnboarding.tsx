@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 import React, { useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
@@ -127,6 +129,7 @@ const FarmerRegistrationForm: React.FC = () => {
     'Payment Setup'
   ];
 
+
   const handleNext = async (validateForm: () => Promise<any>, values: FormValues) => {
     const errors = await validateForm();
     const currentStepErrors = Object.keys(errors).filter(key => {
@@ -227,7 +230,7 @@ const FarmerRegistrationForm: React.FC = () => {
                   <span className="text-gray-600">👤</span>
                   <h2 className="text-base sm:text-lg font-medium">Basic Information</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Let's start with your basic details. This helps us create your farmer profile.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Let&apos;s start with your basic details. This helps us create your farmer profile.</p>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <TextField
@@ -418,7 +421,7 @@ const FarmerRegistrationForm: React.FC = () => {
                   <span className="text-gray-600">💳</span>
                   <h2 className="text-base sm:text-lg font-medium">Payment Setup</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Set up how you'd like to receive payments for your crops.</p>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Set up how you&apos;d like to receive payments for your crops.</p>
                 
                 <SelectField
                   name="bankName"

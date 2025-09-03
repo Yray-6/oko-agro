@@ -58,7 +58,7 @@ const ResetPasswordForm: React.FC = () => {
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
       >
-        {({ values, isValid, touched }) => (
+        {() => (
           <Form className="space-y-4 sm:space-y-6">
             {/* Email Field */}
             <div>
