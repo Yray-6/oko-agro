@@ -20,6 +20,7 @@ import {
   bankOptions
 } from './FormFields'; // Import your reusable components
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import UserIcon from '@/app/assets/icons/UserIcon';
 
 // TypeScript interfaces
 interface FormValues {
@@ -180,7 +181,7 @@ const FarmerRegistrationForm: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white/80 rounded-lg shadow-lg">
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white/90 rounded-lg shadow-lg">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-xl sm:text-2xl font-semibold text-mainGreen mb-4 sm:mb-6">Farmer Registration</h1>
         
@@ -198,11 +199,7 @@ const FarmerRegistrationForm: React.FC = () => {
                 {index + 1}
               </div>
               {/* Hide step names on mobile, show abbreviated versions on small screens */}
-              <span className={`hidden sm:block text-xs sm:text-sm font-medium whitespace-nowrap ${
-                index <= currentStep ? 'text-mainGreen' : 'text-gray-500'
-              }`}>
-                {step}
-              </span>
+           
             </div>
           ))}
         </div>
@@ -226,8 +223,8 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 1: Basic Information */}
             {currentStep === 0 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-                  <span className="text-gray-600">👤</span>
+                <div className="flex items-center space-x-2 mb-4 sm:mb-2">
+                     <UserIcon/>
                   <h2 className="text-base sm:text-lg font-medium">Basic Information</h2>
                 </div>
                 <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Let&apos;s start with your basic details. This helps us create your farmer profile.</p>
@@ -299,7 +296,7 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 2: Farm Details */}
             {currentStep === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-2">
                   <Leaf color='black'/>
                   <h2 className="text-base sm:text-lg font-medium">Farm Details</h2>
                 </div>
@@ -352,7 +349,7 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 3: Experience Assessment */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-2">
                   <Leaf color='black'/>
                   <h2 className="text-base sm:text-lg font-medium">Experience Assessment</h2>
                 </div>
@@ -387,7 +384,7 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 4: Picture Verification */}
             {currentStep === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-2">
                   <span className="text-gray-600">📷</span>
                   <h2 className="text-base sm:text-lg font-medium">Picture Verification</h2>
                 </div>
@@ -417,7 +414,7 @@ const FarmerRegistrationForm: React.FC = () => {
             {/* Step 5: Payment Setup */}
             {currentStep === 4 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-2">
                   <span className="text-gray-600">💳</span>
                   <h2 className="text-base sm:text-lg font-medium">Payment Setup</h2>
                 </div>

@@ -16,6 +16,8 @@ import {
   bankOptions
 } from './FormFields'; // Import your reusable components
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Tractor from '@/app/assets/icons/Tractor';
+import UserIcon from '@/app/assets/icons/UserIcon';
 
 // TypeScript interfaces
 interface ProcessorFormValues {
@@ -225,7 +227,7 @@ const ProcessorRegistrationForm: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white/80 rounded-lg shadow-lg">
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white/90 rounded-lg shadow-lg">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-xl sm:text-2xl font-semibold text-mainGreen mb-4 sm:mb-6">Processor Registration</h1>
         
@@ -242,12 +244,7 @@ const ProcessorRegistrationForm: React.FC = () => {
               >
                 {index + 1}
               </div>
-              {/* Hide step names on mobile, show abbreviated versions on small screens */}
-              <span className={`hidden sm:block text-xs sm:text-sm font-medium whitespace-nowrap ${
-                index <= currentStep ? 'text-mainGreen' : 'text-gray-500'
-              }`}>
-                {step}
-              </span>
+           
             </div>
           ))}
         </div>
@@ -270,25 +267,25 @@ const ProcessorRegistrationForm: React.FC = () => {
           <div className="space-y-4 sm:space-y-6">
             {/* Step 1: Basic Information */}
             {currentStep === 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-                  <span className="text-gray-600">👤</span>
+          <>
+                <div className="flex items-center space-x-2 mb-2 sm:mb-2">
+                  <UserIcon/>
                   <h2 className="text-base sm:text-lg font-medium">Basic Information</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Let&apos;s start with your basic details. This helps us create your processor profile.</p>
-                
+                <p className="text-black text-xs sm:text-sm mb-4 sm:mb-6">Let&apos;s start with your basic details. This helps us create your processor profile.</p>
+                 <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <TextField
                     name="firstName"
-                    label="First Name"
-                    placeholder="Enter your first name"
+                    label="Company/Business Name *"
+                    placeholder="Enter your company/business name"
                     required
                   />
                   
                   <TextField
                     name="lastName"
-                    label="Last Name"
-                    placeholder="Enter your last name"
+                    label="Contact Person Full Name *"
+                    placeholder="Enter your full name"
                     required
                   />
                 </div>
@@ -296,7 +293,7 @@ const ProcessorRegistrationForm: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <TextField
                     name="email"
-                    label="Email Address"
+                    label="Company Email Address *"
                     type="email"
                     placeholder="Enter your email address"
                     required
@@ -311,6 +308,26 @@ const ProcessorRegistrationForm: React.FC = () => {
                     required
                   />
                 </div>
+
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <TextField
+                    name="businessRegistrationNumber"
+                    label="Business Registration Number *"
+                    type="number"
+                    placeholder="Enter your Registration Number"
+                    required
+                  />
+                  
+                  <TextField
+                    name="yearEstablished"
+                    label="Year Established"
+                    type="number"
+                    placeholder="Enter your Year Established"
+                   
+                    required
+                  />
+                </div>
+
 
                 <TextField
                   name="companyLocation"
@@ -338,17 +355,17 @@ const ProcessorRegistrationForm: React.FC = () => {
                     required
                   />
                 </div>
-              </div>
+              </div></>
             )}
 
             {/* Step 2: Company Details */}
             {currentStep === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-                  <span className="text-gray-600">🏢</span>
+                <div className="flex items-center space-x-2 mb-4 sm:mb-1">
+               <Tractor color='black'/>
                   <h2 className="text-base sm:text-lg font-medium">Company Details</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Tell us about your processing company and operations.</p>
+                <p className="text-black text-xs sm:text-sm mb-4 sm:mb-6">Tell us about your processing company and operations.</p>
                 
                 <TextField
                   name="companyName"
@@ -394,11 +411,11 @@ const ProcessorRegistrationForm: React.FC = () => {
             {/* Step 3: Facility Information */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-                  <span className="text-gray-600">🏭</span>
+                <div className="flex items-center space-x-2 mb-4 sm:mb-1">
+                   <Tractor color='black'/>
                   <h2 className="text-base sm:text-lg font-medium">Facility Information</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Provide details about your processing facility and capabilities.</p>
+                <p className="text-black text-xs sm:text-sm mb-4 sm:mb-6">Provide details about your processing facility and capabilities.</p>
                 
                 <SelectField
                   name="facilityType"
@@ -439,11 +456,11 @@ const ProcessorRegistrationForm: React.FC = () => {
             {/* Step 4: Business Verification */}
             {currentStep === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-                  <span className="text-gray-600">📄</span>
+                <div className="flex items-center space-x-2 mb-4 sm:mb-1">
+                  <Tractor color='black'/>
                   <h2 className="text-base sm:text-lg font-medium">Business Verification</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Upload documents to verify your business and build trust with farmers.</p>
+                <p className="text-black text-xs sm:text-sm mb-4 sm:mb-6">Upload documents to verify your business and build trust with farmers.</p>
                 
                 <FileField
                   name="businessLicense"
@@ -472,11 +489,11 @@ const ProcessorRegistrationForm: React.FC = () => {
             {/* Step 5: Payment & Contract Setup */}
             {currentStep === 4 && (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-                  <span className="text-gray-600">💳</span>
+                <div className="flex items-center space-x-2 mb-4 sm:mb-2">
+                  <Tractor color='black'/>
                   <h2 className="text-base sm:text-lg font-medium">Payment & Contract Setup</h2>
                 </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Set up your payment details and preferred contract terms.</p>
+                <p className="text-black text-xs sm:text-sm mb-4 sm:mb-6">Set up your payment details and preferred contract terms.</p>
                 
                 <SelectField
                   name="bankName"
@@ -512,9 +529,9 @@ const ProcessorRegistrationForm: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 border bg-white border-gray-300 rounded-md text-mainGreen hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors order-2 sm:order-1"
+                  className="px-4 sm:px-6 py-2 sm:py-2 flex items-center justify-center gap-2 border bg-white border-gray-300 rounded-md text-mainGreen hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors order-2 sm:order-1"
                 >
-                  <ChevronLeft className="w-4 h-4"/> Previous
+                  <ChevronLeft className="w-5 h-5"/> Previous
                 </button>
               )}
               
@@ -523,9 +540,9 @@ const ProcessorRegistrationForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleNext(validateForm, values)}
-                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2 flex items-center justify-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 text-sm sm:text-base transition-colors"
                   >
-                    Proceed <ChevronRight className="w-4 h-4"/>
+                 <ChevronRight className="w-5 h-5"/>   Proceed 
                   </button>
                 ) : (
                   <button

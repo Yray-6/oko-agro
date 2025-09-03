@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import AnimatedLoading from '@/app/Loading';
 
 // TypeScript interfaces
 interface LoginFormValues {
@@ -24,18 +26,23 @@ const validationSchema = Yup.object({
 const FarmerLoginForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (values: LoginFormValues) => {
     setIsSubmitting(true);
+    setIsLoading(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('Login submitted:', values);
-    alert('Login successful!');
+    router.push('/dashboard');
     setIsSubmitting(false);
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-white/80 rounded-lg shadow-lg max-w-md mx-auto lg:mx-0">
+    <>
+      {isLoading && <AnimatedLoading />}
+      <div className="p-4 sm:p-6 lg:p-8 bg-white/80 rounded-lg shadow-lg max-w-md mx-auto lg:mx-0">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-mainGreen mb-2">Login as Farmer</h1>
@@ -151,6 +158,7 @@ const FarmerLoginForm: React.FC = () => {
         </Link>
       </div>
     </div>
+    </>
   );
 };
 

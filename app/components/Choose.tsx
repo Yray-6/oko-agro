@@ -13,7 +13,7 @@ export default function Choose() {
               alt="leaf" 
               width={150} 
               height={60}
-              className='sm:w-[200px] sm:h-[80px] lg:w-[250px] lg:h-[100px]'
+              className='sm:w-[200px] lg:w-[250px] '
             />
         </div>
         

@@ -23,7 +23,7 @@ export default function page() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 py-8 lg:py-12 gap-6 lg:gap-5 max-w-7xl mx-auto">
         {/* Welcome Section */}
-        <div className="bg-mainGreen/70 text-white p-6 lg:p-8 md:block hidden rounded-lg lg:rounded-none lg:col-span-1 lg:self-end order-2 lg:order-1">
+        <div className="bg-mainGreen/70 text-white p-6 lg:p-8 md:block hidden rounded-lg lg:rounded lg:col-span-1 lg:self-end order-2 lg:order-1">
           <p className="text-2xl sm:text-3xl font-semibold mb-4">Welcome Back, Processor 🏭</p>
           <p className="text-sm sm:text-base leading-relaxed">
             Log in to discover certified farm produce, manage purchase orders, and connect directly with trusted farmers through the Oko Agro marketplace.
