@@ -212,7 +212,7 @@ export default function Hero() {
         <div className="col-span-1 lg:col-span-8">
           {/* Badge Section */}
           <div className="flex flex-col sm:grid sm:grid-cols-2 items-start sm:items-center gap-4 sm:gap-2">
-            <div className="rounded-xl justify-center border border-white bg-white/20 flex gap-2 px-3 py-1 text-xs sm:text-sm w-fit">
+            <div className="rounded-xl justify-center border items-center border-white bg-white/20 flex gap-2 px-3 py-1 text-xs sm:text-sm w-fit">
               <Connect />
               <span className="whitespace-nowrap">
                 Connecting Agricultural Community
