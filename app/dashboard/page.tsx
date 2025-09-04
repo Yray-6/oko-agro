@@ -55,7 +55,7 @@ export default function page() {
               <LinkCard
                 title={"Find Processors"}
                 icon={FindProcessor}
-                href="/"
+                href="/dashboard/find-processor"
               />
               <LinkCard title={"List new product"} icon={Listings} href="/" />
               <LinkCard title={"View Orders"} icon={ViewOrders} href="/" />

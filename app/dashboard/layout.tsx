@@ -27,7 +27,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       label: "Dashboard",
       href: "/dashboard",
     },
-    { icon: <Product size={20} />, label: "My Products", href: "/products" },
+    { icon: <Product size={20} />, label: "My Products", href: "/dashboard/products" },
     {
       icon: <TransactionHistory size={20} />,
       label: "Transaction History",
