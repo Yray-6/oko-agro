@@ -11,7 +11,7 @@ interface ViewOrdersProps {
 
 const ViewOrders: React.FC<ViewOrdersProps> = ({
   size = 24,
-  color = "#FFDD55",
+  color = "#004829",
   strokeWidth = 1.5,
   className = "",
   ...props

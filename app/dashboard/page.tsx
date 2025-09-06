@@ -57,9 +57,9 @@ export default function page() {
                 icon={FindProcessor}
                 href="/dashboard/find-processor"
               />
-              <LinkCard title={"List new product"} icon={Listings} href="/" />
-              <LinkCard title={"View Orders"} icon={ViewOrders} href="/" />
-              <LinkCard title={"View Schedule"} icon={Calendar} href="/" />
+              <LinkCard title={"List new product"} icon={Listings} href="/dashboard/product" />
+              <LinkCard title={"View Orders"} icon={ViewOrders} href="/dashboard/orders" />
+              <LinkCard title={"View Schedule"} icon={Calendar} href="/dashboard/calendar" />
             </div>
           </div>
           <div className="p-2 mt-3">

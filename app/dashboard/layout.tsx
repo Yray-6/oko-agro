@@ -11,6 +11,7 @@ import Settings from "../assets/icons/Settings";
 import Logout from "../assets/icons/Logout";
 import { Search } from "lucide-react";
 import Notification from "../assets/icons/Notification";
+import Orders from "../assets/icons/Orders";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -28,14 +29,15 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       href: "/dashboard",
     },
     { icon: <Product size={20} />, label: "My Products", href: "/dashboard/products" },
+    { icon: <Orders size={20} />, label: "Orders", href: "/dashboard/orders" },
     {
       icon: <TransactionHistory size={20} />,
       label: "Transaction History",
-      href: "/transactions",
+      href: "/dashboard/transactions",
     },
-    { icon: <Calendar size={20} />, label: "Calendar", href: "/calendar" },
+    { icon: <Calendar size={20} />, label: "Calendar", href: "/dashboard/calendar" },
     { icon: <Message size={20} />, label: "Messages", href: "/messages" },
-    { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
+    { icon: <Settings size={20} />, label: "Settings", href: "/dashboard/settings" },
   ];
 
   return (
