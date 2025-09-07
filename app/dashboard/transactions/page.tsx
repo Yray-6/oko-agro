@@ -31,7 +31,7 @@ export default function page() {
           <PaymentTransactions />
         </div>
         <div className="col-span-4">
-             <div className=" border border-gray-200 rounded-lg p-6 inline-block bg-white">
+             <div className=" border border-gray-200 rounded-lg p-6  bg-white">
           <div className="flex justify-between items-center mb-4">
             <p>Payment Methods</p>
             <p className="text-sm">+ Add Method</p>
