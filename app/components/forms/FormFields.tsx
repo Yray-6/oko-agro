@@ -226,9 +226,8 @@ export const stateOptions: SelectOption[] = [
 ];
 
 export const unitOptions: SelectOption[] = [
-  { value: "Hectares", label: "Hectares" },
-  { value: "Acres", label: "Acres" },
-  { value: "Square meters", label: "Square meters" }
+  { value: "hectare", label: "Hectares" },
+  { value: "acre", label: "Acres" },
 ];
 
 export const cropsOptions: SelectOption[] = [
