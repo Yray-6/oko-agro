@@ -46,12 +46,21 @@ const FarmerLoginForm: React.FC = () => {
     clearError();
   }, [clearError]);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.push('/dashboard');
+useEffect(() => {
+  if (isAuthenticated && user) {
+    switch (user.role) {
+      case "farmer":
+        router.push('/dashboard');
+        break;
+      case "processor":
+        router.push('/dashboard-processor');
+        break;
+      default:
+        // Handle unknown roles
+     break;
     }
-  }, [isAuthenticated, user, router]);
+  }
+}, [isAuthenticated, user, router]);
 
   const handleSubmit = async (values: LoginFormValues) => {
     try {

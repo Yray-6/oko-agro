@@ -41,18 +41,21 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   } = useAuthStore();
 
   const router = useRouter();
-  const isFarmer = user?.role === "farmer"
+
   // Initialize token monitoring
   useTokenMonitor();
+
+  const isProcessor = user?.role === "processor"
 
   // Wait for store hydration before making any decisions
   useEffect(() => {
     if (!hasHydrated) return;
 
     // Only redirect if definitely not authenticated after hydration
-    if (!isAuthenticated || !tokens?.accessToken || !isFarmer) {
+    if (!isAuthenticated || !tokens?.accessToken || !isProcessor ) {
       router.push("/login-farmer");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasHydrated, isAuthenticated, tokens, router]);
 
   // Handle session expiry errors
@@ -98,29 +101,29 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     {
       icon: <DashboardIcon size={20} />,
       label: "Dashboard",
-      href: "/dashboard",
+      href: "/dashboard-processor",
     },
     {
       icon: <Product size={20} />,
       label: "My Products",
-      href: "/dashboard/products",
+      href: "/dashboard/products-processor",
     },
-    { icon: <Orders size={20} />, label: "Orders", href: "/dashboard/orders" },
+    { icon: <Orders size={20} />, label: "Orders", href: "/dashboard/orders-processor" },
     {
       icon: <TransactionHistory size={20} />,
       label: "Transaction History",
-      href: "/dashboard/transactions",
+      href: "/dashboard/transaction-processors",
     },
     {
       icon: <Calendar size={20} />,
       label: "Calendar",
-      href: "/dashboard/calendar",
+      href: "/dashboard/calendar-processor",
     },
     { icon: <Message size={20} />, label: "Messages", href: "/messages" },
     {
       icon: <Settings size={20} />,
       label: "Settings",
-      href: "/dashboard/settings",
+      href: "/dashboard/settings-processor",
     },
   ];
 

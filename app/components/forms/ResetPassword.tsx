@@ -4,11 +4,11 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/app/store/useAuthStore';
 import AnimatedLoading from '@/app/Loading';
 import Modal from '../Modal';
 import mail from "@/app/assets/images/mail.png"
 import Image from 'next/image';
-
 
 // TypeScript interfaces
 interface ResetPasswordFormValues {
@@ -25,24 +25,31 @@ const validationSchema = Yup.object({
 });
 
 const ResetPasswordForm: React.FC = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const router = useRouter();
+  
+  // Get auth store functions
+  const { forgotPassword, isLoading, error, clearError } = useAuthStore();
 
   const handleSubmit = async (values: ResetPasswordFormValues) => {
-    setIsSubmitting(true);
-    
     try {
-      // Simulate API call for password reset
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Reset password submitted:', values);
+      // Clear any previous errors
+      clearError();
       
-      // Show the verification modal instead of immediately navigating
+      // Call the forgot password API
+      await forgotPassword({ email: values.email });
+      
+      // Store the email for display in modal
+      setSubmittedEmail(values.email);
+      
+      // Show the verification modal
       setShowVerificationModal(true);
+      
+      console.log('Password reset email sent to:', values.email);
     } catch (error) {
-      console.error('Reset password failed:', error);
-    } finally {
-      setIsSubmitting(false);
+      console.error('Forgot password failed:', error);
+      // Error is already handled in the store
     }
   };
 
@@ -52,8 +59,8 @@ const ResetPasswordForm: React.FC = () => {
 
   const handleProceedToVerification = () => {
     setShowVerificationModal(false);
-    // Navigate to verification code page
-    router.push('/reset-password/verification-code');
+    // You can navigate to a different page or stay on the same page
+    // The user will need to check their email for the reset link
   };
 
   const closeModal = () => {
@@ -76,6 +83,13 @@ const ResetPasswordForm: React.FC = () => {
         >
           {() => (
             <Form className="space-y-4 sm:space-y-6">
+              {/* Display API Error */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+
               {/* Email Field */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
@@ -85,7 +99,7 @@ const ResetPasswordForm: React.FC = () => {
                   name="email"
                   type="email"
                   className="w-full px-3 py-2 sm:py-3 text-xs sm:text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors"
-                  placeholder="Onarubeduwaie@gmail.com"
+                  placeholder="Enter your email address"
                 />
                 <ErrorMessage name="email" component="div" className="text-red-500 text-xs mt-1" />
               </div>
@@ -93,19 +107,19 @@ const ResetPasswordForm: React.FC = () => {
               {/* Reset Password Button */}
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isLoading}
                 className="w-full px-6 py-2.5 sm:py-3 bg-mainGreen text-white text-xs sm:text-sm font-medium rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                {isSubmitting ? (
+                {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
                       <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
-                    Resetting Password...
+                    Sending Reset Link...
                   </span>
                 ) : (
-                  'Reset Password'
+                  'Send Reset Link'
                 )}
               </button>
               
@@ -131,7 +145,7 @@ const ResetPasswordForm: React.FC = () => {
           </Link>
         </div>
         
-        {isSubmitting && <AnimatedLoading />}
+        {isLoading && <AnimatedLoading />}
       </div>
 
       {/* Verification Code Modal */}
@@ -144,28 +158,25 @@ const ResetPasswordForm: React.FC = () => {
         closeOnOverlayClick={false}
         closeOnEscape={false}
       >
-        {/* Email Icon with Checkmark */}
-        <div className="flex justify-center  mb-6">
+        {/* Email Icon */}
+        <div className="flex justify-center mb-6">
           <div className="relative">
-            {/* Email Icon */}
-           <Image src={mail} alt="Email Icon" width={100}/>
-
-        
+            <Image src={mail} alt="Email Icon" width={100}/>
           </div>
         </div>
 
         {/* Title */}
         <h2 className="text-2xl font-semibold text-mainGreen mb-8">
-          Verification Code Sent!
+          Reset Link Sent!
         </h2>
 
         {/* Message */}
         <div className="space-y-4 mb-10">
           <p className="text-black leading-relaxed">
-            Your password reset request has been initiated and a verification has been sent to your registered email address.
+            A password reset link has been sent to <span className="font-semibold">{submittedEmail}</span>.
           </p>
           <p className="text-black leading-relaxed">
-            Kindly check you inbox/spam for 5-digit code.
+            Please check your inbox and click the link to reset your password securely. The link will expire in 15 minutes.
           </p>
         </div>
 
@@ -174,7 +185,7 @@ const ResetPasswordForm: React.FC = () => {
           onClick={handleProceedToVerification}
           className="w-full py-2 px-6 border border-mainGreen text-mainGreen rounded-md hover:bg-gray-50 transition-colors font-medium"
         >
-          Proceed
+          Got it
         </button>
       </Modal>
     </>

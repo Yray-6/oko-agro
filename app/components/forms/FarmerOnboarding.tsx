@@ -6,6 +6,7 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { useRouter } from "next/navigation";
 import Leaf from "@/app/assets/icons/Leaf";
+import mail from "@/app/assets/images/mail.png";
 import Link from "next/link";
 import {
   TextField,
@@ -22,9 +23,11 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import UserIcon from "@/app/assets/icons/UserIcon";
 import { useAuthStore } from "@/app/store/useAuthStore";
-import { useCropsStore } from "@/app/store/useCropStore";
+import { useDataStore } from "@/app/store/useDataStore";
 import { Crop, RegisterUserRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
+import Modal from "../Modal";
+import Image from "next/image";
 
 // TypeScript interfaces
 interface FormValues {
@@ -185,7 +188,7 @@ const fullValidationSchema = Yup.object({
   bankName: Yup.string().required("Bank name is required"),
   accountNumber: Yup.string().required("Account number is required"),
   password: Yup.string()
-    .min(7, "Password must be at least 7 characters")
+    .min(8, "Password must be at least 7 characters")
     .required("Password is required"),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Passwords must match")
@@ -194,8 +197,11 @@ const fullValidationSchema = Yup.object({
 
 const FarmerRegistrationForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
   const router = useRouter();
-
+  const handleCloseModal=()=> {
+    setShowSuccessModal(false)
+  }
   // Use the auth store
   const { register, isLoading, error, registrationUserId, clearError } =
     useAuthStore();
@@ -206,7 +212,7 @@ const FarmerRegistrationForm: React.FC = () => {
     isLoading: cropsLoading,
     error: cropsError,
     fetchCrops,
-  } = useCropsStore();
+  } = useDataStore();
 
   const steps = [
     "Basic Information",
@@ -408,6 +414,7 @@ const FarmerRegistrationForm: React.FC = () => {
 
       // Check if registration was successful
       if (registrationUserId) {
+        setShowSuccessModal(true);
         console.log("🎉 Registration successful! User ID:", registrationUserId);
         router.push("/verify-otp");
       } else {
@@ -1036,6 +1043,43 @@ const FarmerRegistrationForm: React.FC = () => {
         }}
       </Formik>
       {(isLoading || cropsLoading) && <AnimatedLoading />}
+       <Modal
+              isOpen={showSuccessModal}
+              onClose={handleCloseModal}
+              size="md"
+              showCloseButton={false}
+              className="text-center"
+              closeOnOverlayClick={false}
+              closeOnEscape={false}
+            >
+              {/* Email Icon with Checkmark */}
+              <div className="flex justify-center  mb-6">
+                <div className="relative">
+                  {/* Email Icon */}
+                  <Image src={mail} alt="Email Icon" width={100} />
+                </div>
+              </div>
+      
+              {/* Title */}
+              <h2 className="text-2xl font-semibold text-mainGreen mb-8">
+                Registration Complete!
+              </h2>
+      
+              {/* Message */}
+              <div className="space-y-4 mb-10">
+                <p className="text-black leading-relaxed">
+                 Your Farmer registration has been received and is currently being evaluated. A mail with your login credentials will be sent to you provided email address after a successful evaluation.
+                </p>
+              </div>
+      
+              {/* Back to Login Button */}
+              <button
+                onClick={handleCloseModal}
+                className="w-full py-3 px-6 border border-mainGreen text-mainGreen rounded-md hover:bg-mainGreen hover:text-white transition-colors font-medium"
+              >
+               Close
+              </button>
+            </Modal>
     </div>
   );
 };

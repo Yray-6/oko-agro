@@ -45,19 +45,28 @@ export interface Tokens {
   refreshToken: string;
 }
 
-// Request types
-export interface RegisterUserRequest {
+export type RegisterUserRequest = 
+  | RegisterFarmerRequest 
+  | RegisterProcessorRequest;
+
+export interface BaseRegisterRequest {
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
-  farmAddress: string;
+  farmAddress: string; // Consider renaming to 'address'
   country: string;
   state: string;
+  password: string;
+  confirmPassword: string;
+  cropIds: string[];
+}
+
+export interface RegisterFarmerRequest extends BaseRegisterRequest {
+  role: 'farmer';
   farmName: string;
   farmSize: number;
   unit: FarmSizeUnit;
-  cropIds: string[];
   estimatedAnnualProduction: number;
   farmingExperience: string;
   internetAccess: string;
@@ -66,9 +75,24 @@ export interface RegisterUserRequest {
   farmPhoto: string; // base64 string
   bankName: string;
   accountNumber: string;
-  role: UserRole;
-  password: string;
-  confirmPassword: string;
+}
+
+export interface RegisterProcessorRequest extends BaseRegisterRequest {
+  role: 'processor';
+  companyName: string;
+  businessRegNumber: string;
+  yearEstablished: string;
+  businessType: string;
+  processsingCapacitySize: string;
+  processsingCapacityUnit: string;
+  operatingDaysPerWeek: string;
+  storageCapacity: string;
+  minimumOrderQuality: string;
+  OperationsType: string;
+  qualityStandardIds: string[];
+  certificationIds: string[];
+  businessRegCertDoc: string; // base64 string
+  taxIdCertDoc: string; // base64 string
 }
 
 export interface LoginUserRequest {
@@ -103,7 +127,7 @@ export interface LoginUserResponse {
 }
 
 // Auth action types for the API route
-export type AuthAction = 'register' | 'login' | 'verify-otp' | 'resend-otp';
+export type AuthAction = 'register' | 'login' | 'verify-otp' | 'resend-otp' | 'refresh';
 
 export interface AuthApiRequest {
   action: AuthAction;
@@ -121,30 +145,46 @@ export interface AuthState {
   registrationUserId: string | null; // Store userId after registration for OTP verification
 }
 
-// Store actions types
+// Add refresh token request interface
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+// Add refresh token response interface (only returns new access token)
+export interface RefreshTokenResponse {
+  accessToken: string;
+}
+
+// Update AuthActions interface to include refresh token function
 export interface AuthActions {
-  // API actions
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  clearError: () => void;
+  setTokens: (tokens: Tokens) => void;
+  clearTokens: () => void;
+  setUser: (user: User) => void;
+  clearUser: () => void;
   register: (data: RegisterUserRequest) => Promise<void>;
   login: (data: LoginUserRequest) => Promise<void>;
   verifyOtp: (data: VerifyOtpRequest) => Promise<void>;
   resendOtp: (data: ResendOtpRequest) => Promise<void>;
+  fetchProfile: () => Promise<User | undefined>;
+  refreshToken: () => Promise<boolean>; // Add this line
   logout: () => void;
-  
-  // State management
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  clearError: () => void;
-  
-  // Token management
-  setTokens: (tokens: Tokens) => void;
-  clearTokens: () => void;
-  
-  // User management
-  setUser: (user: User) => void;
-  clearUser: () => void;
 }
+
 
 export interface CropResponse {
   id: string;
   name: string;
+}
+
+export interface QualityResponse {
+  id:string;
+  name:string;
+}
+
+export interface CertificationResponse {
+  id:string;
+  name:string;
 }

@@ -247,6 +247,16 @@ export const cropsOptions: SelectOption[] = [
   { value: "Palm Oil", label: "Palm Oil" }
 ];
 
+export const businessTypes: SelectOption[] = [
+  { value: "food processing", label: "Food Processing" },
+  { value: "oil mill", label: "Oil  Mill" },
+  { value: "flour mill", label: "Flour  Mill" },
+  { value: "rice mill", label: "Rice  Mill" },
+  { value: "cassava processing", label: "Cassava Processing" },
+  { value: "fruit procesing", label: "Fruit Processing" },
+ 
+];
+
 export const farmingExperienceOptions: SelectOption[] = [
   { value: "Less than 1 year", label: "Less than 1 year" },
   { value: "1-2 years", label: "1-2 years" },

@@ -25,7 +25,32 @@ const apiClient = axios.create({
   timeout: 30000, // 30 seconds timeout
 });
 
-type AuthStore = AuthState & AuthActions;
+// Define forgot password request interface
+interface ForgotPasswordRequest {
+  email: string;
+}
+
+// Define reset password request interface
+interface ResetPasswordRequest {
+  resetToken: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// Extend AuthActions to include forgot and reset password
+interface ExtendedAuthActions extends AuthActions {
+  forgotPassword: (data: ForgotPasswordRequest) => Promise<void>;
+  resetPassword: (data: ResetPasswordRequest) => Promise<void>;
+}
+
+type AuthStore = AuthState & ExtendedAuthActions & {
+  hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
+  refreshToken: () => Promise<boolean>;
+};
+
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -37,6 +62,10 @@ export const useAuthStore = create<AuthStore>()(
       isLoading: false,
       error: null,
       registrationUserId: null,
+      hasHydrated: false,
+
+      // Hydration management
+      setHasHydrated: (state: boolean) => set({ hasHydrated: state }),
 
       // State management actions
       setLoading: (loading: boolean) => set({ isLoading: loading }),
@@ -71,18 +100,83 @@ export const useAuthStore = create<AuthStore>()(
       
       clearUser: () => set({ user: null }),
 
+      // Refresh token function
+      refreshToken: async () => {
+        // Prevent multiple simultaneous refresh attempts
+        if (isRefreshing && refreshPromise) {
+          return await refreshPromise;
+        }
+
+        const { tokens } = get();
+        
+        if (!tokens?.refreshToken) {
+          console.warn('No refresh token available');
+          return false;
+        }
+
+        isRefreshing = true;
+        refreshPromise = (async () => {
+          try {
+            console.log('Attempting to refresh token...');
+            
+            const response = await apiClient.post<ApiResponse<{ accessToken: string }>>('', {
+              action: 'refresh',
+              refreshToken: tokens.refreshToken
+            });
+
+            if (response.data.statusCode === 200 && response.data.data?.accessToken) {
+              const newAccessToken = response.data.data.accessToken;
+              
+              // Update tokens in store - keep the existing refresh token, update access token
+              const updatedTokens: Tokens = {
+                accessToken: newAccessToken,
+                refreshToken: tokens.refreshToken // Keep the existing refresh token
+              };
+              
+              set({ 
+                tokens: updatedTokens,
+                isAuthenticated: true,
+                error: null
+              });
+
+              // Update axios header
+              apiClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+              
+              console.log('Token refreshed successfully');
+              return true;
+            } else {
+              throw new Error(response.data.message || 'Token refresh failed');
+            }
+          } catch (error) {
+            console.error('Token refresh failed:', error);
+            
+            // Clear auth state on refresh failure
+            set({
+              user: null,
+              tokens: null,
+              isAuthenticated: false,
+              error: 'Session expired. Please login again.'
+            });
+            
+            delete apiClient.defaults.headers.common['Authorization'];
+            return false;
+          } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+          }
+        })();
+
+        return await refreshPromise;
+      },
+
       // API actions
       register: async (data: RegisterUserRequest) => {
         set({ isLoading: true, error: null });
         
         try {
-          // Remove sensitive information from the request that will be stored
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { password, confirmPassword, ...safeData } = data;
-          
           const response = await apiClient.post<ApiResponse<RegisterUserResponse>>('', {
             action: 'register',
-            ...data // Send complete data to API
+            ...data
           });
 
           if (response.data.statusCode === 200 && response.data.data?.id) {
@@ -120,14 +214,14 @@ export const useAuthStore = create<AuthStore>()(
           if (response.data.statusCode === 200 && response.data.data) {
             const { user, tokens } = response.data.data;
             
-            // Store user and tokens (excluding sensitive info)
+            // Store tokens and minimal user data from login
             set({ 
-              user,
+              user, // Store whatever user data comes from login
               tokens,
               isAuthenticated: true,
               isLoading: false,
               error: null,
-              registrationUserId: null // Clear after successful login
+              registrationUserId: null
             });
 
             // Set axios default authorization header
@@ -224,6 +318,113 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      // Forgot password function
+      forgotPassword: async (data: ForgotPasswordRequest) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await apiClient.post<ApiResponse>('', {
+            action: 'forgot-password',
+            ...data
+          });
+
+          if (response.data.statusCode === 200) {
+            set({ 
+              isLoading: false,
+              error: null
+            });
+            
+            // Return success - the email will contain the reset token
+            console.log('Password reset email sent successfully');
+          } else {
+            throw new Error(response.data.message || 'Failed to send password reset email');
+          }
+        } catch (error) {
+          console.error('Forgot password error:', error);
+          const errorMessage = error instanceof AxiosError 
+            ? error.response?.data?.message || error.message 
+            : 'Failed to send password reset email';
+          
+          set({ 
+            error: errorMessage,
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      // Reset password function
+      resetPassword: async (data: ResetPasswordRequest) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await apiClient.post<ApiResponse>('', {
+            action: 'reset-password',
+            ...data
+          });
+
+          if (response.data.statusCode === 200) {
+            set({ 
+              isLoading: false,
+              error: null
+            });
+            
+            console.log('Password reset successful');
+          } else {
+            throw new Error(response.data.message || 'Password reset failed');
+          }
+        } catch (error) {
+          console.error('Reset password error:', error);
+          const errorMessage = error instanceof AxiosError 
+            ? error.response?.data?.message || error.message 
+            : 'Password reset failed';
+          
+          set({ 
+            error: errorMessage,
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      // Profile fetch function - simplified logic
+      fetchProfile: async () => {
+        const { tokens, isLoading } = get();
+        
+        // Don't fetch if already loading or no token
+        if (isLoading || !tokens?.accessToken) {
+          return;
+        }
+
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await apiClient.get<ApiResponse<User>>('?action=profile');
+
+          if (response.data.statusCode === 200 && response.data.data) {
+            set({ 
+              user: response.data.data,
+              isLoading: false,
+              error: null
+            });
+            return response.data.data;
+          } else {
+            throw new Error(response.data.message || 'Failed to fetch profile');
+          }
+        } catch (error) {
+          console.error('Profile fetch error:', error);
+          const errorMessage = error instanceof AxiosError 
+            ? error.response?.data?.message || error.message 
+            : 'Failed to fetch profile';
+          
+          set({ 
+            error: errorMessage,
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
       logout: () => {
         // Clear all auth data
         set({
@@ -247,14 +448,42 @@ export const useAuthStore = create<AuthStore>()(
         tokens: state.tokens,
         isAuthenticated: state.isAuthenticated,
         registrationUserId: state.registrationUserId,
-        // Don't persist: isLoading, error (these should be reset on page load)
+        // Don't persist: isLoading, error, hasHydrated
       }),
+      onRehydrateStorage: () => (state) => {
+        // Set hydration flag and restore axios header
+        if (state) {
+          state.setHasHydrated(true);
+          if (state.tokens?.accessToken) {
+            apiClient.defaults.headers.common['Authorization'] = `Bearer ${state.tokens.accessToken}`;
+          }
+        }
+      },
     }
   )
 );
 
-// Initialize axios auth header on store creation if tokens exist
-const { tokens } = useAuthStore.getState();
-if (tokens?.accessToken) {
-  apiClient.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`;
-}
+// Setup axios interceptor for automatic token refresh
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Check if error is 401 and we haven't already tried to refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const store = useAuthStore.getState();
+      const refreshSuccess = await store.refreshToken();
+      
+      if (refreshSuccess) {
+        // Retry the original request with new token
+        const newTokens = useAuthStore.getState().tokens;
+        originalRequest.headers['Authorization'] = `Bearer ${newTokens?.accessToken}`;
+        return apiClient(originalRequest);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);

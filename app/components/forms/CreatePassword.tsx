@@ -1,27 +1,46 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthStore } from "@/app/store/useAuthStore";
 import AnimatedLoading from "@/app/Loading";
 import Modal from "../Modal";
 import Image from "next/image";
 import mailVerify from "@/app/assets/images/email-verified.png";
+
 interface CreatePasswordFormValues {
   newPassword: string;
   confirmPassword: string;
 }
 
 const CreatePasswordForm: React.FC = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreatePasswordFormValues>({
     newPassword: "",
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<Partial<CreatePasswordFormValues>>({});
+  
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get auth store functions
+  const { resetPassword, isLoading, error, clearError } = useAuthStore();
+
+  // Extract reset token from URL parameters on component mount
+  useEffect(() => {
+    const token = searchParams.get('resetToken');
+    if (token) {
+      setResetToken(token);
+      clearError(); // Clear any previous errors
+    } else {
+      // If no reset token, redirect to forgot password page
+      router.push('/forgot-password');
+    }
+  }, [searchParams, router, clearError]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<CreatePasswordFormValues> = {};
@@ -64,20 +83,30 @@ const CreatePasswordForm: React.FC = () => {
     e.preventDefault();
 
     if (!validateForm()) return;
-
-    setIsSubmitting(true);
+    
+    if (!resetToken) {
+      setErrors({ newPassword: "Invalid reset token. Please request a new password reset." });
+      return;
+    }
 
     try {
-      // Simulate API call for password creation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("New password created:", formData);
+      // Clear any previous errors
+      clearError();
+      
+      // Call the reset password API
+      await resetPassword({
+        resetToken,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      });
 
-      // Show success modal instead of direct navigation
+      console.log("Password reset successful");
+      
+      // Show success modal
       setShowSuccessModal(true);
     } catch (error) {
-      console.error("Password creation failed:", error);
-    } finally {
-      setIsSubmitting(false);
+      console.error("Password reset failed:", error);
+      // Error is already handled in the store
     }
   };
 
@@ -112,6 +141,18 @@ const CreatePasswordForm: React.FC = () => {
     "bg-emerald-500",
   ];
 
+  // Show loading while checking for reset token
+  if (!resetToken) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-white/80 rounded-lg shadow-lg max-w-md mx-auto lg:mx-0">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mainGreen"></div>
+          <span className="ml-2 text-gray-600">Validating reset token...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="p-4 sm:p-6 lg:p-8 bg-white/80 rounded-lg shadow-lg max-w-md mx-auto lg:mx-0">
@@ -126,6 +167,13 @@ const CreatePasswordForm: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          {/* Display API Error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+
           {/* New Password Field */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
@@ -289,10 +337,10 @@ const CreatePasswordForm: React.FC = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isLoading}
             className="w-full px-6 py-2.5 sm:py-3 bg-mainGreen text-white text-xs sm:text-sm font-medium rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            {isSubmitting ? (
+            {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <svg
                   className="animate-spin h-4 w-4"
@@ -313,10 +361,10 @@ const CreatePasswordForm: React.FC = () => {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Creating Password...
+                Resetting Password...
               </span>
             ) : (
-              "Submit"
+              "Reset Password"
             )}
           </button>
         </form>
@@ -331,7 +379,7 @@ const CreatePasswordForm: React.FC = () => {
           </Link>
         </div>
 
-        {isSubmitting && <AnimatedLoading />}
+        {isLoading && <AnimatedLoading />}
       </div>
 
       {/* Password Reset Success Modal */}
@@ -345,23 +393,22 @@ const CreatePasswordForm: React.FC = () => {
         closeOnEscape={false}
       >
         {/* Email Icon with Checkmark */}
-        <div className="flex justify-center  mb-6">
+        <div className="flex justify-center mb-6">
           <div className="relative">
-            {/* Email Icon */}
-            <Image src={mailVerify} alt="Email Icon" width={100} />
+            <Image src={mailVerify} alt="Success Icon" width={100} />
           </div>
         </div>
 
         {/* Title */}
         <h2 className="text-2xl font-semibold text-mainGreen mb-8">
-          Password Reset Succesful!
+          Password Reset Successful!
         </h2>
 
         {/* Message */}
         <div className="space-y-4 mb-10">
           <p className="text-black leading-relaxed">
-            Your password reset request is successful. Please, proceed to login
-            with your new password to access your dashboard
+            Your password has been successfully reset. You can now login with
+            your new password to access your dashboard.
           </p>
         </div>
 
