@@ -53,6 +53,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!isAuthenticated || !tokens?.accessToken || !isFarmer) {
       router.push("/login-farmer");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasHydrated, isAuthenticated, tokens, router]);
 
   // Handle session expiry errors
