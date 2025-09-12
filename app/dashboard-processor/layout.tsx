@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 
 import Logo from "../assets/icons/Logo";
 import DashboardIcon from "../assets/icons/Dashboard";
-import Product from "../assets/icons/Product";
 import TransactionHistory from "../assets/icons/TransactionHistory";
 import Calendar from "../assets/icons/Calendar";
 import Message from "../assets/icons/Message";

@@ -59,6 +59,7 @@ export const useTokenMonitor = () => {
         refreshTimeoutRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokens?.accessToken, isAuthenticated]);
 
   // Cleanup on logout
