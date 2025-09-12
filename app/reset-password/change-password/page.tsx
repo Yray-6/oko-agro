@@ -1,3 +1,4 @@
+"use client"
 import React from "react";
 import Logo from "@/app/assets/icons/Logo";
 import Tractor from "@/app/assets/icons/Tractor";
