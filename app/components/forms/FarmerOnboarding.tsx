@@ -104,15 +104,39 @@ const stepValidationSchemas = [
     state: Yup.string().required("State is required"),
   }),
 
-  // Step 2: Farm Details
+  // Step 2: Farm Details (Updated with number validation)
   Yup.object({
     farmName: Yup.string().required("Farm name is required"),
     cropsGrown: Yup.array().min(1, "Please select at least one crop"),
-    farmSize: Yup.string().required("Farm size is required"),
+    farmSize: Yup.string()
+      .required("Farm size is required")
+      .test('is-positive-number', 'Farm size must be a positive number', function(value) {
+        if (!value) return false;
+        const numValue = parseFloat(value);
+        return !isNaN(numValue) && numValue > 0;
+      })
+      .test('max-decimal-places', 'Farm size can have at most 2 decimal places', function(value) {
+        if (!value) return true;
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return false;
+        const decimalPlaces = (value.split('.')[1] || '').length;
+        return decimalPlaces <= 2;
+      }),
     unit: Yup.string().required("Unit is required"),
-    estimatedAnnualProduction: Yup.string().required(
-      "Estimated annual production is required"
-    ),
+    estimatedAnnualProduction: Yup.string()
+      .required("Estimated annual production is required")
+      .test('is-positive-number', 'Production must be a positive number', function(value) {
+        if (!value) return false;
+        const numValue = parseFloat(value);
+        return !isNaN(numValue) && numValue > 0;
+      })
+      .test('max-decimal-places', 'Production can have at most 2 decimal places', function(value) {
+        if (!value) return true;
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return false;
+        const decimalPlaces = (value.split('.')[1] || '').length;
+        return decimalPlaces <= 2;
+      }),
   }),
 
   // Step 3: Experience Assessment
@@ -147,7 +171,6 @@ const stepValidationSchemas = [
   }),
 ];
 
-// Combined validation schema for final submission
 const fullValidationSchema = Yup.object({
   // Step 1: Basic Information
   firstName: Yup.string().required("First name is required"),
@@ -160,14 +183,38 @@ const fullValidationSchema = Yup.object({
   country: Yup.string().required("Country is required"),
   state: Yup.string().required("State is required"),
 
-  // Step 2: Farm Details
+  // Step 2: Farm Details (Updated with number validation)
   farmName: Yup.string().required("Farm name is required"),
   cropsGrown: Yup.array().min(1, "Please select at least one crop"),
-  farmSize: Yup.string().required("Farm size is required"),
+  farmSize: Yup.string()
+    .required("Farm size is required")
+    .test('is-positive-number', 'Farm size must be a positive number', function(value) {
+      if (!value) return false;
+      const numValue = parseFloat(value);
+      return !isNaN(numValue) && numValue > 0;
+    })
+    .test('max-decimal-places', 'Farm size can have at most 2 decimal places', function(value) {
+      if (!value) return true;
+      const numValue = parseFloat(value);
+      if (isNaN(numValue)) return false;
+      const decimalPlaces = (value.split('.')[1] || '').length;
+      return decimalPlaces <= 2;
+    }),
   unit: Yup.string().required("Unit is required"),
-  estimatedAnnualProduction: Yup.string().required(
-    "Estimated annual production is required"
-  ),
+  estimatedAnnualProduction: Yup.string()
+    .required("Estimated annual production is required")
+    .test('is-positive-number', 'Production must be a positive number', function(value) {
+      if (!value) return false;
+      const numValue = parseFloat(value);
+      return !isNaN(numValue) && numValue > 0;
+    })
+    .test('max-decimal-places', 'Production can have at most 2 decimal places', function(value) {
+      if (!value) return true;
+      const numValue = parseFloat(value);
+      if (isNaN(numValue)) return false;
+      const decimalPlaces = (value.split('.')[1] || '').length;
+      return decimalPlaces <= 2;
+    }),
 
   // Step 3: Experience Assessment
   farmingExperience: Yup.string().required(
@@ -194,7 +241,6 @@ const fullValidationSchema = Yup.object({
     .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Please confirm your password"),
 });
-
 const FarmerRegistrationForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -383,10 +429,10 @@ const FarmerRegistrationForm: React.FC = () => {
         country: values.country,
         state: values.state,
         farmName: values.farmName,
-        farmSize: parseFloat(values.farmSize),
-        unit: values.unit as "hectare" | "acre",
+        farmSize:values.farmSize,
+        farmSizeUnit: values.unit as "hectare" | "acre",
         cropIds: values.cropsGrown, // These are now crop IDs from the API
-        estimatedAnnualProduction: parseFloat(values.estimatedAnnualProduction),
+        estimatedAnnualProduction: values.estimatedAnnualProduction,
         farmingExperience: values.farmingExperience,
         internetAccess: values.internetAccess,
         howUserSellCrops: values.currentSellingMethod,

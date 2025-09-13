@@ -65,9 +65,9 @@ export interface BaseRegisterRequest {
 export interface RegisterFarmerRequest extends BaseRegisterRequest {
   role: 'farmer';
   farmName: string;
-  farmSize: number;
-  unit: FarmSizeUnit;
-  estimatedAnnualProduction: number;
+  farmSize: string;
+  farmSizeUnit: FarmSizeUnit;
+  estimatedAnnualProduction: string;
   farmingExperience: string;
   internetAccess: string;
   howUserSellCrops: string;
