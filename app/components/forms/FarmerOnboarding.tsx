@@ -372,114 +372,117 @@ const FarmerRegistrationForm: React.FC = () => {
     return fields;
   };
 
-  const handleSubmit = async (
-    values: FormValues,
-    { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
-  ) => {
-    console.log("🚀 Form submission started");
-    console.log("📋 Final form values:", values);
+const handleSubmit = async (
+  values: FormValues,
+  { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
+) => {
+  console.log("🚀 Form submission started");
+  console.log("📋 Final form values:", values);
 
-    try {
-      // Clear any previous errors
-      clearError();
-      console.log("🧹 Previous errors cleared");
+  try {
+    // Clear any previous errors
+    clearError();
+    console.log("🧹 Previous errors cleared");
 
-      // Validate all steps before submission
-      console.log("🔍 Running full form validation...");
-      await fullValidationSchema.validate(values, { abortEarly: false });
-      console.log("✅ Full validation passed");
+    // Validate all steps before submission
+    console.log("🔍 Running full form validation...");
+    await fullValidationSchema.validate(values, { abortEarly: false });
+    console.log("✅ Full validation passed");
 
-      // Log file validation
-      console.log("📸 Photo validation:");
-      console.log(
-        "- Farm Photo:",
-        values.farmPhoto
-          ? `${values.farmPhoto.name} (${values.farmPhoto.size} bytes)`
-          : "Missing"
-      );
-      console.log(
-        "- Farmer Photo:",
-        values.farmerPhoto
-          ? `${values.farmerPhoto.name} (${values.farmerPhoto.size} bytes)`
-          : "Missing"
-      );
+    // Log file validation
+    console.log("📸 Photo validation:");
+    console.log(
+      "- Farm Photo:",
+      values.farmPhoto
+        ? `${values.farmPhoto.name} (${values.farmPhoto.size} bytes)`
+        : "Missing"
+    );
+    console.log(
+      "- Farmer Photo:",
+      values.farmerPhoto
+        ? `${values.farmerPhoto.name} (${values.farmerPhoto.size} bytes)`
+        : "Missing"
+    );
 
-      if (!values.farmPhoto || !values.farmerPhoto) {
-        console.error("❌ Photos are missing!");
-        alert("Please upload both farm and farmer photos before submitting");
-        setSubmitting(false);
-        return;
-      }
-
-      // Convert files to base64
-      console.log("🔄 Converting files to base64...");
-      const userPhoto = await fileToBase64(values.farmerPhoto);
-      const farmPhoto = await fileToBase64(values.farmPhoto);
-      console.log("✅ Files converted to base64");
-      console.log("- User photo length:", userPhoto.length);
-      console.log("- Farm photo length:", farmPhoto.length);
-
-      // Prepare the registration data according to the API format
-      const registrationData: RegisterUserRequest = {
-        firstName: values.firstName,
-        lastName: values.lastName,
-        email: values.email,
-        phoneNumber: values.phoneNumber,
-        farmAddress: values.farmLocation,
-        country: values.country,
-        state: values.state,
-        farmName: values.farmName,
-        farmSize:values.farmSize,
-        farmSizeUnit: values.unit as "hectare" | "acre",
-        cropIds: values.cropsGrown, // These are now crop IDs from the API
-        estimatedAnnualProduction: values.estimatedAnnualProduction,
-        farmingExperience: values.farmingExperience,
-        internetAccess: values.internetAccess,
-        howUserSellCrops: values.currentSellingMethod,
-        userPhoto: userPhoto,
-        farmPhoto: farmPhoto,
-        bankName: values.bankName,
-        accountNumber: values.accountNumber,
-        role: "farmer",
-        password: values.password,
-        confirmPassword: values.confirmPassword,
-      };
-
-      console.log("📤 Prepared registration data:", {
-        ...registrationData,
-        userPhoto: `[Base64 string - ${userPhoto.length} chars]`,
-        farmPhoto: `[Base64 string - ${farmPhoto.length} chars]`,
-        password: "[HIDDEN]",
-        confirmPassword: "[HIDDEN]",
-      });
-
-      // Call the register function from the store
-      console.log("📞 Calling register function...");
-      await register(registrationData);
-      console.log("✅ Register function completed");
-
-      // Check if registration was successful
-      if (registrationUserId) {
-        setShowSuccessModal(true);
-        console.log("🎉 Registration successful! User ID:", registrationUserId);
-        router.push("/verify-otp");
-      } else {
-        console.log("⚠️ Registration completed but no user ID returned");
-      }
-    } catch (validationError: any) {
-      if (validationError.name === "ValidationError") {
-        console.error("❌ Validation failed:", validationError.errors);
-        alert(
-          "Please fill in all required fields:\n" +
-            validationError.errors.join("\n")
-        );
-      } else {
-        console.error("❌ Registration failed with error:", validationError);
-        console.error("❌ Error stack:", validationError.stack);
-      }
+    if (!values.farmPhoto || !values.farmerPhoto) {
+      console.error("❌ Photos are missing!");
+      alert("Please upload both farm and farmer photos before submitting");
       setSubmitting(false);
+      return;
     }
-  };
+
+    // Convert files to base64
+    console.log("🔄 Converting files to base64...");
+    const userPhoto = await fileToBase64(values.farmerPhoto);
+    const farmPhoto = await fileToBase64(values.farmPhoto);
+    console.log("✅ Files converted to base64");
+    console.log("- User photo length:", userPhoto.length);
+    console.log("- Farm photo length:", farmPhoto.length);
+
+    // Prepare the registration data according to the API format
+    // IMPORTANT: Convert numeric fields to strings here
+    const registrationData: RegisterUserRequest = {
+      firstName: values.firstName,
+      lastName: values.lastName,
+      email: values.email,
+      phoneNumber: values.phoneNumber,
+      farmAddress: values.farmLocation,
+      country: values.country,
+      state: values.state,
+      farmName: values.farmName,
+      farmSize: String(values.farmSize), // Convert to string
+      farmSizeUnit: values.unit as "hectare" | "acre",
+      cropIds: values.cropsGrown, // These are now crop IDs from the API
+      estimatedAnnualProduction: String(values.estimatedAnnualProduction), // Convert to string
+      farmingExperience: values.farmingExperience,
+      internetAccess: values.internetAccess,
+      howUserSellCrops: values.currentSellingMethod,
+      userPhoto: userPhoto,
+      farmPhoto: farmPhoto,
+      bankName: values.bankName,
+      accountNumber: values.accountNumber,
+      role: "farmer",
+      password: values.password,
+      confirmPassword: values.confirmPassword,
+    };
+
+    console.log("📤 Prepared registration data:", {
+      ...registrationData,
+      userPhoto: `[Base64 string - ${userPhoto.length} chars]`,
+      farmPhoto: `[Base64 string - ${farmPhoto.length} chars]`,
+      password: "[HIDDEN]",
+      confirmPassword: "[HIDDEN]",
+      farmSize: `${registrationData.farmSize} (type: ${typeof registrationData.farmSize})`,
+      estimatedAnnualProduction: `${registrationData.estimatedAnnualProduction} (type: ${typeof registrationData.estimatedAnnualProduction})`,
+    });
+
+    // Call the register function from the store
+    console.log("📞 Calling register function...");
+    await register(registrationData);
+    console.log("✅ Register function completed");
+
+    // Check if registration was successful
+    if (registrationUserId) {
+      setShowSuccessModal(true);
+      console.log("🎉 Registration successful! User ID:", registrationUserId);
+      router.push("/verify-otp");
+    } else {
+      console.log("⚠️ Registration completed but no user ID returned");
+    }
+  } catch (validationError: any) {
+    if (validationError.name === "ValidationError") {
+      console.error("❌ Validation failed:", validationError.errors);
+      alert(
+        "Please fill in all required fields:\n" +
+          validationError.errors.join("\n")
+      );
+    } else {
+      console.error("❌ Registration failed with error:", validationError);
+      console.error("❌ Error stack:", validationError.stack);
+    }
+    setSubmitting(false);
+  }
+};
 
   const handleFileUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
