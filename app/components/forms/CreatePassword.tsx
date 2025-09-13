@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/app/store/useAuthStore";
@@ -13,7 +13,8 @@ interface CreatePasswordFormValues {
   confirmPassword: string;
 }
 
-const CreatePasswordForm: React.FC = () => {
+// Separate component that uses useSearchParams
+const CreatePasswordFormContent: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,7 +39,7 @@ const CreatePasswordForm: React.FC = () => {
       clearError(); // Clear any previous errors
     } else {
       // If no reset token, redirect to forgot password page
-      router.push('/forgot-password');
+      router.push('/reset-password');
     }
   }, [searchParams, router, clearError]);
 
@@ -421,6 +422,20 @@ const CreatePasswordForm: React.FC = () => {
         </button>
       </Modal>
     </>
+  );
+};
+
+// Loading component for Suspense fallback
+const CreatePasswordFormLoading = () => (
+<AnimatedLoading/>
+);
+
+// Main component that wraps the content with Suspense
+const CreatePasswordForm: React.FC = () => {
+  return (
+    <Suspense fallback={<CreatePasswordFormLoading />}>
+      <CreatePasswordFormContent />
+    </Suspense>
   );
 };
 
