@@ -118,7 +118,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     {
       icon: <Settings size={20} />,
       label: "Settings",
-      href: "/dashboard/settings-processor",
+      href: "/dashboard-processor/settings",
     },
   ];
 

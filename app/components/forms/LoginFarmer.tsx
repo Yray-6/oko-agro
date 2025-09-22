@@ -88,10 +88,6 @@ useEffect(() => {
     router.push('/dashboard');
   };
 
-  const handleContinueToDashboard = () => {
-    setShowSuccessModal(false);
-    router.push('/dashboard');
-  };
 
   return (
     <>
@@ -246,45 +242,34 @@ useEffect(() => {
           </Link>
         </div>
 
-        {/* Success Modal */}
+   {/* Success Modal */}
         <Modal
           isOpen={showSuccessModal}
           onClose={handleSuccessModalClose}
-          size="md"
+          size="sm"
           showCloseButton={false}
           className="text-center"
           closeOnOverlayClick={false}
           closeOnEscape={false}
         >
           {/* Success Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-mainGreen/10 rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-mainGreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-mainGreen/10 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-mainGreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-semibold text-mainGreen mb-4">
+          <h2 className="text-lg font-semibold text-mainGreen mb-2">
             Login Successful!
           </h2>
 
-          {/* Welcome Message */}
-          <div className="space-y-4 mb-8">
-            <p className="text-lg font-medium text-gray-900">
-              Welcome back, {user?.firstName}!
-            </p>
-          
-          </div>
-
-          {/* Continue Button */}
-          <button
-            onClick={handleContinueToDashboard}
-            className="w-full py-3 px-6 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
-          >
-            Continue to Dashboard
-          </button>
+          {/* Simple message */}
+          <p className="text-sm text-gray-600 mb-4">
+            Redirecting to dashboard...
+          </p>
         </Modal>
       </div>
     </>

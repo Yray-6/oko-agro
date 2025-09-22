@@ -10,34 +10,65 @@ export interface Crop {
   name: string;
 }
 
-// User type
+
 export interface User {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
-  farmAddress: string;
+  farmAddress: string | null;
   country: string;
   state: string;
-  farmName: string;
-  farmSize: string;
-  unit: FarmSizeUnit;
+  farmName: string | null;
+  farmSize: string | null;
+  farmSizeUnit: FarmSizeUnit | null;
   estimatedAnnualProduction: string;
-  farmingExperience: string;
-  internetAccess: string;
-  howUserSellCrops: string;
+  farmingExperience: string | null;
+  internetAccess: string | null;
+  howUserSellCrops: string | null;
   bankName: string;
   accountNumber: string;
   role: UserRole;
+  
+  // Additional fields present in the data but missing from original interface
+  companyName: string | null;
+  businessRegNumber: string | null;
+  yearEstablished: string | null;
+  businessType: string | null;
+  processsingCapacitySize: string | null;
+  processsingCapacityUnit: string | null;
+  operatingDaysPerWeek: string | null;
+  storageCapacity: string | null;
+  minimumOrderQuality: string | null;
+  OperationsType: string | null;
+  
   userVerified: boolean;
-  userVerificationOtp: string | null;
-  userVerificationOtpExpiryTime: string | null;
+  userVerificationOtp?: string | null; // Made optional since it's not in the data
+  userVerificationOtpExpiryTime?: string | null; // Made optional since it's not in the data
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  
+  // Arrays
   crops: Crop[];
+  certifications: CertificationResponse[];
+  qualityStandards: QualityResponse[];
+  files: UserFile[];
 }
+
+export interface UserFile {
+  id: string;
+  name: string;
+  description: string;
+  mimeType: string;
+  size: string;
+  url: string;
+  publicId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 // Tokens type
 export interface Tokens {

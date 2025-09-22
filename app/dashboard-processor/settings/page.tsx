@@ -1,5 +1,5 @@
 import SecuritySettings from "@/app/components/dashboad-processor/Change-password";
-import EditProfileFarmer from "@/app/components/dashboard/EditProfileFarmer";
+import EditProfileProcessor from "@/app/components/dashboad-processor/EditProfile";
 import React from "react";
 
 export default function page() {
@@ -13,9 +13,9 @@ export default function page() {
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-3">
+      <div className="grid gap-3 grid-cols-3">
         <div className="col-span-2">
-          <EditProfileFarmer />
+          <EditProfileProcessor />
         </div>
         <div className="col-span-1">
             <SecuritySettings/>
