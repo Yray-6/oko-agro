@@ -47,7 +47,7 @@ const LinkCard: React.FC<LinkCardProps> = ({
           ${hoverClasses}
           p-4 bg-skyBlue rounded-2xl
           border border-gray-100
-          cursor-pointer 
+          cursor-pointer  
           flex flex-col items-center justify-center 
           text-center 
           min-h-[120px] 

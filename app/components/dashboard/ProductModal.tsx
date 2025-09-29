@@ -7,61 +7,124 @@ import { Camera, X, Calendar } from 'lucide-react';
 import { 
   TextField, 
   SelectField, 
-  cropsOptions,
   unitOptions
-} from '../forms/FormFields'; // Import your reusable components
+} from '../forms/FormFields';
 import Image from 'next/image';
 import mail from "@/app/assets/images/productSuccess.png"
+import { useProductStore } from '@/app/store/useProductStore';
+import { useDataStore } from '@/app/store/useDataStore';
+import { useAuthStore } from '@/app/store/useAuthStore';
+import { ProductDetails } from '@/app/types';
+import { imageLoader } from '@/app/helpers';
+import AnimatedLoading from '@/app/Loading';
 
 // TypeScript interfaces
-interface ListProductFormValues {
-  productName: string;
-  cropType: string;
-  availableQuantity: string;
-  unit: string;
+interface ProductFormValues {
+  name: string;
+  cropId: string;
+  quantity: string;
+  quantityUnit: string;
   pricePerUnit: string;
+  priceCurrency: string;
   harvestDate: string;
-  storageFarmLocation: string;
+  locationAddress: string;
   mainPicture: File | null;
   additionalPictures: File[];
 }
 
-const initialValues: ListProductFormValues = {
-  productName: '',
-  cropType: '',
-  availableQuantity: '',
-  unit: '',
-  pricePerUnit: '',
-  harvestDate: '',
-  storageFarmLocation: '',
-  mainPicture: null,
-  additionalPictures: [],
-};
-
 // Validation schema
 const validationSchema = Yup.object({
-  productName: Yup.string().required('Product name is required'),
-  cropType: Yup.string().required('Crop type is required'),
-  availableQuantity: Yup.string().required('Available quantity is required'),
-  unit: Yup.string().required('Unit is required'),
+  name: Yup.string().required('Product name is required'),
+  cropId: Yup.string().required('Crop type is required'),
+  quantity: Yup.string().required('Available quantity is required'),
+  quantityUnit: Yup.string().required('Unit is required'),
   pricePerUnit: Yup.string().required('Price per unit is required'),
+  priceCurrency: Yup.string().required('Currency is required'),
   harvestDate: Yup.string().required('Harvest date is required'),
-  storageFarmLocation: Yup.string().required('Storage/Farm location is required'),
-  mainPicture: Yup.mixed().required('Main picture is required'),
+  locationAddress: Yup.string().required('Storage/Farm location is required'),
+  mainPicture: Yup.mixed().when('$isEditing', {
+    is: false,
+    then: (schema) => schema.required('Main picture is required'),
+    otherwise: (schema) => schema.nullable(),
+  }),
 });
 
 interface ListNewProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editingProduct?: ProductDetails | null;
+  isEditing?: boolean;
 }
+
+// Currency options
+const currencyOptions = [
+  { value: 'NGN', label: 'NGN (Nigerian Naira)' },
+  { value: 'USD', label: 'USD (US Dollar)' },
+  { value: 'EUR', label: 'EUR (Euro)' },
+];
 
 const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  editingProduct = null,
+  isEditing = false
 }) => {
+  // Store hooks
+  const { createProduct, updateProduct, isCreating, isUpdating } = useProductStore();
+  const { crops, fetchCrops } = useDataStore();
+  const { user } = useAuthStore();
+
+  // Local state
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch crops if not loaded
+  useEffect(() => {
+    if (isOpen && crops.length === 0) {
+      fetchCrops().catch(console.error);
+    }
+  }, [isOpen, crops.length, fetchCrops]);
+
+  // Convert crops to options format
+  const cropsOptions = crops.map(crop => ({
+    value: crop.id,
+    label: crop.name
+  }));
+
+  // Generate initial values based on editing mode
+  const getInitialValues = (): ProductFormValues => {
+    if (isEditing && editingProduct) {
+      // Extract values from ProductDetails
+      return {
+        name: editingProduct.name,
+        cropId: editingProduct.cropType?.id || '',
+        quantity: editingProduct.quantity,
+        quantityUnit: editingProduct.quantityUnit,
+        pricePerUnit: editingProduct.pricePerUnit,
+        priceCurrency: editingProduct.priceCurrency,
+        harvestDate: editingProduct.harvestEvent?.eventDate 
+          ? new Date(editingProduct.harvestEvent.eventDate).toISOString().split('T')[0]
+          : new Date(editingProduct.createdAt).toISOString().split('T')[0],
+        locationAddress: editingProduct.locationAddress,
+        mainPicture: null,
+        additionalPictures: [],
+      };
+    }
+    
+    return {
+      name: '',
+      cropId: '',
+      quantity: '',
+      quantityUnit: '',
+      pricePerUnit: '',
+      priceCurrency: 'NGN',
+      harvestDate: '',
+      locationAddress: '',
+      mainPicture: null,
+      additionalPictures: [],
+    };
+  };
 
   // Handle escape key
   useEffect(() => {
@@ -73,7 +136,7 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      document.body.style.overflow = 'hidden';
     }
 
     return () => {
@@ -84,18 +147,79 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (values: ListProductFormValues) => {
+  // Convert files to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:image/jpeg;base64, prefix
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleSubmit = async (values: ProductFormValues) => {
+    if (!user?.id) {
+      console.error('User not authenticated');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Product listing submitted:', values);
+      // Convert files to base64 for new products
+      const photos: string[] = [];
+      
+      if (!isEditing) {
+        if (values.mainPicture) {
+          const mainPhotoBase64 = await fileToBase64(values.mainPicture);
+          photos.push(mainPhotoBase64);
+        }
+        
+        if (values.additionalPictures.length > 0) {
+          const additionalPhotosBase64 = await Promise.all(
+            values.additionalPictures.map(file => fileToBase64(file))
+          );
+          photos.push(...additionalPhotosBase64);
+        }
+      }
+
+      if (isEditing && editingProduct) {
+        // Update existing product
+        await updateProduct({
+          productId: editingProduct.id,
+          name: values.name,
+          quantity: values.quantity,
+          quantityUnit: values.quantityUnit,
+          pricePerUnit: values.pricePerUnit,
+          priceCurrency: values.priceCurrency,
+          harvestDate: values.harvestDate,
+          locationAddress: values.locationAddress,
+        });
+      } else {
+        // Create new product
+        await createProduct({
+          name: values.name,
+          cropId: values.cropId,
+          quantity: values.quantity,
+          quantityUnit: values.quantityUnit as 'kilogram' | 'tonne',
+          pricePerUnit: values.pricePerUnit,
+          priceCurrency: values.priceCurrency,
+          harvestDate: new Date(values.harvestDate).toISOString(),
+          locationAddress: values.locationAddress,
+          photos,
+        });
+      }
       
       onClose();
       onSuccess();
     } catch (error) {
-      console.error('Product listing failed:', error);
+      console.error('Product operation failed:', error);
+      // You might want to show an error toast here
     } finally {
       setIsSubmitting(false);
     }
@@ -164,6 +288,8 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
     );
   };
 
+  const isLoading = isSubmitting || isCreating || isUpdating;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
@@ -182,8 +308,10 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
           {/* Scrollable Content */}
           <div className="h-full flex flex-col">
             {/* Fixed Header */}
-            <div className="flex-shrink-0 flex justify-between items-center p-6 ">
-              <h2 className="text-xl font-semibold text-black">List New Product</h2>
+            <div className="flex-shrink-0 flex justify-between items-center p-6">
+              <h2 className="text-xl font-semibold text-black">
+                {isEditing ? 'Edit Product' : 'List New Product'}
+              </h2>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-full"
@@ -195,94 +323,122 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
             {/* Scrollable Form Content */}
             <div className="flex-1 overflow-y-auto py-6 px-12">
               <Formik
-                initialValues={initialValues}
+                initialValues={getInitialValues()}
                 validationSchema={validationSchema}
                 onSubmit={handleSubmit}
+                context={{ isEditing }}
+                enableReinitialize
               >
                 {({ values, setFieldValue, errors, touched }) => (
                   <Form className="space-y-8">
-                    {/* Product Pictures Section */}
-                    <div>
-                      <h3 className="text-base font-medium mb-2">Product Pictures</h3>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Add clear photos of your product. Good photos get more views!
-                      </p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Main Picture Upload */}
-                        <div>
-                          <input
-                            type="file"
-                            id="mainPicture"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => handleFileUpload(e, setFieldValue, 'mainPicture')}
-                          />
-                          <PictureUploadBox
-                            title="Upload Main Picture"
-                            onClick={() => document.getElementById('mainPicture')?.click()}
-                            files={values.mainPicture}
-                          />
-                          {errors.mainPicture && touched.mainPicture && (
-                            <p className="text-red-500 text-xs mt-1">{errors.mainPicture}</p>
-                          )}
-                        </div>
+                    {/* Product Pictures Section - Only show for new products */}
+                    {!isEditing && (
+                      <div>
+                        <h3 className="text-base font-medium mb-2">Product Pictures</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                          Add clear photos of your product. Good photos get more views!
+                        </p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Main Picture Upload */}
+                          <div>
+                            <input
+                              type="file"
+                              id="mainPicture"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleFileUpload(e, setFieldValue, 'mainPicture')}
+                            />
+                            <PictureUploadBox
+                              title="Upload Main Picture"
+                              onClick={() => document.getElementById('mainPicture')?.click()}
+                              files={values.mainPicture}
+                            />
+                            {errors.mainPicture && touched.mainPicture && (
+                              <p className="text-red-500 text-xs mt-1">{errors.mainPicture}</p>
+                            )}
+                          </div>
 
-                        {/* Additional Pictures Upload */}
-                        <div>
-                          <input
-                            type="file"
-                            id="additionalPictures"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => handleFileUpload(e, setFieldValue, 'additionalPictures', true)}
-                          />
-                          <PictureUploadBox
-                            title="Additional Pictures"
-                            onClick={() => document.getElementById('additionalPictures')?.click()}
-                            files={values.additionalPictures}
-                            isMultiple={true}
-                          />
+                          {/* Additional Pictures Upload */}
+                          <div>
+                            <input
+                              type="file"
+                              id="additionalPictures"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => handleFileUpload(e, setFieldValue, 'additionalPictures', true)}
+                            />
+                            <PictureUploadBox
+                              title="Additional Pictures"
+                              onClick={() => document.getElementById('additionalPictures')?.click()}
+                              files={values.additionalPictures}
+                              isMultiple={true}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Show existing photos when editing */}
+                    {isEditing && editingProduct && editingProduct.photos && editingProduct.photos.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-medium mb-2">Current Product Photos</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          {editingProduct.photos.map((photo, index) => (
+                            <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                              <Image
+                                loader={imageLoader}
+                                src={photo.url}
+                                alt={photo.name || `Product photo ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-500 mb-6">
+                          Photo updates are not currently supported. Contact support if you need to update photos.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Product Details Section */}
                     <div>
                       <h3 className="text-base font-medium mb-2">Product Details</h3>
                       <p className="text-sm text-gray-600 mb-6">
-                        Add information on the product you are listing
+                        {isEditing ? 'Update your product information' : 'Add information on the product you are listing'}
                       </p>
 
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <TextField
-                            name="productName"
+                            name="name"
                             label="Product Name"
                             placeholder="Enter product name"
                             required
                           />
                           
                           <SelectField
-                            name="cropType"
+                            name="cropId"
                             label="Crop Type"
                             placeholder="Select crop type..."
                             options={cropsOptions}
                             required
+                            disabled={isEditing}
                           />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <TextField
-                            name="availableQuantity"
+                            name="quantity"
                             label="Available Quantity"
                             placeholder="Enter available quantity"
                             required
                           />
                           
                           <SelectField
-                            name="unit"
+                            name="quantityUnit"
                             label="Unit"
                             placeholder="Select unit..."
                             options={unitOptions}
@@ -298,6 +454,16 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
                             required
                           />
                           
+                          <SelectField
+                            name="priceCurrency"
+                            label="Currency"
+                            placeholder="Select currency..."
+                            options={currencyOptions}
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Harvest Date <span className="text-red-500">*</span>
@@ -320,7 +486,7 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
 
                         <div>
                           <TextField
-                            name="storageFarmLocation"
+                            name="locationAddress"
                             label="Storage/Farm Location"
                             as="textarea"
                             rows={4}
@@ -344,19 +510,19 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
                         
                         <button
                           type="submit"
-                          disabled={isSubmitting}
+                          disabled={isLoading}
                           className="flex-1 px-6 py-3 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                         >
-                          {isSubmitting ? (
+                          {isLoading ? (
                             <span className="flex items-center justify-center gap-2">
                               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
                                 <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                               </svg>
-                              Submitting Listing...
+                              {isEditing ? 'Updating...' : 'Submitting...'}
                             </span>
                           ) : (
-                            'Submit Listing'
+                            isEditing ? 'Update Product' : 'Submit Listing'
                           )}
                         </button>
                       </div>
@@ -368,11 +534,12 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
           </div>
         </div>
       </div>
+      {isLoading && <AnimatedLoading/>}
     </div>
   );
 };
 
-// Success Modal Component (also full custom implementation)
+// Success Modal Component
 interface SuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -384,8 +551,8 @@ interface SuccessModalProps {
 const SuccessModal: React.FC<SuccessModalProps> = ({
   isOpen,
   onClose,
-
-  
+  title = "Success!",
+  message = "Your action has been completed successfully.",
   buttonText = "Back to my Products"
 }) => {
   // Handle escape key
@@ -412,9 +579,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 transition-opacity"
-      />
+      <div className="fixed inset-0 bg-black/50 transition-opacity" />
       
       {/* Modal Container */}
       <div className="relative min-h-screen flex items-center justify-center py-6 px-12">
@@ -422,32 +587,25 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
           className="relative bg-white rounded-lg shadow-xl w-full max-w-xl py-6 px-12 text-center"
           onClick={(e) => e.stopPropagation()}
         >
-         {/* Email Icon with Checkmark */}
-                <div className="flex justify-center  mb-6">
-                  <div className="relative">
-                    {/* Email Icon */}
-                   <Image src={mail} alt="Email Icon" width={100}/>
-        
-                
-                  </div>
-                </div>
-        
-                {/* Title */}
-                <h2 className="text-2xl font-semibold text-mainGreen mb-8">
-               Listing Submitted Successfully!
-                </h2>
-        
-                {/* Message */}
-                <div className="space-y-4 mb-10">
-                  <p className="text-black leading-relaxed">
-                    Thank you for adding your product. Our inspection team will review it shortly to ensure it meets quality standards. 
-                  </p>
-                  <p className="text-black leading-relaxed">
-                Our inspection team will review it shortly to ensure it meets quality standards. 
-                  </p>
-                </div>
-        
-             
+          {/* Email Icon with Checkmark */}
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <Image src={mail} alt="Success Icon" width={100}/>
+            </div>
+          </div>
+    
+          {/* Title */}
+          <h2 className="text-2xl font-semibold text-mainGreen mb-8">
+            {title}
+          </h2>
+    
+          {/* Message */}
+          <div className="space-y-4 mb-10">
+            <p className="text-black leading-relaxed">
+              {message}
+            </p>
+          </div>
+    
           {/* Continue Button */}
           <button
             onClick={onClose}

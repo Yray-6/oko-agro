@@ -17,6 +17,7 @@ interface TextFieldProps {
   rows?: number;
   className?: string;
   prefix?: string;
+  disabled?: boolean;
 }
 
 // TextField Component
@@ -29,8 +30,11 @@ export const TextField: React.FC<TextFieldProps> = ({
   as,
   rows,
   className = "",
-  prefix
+  prefix,
+  disabled = false
 }) => {
+  const inputClasses = `${baseInputStyles} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`;
+  
   return (
     <div className={className}>
       <label className="block text-sm font-medium text-black mb-1">
@@ -47,7 +51,8 @@ export const TextField: React.FC<TextFieldProps> = ({
             type={type}
             as={as}
             rows={rows}
-            className={`${baseInputStyles} rounded-l-none`}
+            disabled={disabled}
+            className={`${inputClasses} rounded-l-none`}
             placeholder={placeholder}
           />
         </div>
@@ -57,7 +62,8 @@ export const TextField: React.FC<TextFieldProps> = ({
           type={type}
           as={as}
           rows={rows}
-          className={baseInputStyles}
+          disabled={disabled}
+          className={inputClasses}
           placeholder={placeholder}
         />
       )}
@@ -82,6 +88,7 @@ interface SelectFieldProps {
   className?: string;
   multiple?: boolean;
   size?: number;
+  disabled?: boolean;
 }
 
 // SelectField Component
@@ -93,8 +100,11 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   required = false,
   className = "",
   multiple = false,
-  size
+  size,
+  disabled = false
 }) => {
+  const selectClasses = `${baseInputStyles} ${!multiple ? 'appearance-none pr-10' : 'min-h-[120px]'} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`;
+  
   return (
     <div className={className}>
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -107,7 +117,8 @@ export const SelectField: React.FC<SelectFieldProps> = ({
           as="select"
           multiple={multiple}
           size={size || (multiple ? 6 : undefined)}
-          className={`${baseInputStyles} ${!multiple ? 'appearance-none pr-10' : 'min-h-[120px]'}`}
+          disabled={disabled}
+          className={selectClasses}
         >
           {!multiple && (
             <option value="" className="text-[#A8A8A8]">
@@ -123,7 +134,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         
         {!multiple && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+            <ChevronDown className={`h-4 w-4 ${disabled ? 'text-gray-300' : 'text-gray-400'}`} />
           </div>
         )}
       </div>
@@ -149,6 +160,7 @@ interface FileFieldProps {
   maxSize?: string;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>, setFieldValue: (field: string, value: any) => void, fieldName: string) => void;
   currentFile?: File | null;
+  disabled?: boolean;
 }
 
 // FileField Component
@@ -162,7 +174,8 @@ export const FileField: React.FC<FileFieldProps> = ({
   icon = <span className="text-gray-400">📤</span>,
   maxSize = "Max 10 MB files are allowed",
   onFileChange,
-  currentFile
+  currentFile,
+  disabled = false
 }) => {
   return (
     <div className={className}>
@@ -180,7 +193,7 @@ export const FileField: React.FC<FileFieldProps> = ({
         }: {
           form: { setFieldValue: (field: string, value: any) => void }
         }) => (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+          <div className={`border-2 border-dashed rounded-lg p-8 text-center ${disabled ? 'border-gray-200 bg-gray-50' : 'border-gray-300'}`}>
             <div className="space-y-2">
               <div>{icon}</div>
               <div>
@@ -188,12 +201,13 @@ export const FileField: React.FC<FileFieldProps> = ({
                   type="file"
                   id={name}
                   accept={accept}
+                  disabled={disabled}
                   className="hidden"
                   onChange={(e) => onFileChange(e, setFieldValue, name)}
                 />
                 <label
                   htmlFor={name}
-                  className="cursor-pointer text-mainGreen font-medium hover:text-mainGreen/80"
+                  className={`${disabled ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-mainGreen hover:text-mainGreen/80'} font-medium`}
                 >
                   Upload {label}
                 </label>
@@ -226,8 +240,8 @@ export const stateOptions: SelectOption[] = [
 ];
 
 export const unitOptions: SelectOption[] = [
-  { value: "hectare", label: "Hectares" },
-  { value: "acre", label: "Acres" },
+  { value: "kilogram", label: "Kilogram (kg)" },
+  { value: "tonne", label: "Tonne" },
 ];
 
 export const cropsOptions: SelectOption[] = [

@@ -1,5 +1,6 @@
 // types/auth.ts
 
+
 // Common types
 export type FarmSizeUnit = 'hectare' | 'acre';
 export type UserRole = 'farmer' | 'processor' | 'admin';
@@ -30,7 +31,7 @@ export interface User {
   bankName: string;
   accountNumber: string;
   role: UserRole;
-  
+
   // Additional fields present in the data but missing from original interface
   companyName: string | null;
   businessRegNumber: string | null;
@@ -42,14 +43,14 @@ export interface User {
   storageCapacity: string | null;
   minimumOrderQuality: string | null;
   OperationsType: string | null;
-  
+
   userVerified: boolean;
   userVerificationOtp?: string | null; // Made optional since it's not in the data
   userVerificationOtpExpiryTime?: string | null; // Made optional since it's not in the data
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
-  
+
   // Arrays
   crops: Crop[];
   certifications: CertificationResponse[];
@@ -76,8 +77,8 @@ export interface Tokens {
   refreshToken: string;
 }
 
-export type RegisterUserRequest = 
-  | RegisterFarmerRequest 
+export type RegisterUserRequest =
+  | RegisterFarmerRequest
   | RegisterProcessorRequest;
 
 export interface BaseRegisterRequest {
@@ -147,7 +148,106 @@ export interface ApiResponse<T = any> {
   message: string;
   data?: T;
 }
+// export interface UserProductsResponse {
+//   statusCode: number,
+//   message: string,
+//   data: UserProducts[]
+// }
 
+export interface UserProducts {
+  statusCode: number;
+  message: string;
+  data: ProductDetails[]
+}
+
+export interface UserProductsResponse {
+  statusCode: number;
+  message: string;
+  data: ProductDetails
+}
+
+
+export interface ProductDetails extends BaseEntityProduct {
+  name: string;
+  cropType?: CropType;
+  quantity: string;
+  quantityUnit: string;
+  pricePerUnit: string;
+  priceCurrency: string;
+  locationAddress: string;
+  owner?: ProductOwner;
+  photos: ProductPhoto[] ;
+  harvestEvent?: HarvestEvent;
+  isDeleted?: boolean;
+  cropId?:string;
+  status:string;
+
+
+}
+
+interface HarvestEvent extends BaseEntityProduct {
+  name: string;
+  description: string;
+  referenceId: string;
+  referenceType: string;
+  eventDate: string;
+  status: string;
+  isDeleted: boolean;
+}
+
+interface ProductPhoto extends BaseEntityProduct {
+  name: string;
+  url: string;
+  publicId: string;
+  description: string;
+  mimeType: string;
+  size: string;
+}
+
+export interface ProductOwner extends BaseEntityProduct{
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  farmAddress: string;
+  country: string;
+  state: string;
+  farmName: string;
+  farmSize: number | null;
+  farmSizeUnit: string;
+  estimatedAnnualProduction: string;
+  farmingExperience: string;
+  internetAccess: string;
+  howUserSellCrops: string;
+  bankName: string;
+  accountNumber: string;
+  role: string;
+
+  // Business-related fields (nullable for farmers)
+  companyName: string | null;
+  businessRegNumber: string | null;
+  yearEstablished: number | null;
+  businessType: string | null;
+  processsingCapacitySize: number | null;
+  processsingCapacityUnit: string | null;
+  operatingDaysPerWeek: number | null;
+  storageCapacity: number | null;
+  minimumOrderQuality: number | null;
+  OperationsType: string | null;
+
+  userVerified: boolean;
+  isDeleted: boolean;
+}
+
+interface BaseEntityProduct {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CropType extends BaseEntityProduct {
+  name: string
+}
 export interface RegisterUserResponse {
   id: string;
 }
@@ -211,11 +311,36 @@ export interface CropResponse {
 }
 
 export interface QualityResponse {
-  id:string;
-  name:string;
+  id: string;
+  name: string;
 }
 
 export interface CertificationResponse {
-  id:string;
-  name:string;
+  id: string;
+  name: string;
+}
+
+
+
+export interface CreateProduct {
+  name: string;
+  cropId: string;
+  quantity: string;
+  quantityUnit: string;
+  pricePerUnit: string;
+  priceCurrency: string;
+  harvestDate: string;
+  locationAddress: string;
+  photos: string[];
+}
+
+export interface EditProduct {
+  productId: string;
+  name: string;
+  quantity: string;
+  quantityUnit: string;
+  pricePerUnit: string;
+  priceCurrency: string;
+  harvestDate: string;
+  locationAddress: string;
 }

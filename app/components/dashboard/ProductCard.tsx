@@ -1,4 +1,5 @@
 
+import { imageLoader } from '@/app/helpers';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -53,6 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <Image 
             src={product.image} 
             alt={product.name}
+            loader={imageLoader}
             width={64}
             height={64}
             className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
