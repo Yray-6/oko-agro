@@ -59,9 +59,8 @@ interface ListNewProductModalProps {
 
 // Currency options
 const currencyOptions = [
-  { value: 'NGN', label: 'NGN (Nigerian Naira)' },
-  { value: 'USD', label: 'USD (US Dollar)' },
-  { value: 'EUR', label: 'EUR (Euro)' },
+  { value: 'ngn', label: 'NGN (Nigerian Naira)' },
+
 ];
 
 const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
@@ -118,7 +117,7 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
       quantity: '',
       quantityUnit: '',
       pricePerUnit: '',
-      priceCurrency: 'NGN',
+      priceCurrency: 'ngn',
       harvestDate: '',
       locationAddress: '',
       mainPicture: null,

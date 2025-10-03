@@ -1,7 +1,7 @@
 
 import { imageLoader } from '@/app/helpers';
 import Image from 'next/image';
-import Link from 'next/link';
+
 
 export interface Product {
   id: number;
@@ -45,12 +45,12 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 };
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const productUrl = `/products/${product.slug || product.id}`;
+
 
   return (
     <div className="flex items-start justify-between p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
       <div className="flex items-center space-x-4 flex-1">
-        <Link href={productUrl} className="flex-shrink-0">
+
           <Image 
             src={product.image} 
             alt={product.name}
@@ -59,13 +59,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             height={64}
             className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
           />
-        </Link>
+       
         <div className="flex-1">
-          <Link href={productUrl} className="block">
+       
             <h3 className="font-medium text-gray-900 mb-1 hover:text-blue-600 transition-colors cursor-pointer">
               {product.name}
             </h3>
-          </Link>
+         
           <div className="text-sm black space-y-1">
             <p>Quantity: {product.quantity} | {product.price}</p>
             <p>Certification: {product.certification}</p>

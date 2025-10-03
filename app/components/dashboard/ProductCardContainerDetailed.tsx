@@ -133,7 +133,7 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     };
 
     return (
-      <div className="w-full mt-2">
+      <div className="w-full mt-8">
         <div className="flex justify-between items-center mb-1">
           <span className="text-sm font-medium text-gray-700">Inventory</span>
           <span className="text-xs text-gray-500">{status}</span>
@@ -154,11 +154,11 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     status: ProductCardData["status"];
   }> = ({ productId, status }) => {
     return (
-      <div className="flex flex-col items-end justify-end space-y-2 mt-2">
+      <div className="flex flex-col items-center justify-end space-y-2 mt-2">
         {onEditListing && (
           <button
             onClick={() => onEditListing(productId)}
-            className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors text-sm"
+            className="flex items-center space-x-2 border px-4 py-2 w-full text-center rounded border-gray-200 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors text-sm"
             title="Edit this product listing"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
         {onSuspendListing && status === "Active" && (
           <button
             onClick={() => onSuspendListing(productId)}
-            className="flex items-center space-x-2 text-yellow-600 hover:text-yellow-800 transition-colors text-sm"
+            className="flex items-center space-x-2 border px-4 py-2 rounded border-gray-200 text-yellow-600 hover:text-yellow-800 transition-colors text-sm"
             title="Suspend this listing"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,34 +263,28 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
 
             {/* Product Details */}
             <div className="flex-1 min-w-0">
-              <Link href={productUrl} className="block mb-2">
-                <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer truncate">
+       
+                <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer truncate">
                   {product.name}
                 </h3>
-              </Link>
+         
               
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-1 mt-2 text-base text-gray-600">
                 <div className="flex flex-wrap gap-4">
                   <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    <strong>Qty:</strong> {product.quantity}
+                    
+                    Quantity: {product.quantity}
                   </span>
                   
                   <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                    </svg>
-                    <strong>Price:</strong> {product.price}
+                  
+                    Price: {product.price}
                   </span>
                 </div>
                 
                 <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <strong>Certification:</strong> {product.certification}
+                
+                  Certification: {product.certification}
                 </div>
 
                 {/* Inventory Progress Bar */}
@@ -312,7 +306,7 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
             
             <div className="text-right">
               <p className="text-xs text-gray-500">Listed</p>
-              <p className="text-sm font-medium text-gray-700">{product.listedDate}</p>
+              <p className="text-base text-gray-700">{product.listedDate}</p>
             </div>
 
             <ActionButtons productId={product.id} status={product.status} />

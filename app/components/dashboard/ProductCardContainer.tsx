@@ -4,6 +4,7 @@ import ProductCard, { Product } from "./ProductCard";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { formatPrice } from "@/app/helpers";
+import Link from "next/link";
 
 const ProductCardContainer: React.FC = () => {
   const [showAll, setShowAll] = useState<boolean>(false);
@@ -114,7 +115,10 @@ const ProductCardContainer: React.FC = () => {
       
       <div className="space-y-4">
         {displayedProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <Link href={'/dashboard/products'} key={product.id} className="block">
+                 <ProductCard key={product.id} product={product} />
+          </Link>
+   
         ))}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Urbanist } from 'next/font/google'
 import "./globals.css";
+import ToastContainer from "./components/ToastContainer";
 
 const urbanist = Urbanist({
   subsets: ['latin'],
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body
       
       >
+         <ToastContainer />
         {children}
       </body>
     </html>

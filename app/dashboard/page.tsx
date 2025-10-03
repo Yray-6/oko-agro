@@ -32,7 +32,7 @@ export default function Page() {
   }, [user?.id, fetchUserProducts]);
 
   // Calculate active listings (you can adjust the logic based on your product status)
-  const activeListingsCount = products.filter(product => product.status === 'Active').length;
+  const activeListingsCount = products.length;
 
   // Calculate inventory percentage (example calculation)
   const inventoryPercentage = products.length > 0 

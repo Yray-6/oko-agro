@@ -1,42 +1,43 @@
 import { create } from 'zustand';
 import axios, { AxiosError } from 'axios';
-import { 
-  ApiResponse, 
-  ProductDetails, 
-  UserProducts, 
-  UserProductsResponse 
-} from '@/app/types';
+import { ApiResponse } from '@/app/types';
 import { showToast } from '../hooks/useToast';
-// Request interfaces for the store (simplified DTOs)
-export interface CreateProductRequest {
+
+// Event interfaces
+export interface EventDetails {
+  id: string;
   name: string;
-  cropId: string;
-  quantity: string;
-  quantityUnit: 'kilogram' | 'tonne';
-  pricePerUnit: string;
-  priceCurrency: string;
-  harvestDate: string;
-  locationAddress: string;
-  photos: string[];
+  description?: string;
+  referenceType: string;
+  referenceId?: string;
+  eventDate: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
 }
 
-export interface UpdateProductRequest {
-  productId: string;
+// Request interfaces for the store
+export interface CreateEventRequest {
   name: string;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
-  priceCurrency: string;
-  harvestDate: string;
-  locationAddress: string;
+  description?: string;
+  referenceType: 'custom' | 'product' | 'order';
+  referenceId?: string;
+  eventDate: string;
+}
+
+export interface UpdateEventRequest {
+  eventId: string;
+  name?: string;
+  description?: string;
+  eventDate?: string;
 }
 
 // Internal request interfaces with action field
-interface CreateProductApiRequest extends CreateProductRequest {
+interface CreateEventApiRequest extends CreateEventRequest {
   action: 'create';
 }
 
-interface UpdateProductApiRequest extends UpdateProductRequest {
+interface UpdateEventApiRequest extends UpdateEventRequest {
   action: 'update';
 }
 
@@ -47,9 +48,19 @@ interface ApiErrorResponse {
   error?: string;
 }
 
+// User Events Response
+interface UserEventsResponse extends ApiResponse {
+  data: EventDetails[];
+}
+
+// Single Event Response
+interface SingleEventResponse extends ApiResponse {
+  data: EventDetails;
+}
+
 // Configure axios instance
 const apiClient = axios.create({
-  baseURL: '/api/products',
+  baseURL: '/api/events',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -116,9 +127,9 @@ apiClient.interceptors.request.use((config) => {
   const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    console.log('🔐 [Product Store] Token attached');
+    console.log('🔐 [Event Store] Token attached');
   } else {
-    console.warn('⚠️ [Product Store] No token found');
+    console.warn('⚠️ [Event Store] No token found');
   }
   return config;
 });
@@ -126,7 +137,7 @@ apiClient.interceptors.request.use((config) => {
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('✅ [Product Store] API Response:', {
+    console.log('✅ [Event Store] API Response:', {
       status: response.status,
       url: response.config.url,
       method: response.config.method?.toUpperCase()
@@ -134,7 +145,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('❌ [Product Store] API Error:', {
+    console.error('❌ [Event Store] API Error:', {
       status: error.response?.status,
       message: error.response?.data?.message || error.message,
       url: error.config?.url
@@ -143,208 +154,219 @@ apiClient.interceptors.response.use(
   }
 );
 
-interface ProductState {
-  products: ProductDetails[];
-  currentProduct: ProductDetails | null;
+interface EventState {
+  events: EventDetails[];
+  currentEvent: EventDetails | null;
   
   // Loading states
   isLoading: boolean;
   isCreating: boolean;
   isUpdating: boolean;
   isFetching: boolean;
+  isDeleting: boolean;
   
   // Error states
   error: string | null;
   createError: string | null;
   updateError: string | null;
   fetchError: string | null;
+  deleteError: string | null;
 }
 
-interface ProductActions {
-  fetchUserProducts: (userId: string) => Promise<void>;
-  fetchProduct: (productId: string) => Promise<void>;
-  createProduct: (data: CreateProductRequest) => Promise<ProductDetails>;
-  updateProduct: (data: UpdateProductRequest) => Promise<ProductDetails>;
-  deleteProduct: (productId: string) => Promise<void>;
+interface EventActions {
+  fetchUserEvents: (userId: string) => Promise<void>;
+  fetchEvent: (eventId: string) => Promise<void>;
+  createEvent: (data: CreateEventRequest) => Promise<EventDetails>;
+  updateEvent: (data: UpdateEventRequest) => Promise<EventDetails>;
+  deleteEvent: (eventId: string) => Promise<void>;
   
-  setCurrentProduct: (product: ProductDetails | null) => void;
-  clearCurrentProduct: () => void;
+  setCurrentEvent: (event: EventDetails | null) => void;
+  clearCurrentEvent: () => void;
   
   setLoading: (loading: boolean) => void;
   setCreating: (creating: boolean) => void;
   setUpdating: (updating: boolean) => void;
   setFetching: (fetching: boolean) => void;
+  setDeleting: (deleting: boolean) => void;
   
   setError: (error: string | null) => void;
   setCreateError: (error: string | null) => void;
   setUpdateError: (error: string | null) => void;
   setFetchError: (error: string | null) => void;
+  setDeleteError: (error: string | null) => void;
   clearErrors: () => void;
   
   reset: () => void;
 }
 
-type ProductStore = ProductState & ProductActions;
+type EventStore = EventState & EventActions;
 
-export const useProductStore = create<ProductStore>((set, get) => ({
+export const useEventStore = create<EventStore>((set, get) => ({
   // Initial state
-  products: [],
-  currentProduct: null,
+  events: [],
+  currentEvent: null,
   
   isLoading: false,
   isCreating: false,
   isUpdating: false,
   isFetching: false,
+  isDeleting: false,
   
   error: null,
   createError: null,
   updateError: null,
   fetchError: null,
+  deleteError: null,
 
   // State setters
-  setCurrentProduct: (product) => set({ currentProduct: product }),
-  clearCurrentProduct: () => set({ currentProduct: null }),
+  setCurrentEvent: (event) => set({ currentEvent: event }),
+  clearCurrentEvent: () => set({ currentEvent: null }),
   
   setLoading: (loading) => set({ isLoading: loading }),
   setCreating: (creating) => set({ isCreating: creating }),
   setUpdating: (updating) => set({ isUpdating: updating }),
   setFetching: (fetching) => set({ isFetching: fetching }),
+  setDeleting: (deleting) => set({ isDeleting: deleting }),
   
   setError: (error) => set({ error }),
   setCreateError: (error) => set({ createError: error }),
   setUpdateError: (error) => set({ updateError: error }),
   setFetchError: (error) => set({ fetchError: error }),
+  setDeleteError: (error) => set({ deleteError: error }),
   
   clearErrors: () => set({
     error: null,
     createError: null,
     updateError: null,
     fetchError: null,
+    deleteError: null,
   }),
 
   reset: () => set({
-    products: [],
-    currentProduct: null,
+    events: [],
+    currentEvent: null,
     isLoading: false,
     isCreating: false,
     isUpdating: false,
     isFetching: false,
+    isDeleting: false,
     error: null,
     createError: null,
     updateError: null,
     fetchError: null,
+    deleteError: null,
   }),
 
-  // Fetch user products
-  fetchUserProducts: async (userId: string) => {
+  // Fetch user events
+  fetchUserEvents: async (userId: string) => {
     const { setFetching, setFetchError } = get();
     setFetching(true);
     setFetchError(null);
     
-    console.log('📥 [Product Store] Fetching products for user:', userId);
+    console.log('📥 [Event Store] Fetching events for user:', userId);
     
     try {
-      const response = await apiClient.get<ApiResponse<UserProducts>>(
-        `?action=user-products&userId=${userId}`
+      const response = await apiClient.get<UserEventsResponse>(
+        `?action=user-events&userId=${userId}`
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
-        const products = response.data.data.data;
-        console.log('✅ [Product Store] Products fetched:', products.length);
+        const events = response.data.data;
+        console.log('✅ [Event Store] Events fetched:', events.length);
         
         set({
-          products: products,
+          events: events,
           isFetching: false,
           fetchError: null,
         });
       } else {
-        throw new Error(response.data.message || 'Failed to fetch products');
+        throw new Error(response.data.message || 'Failed to fetch events');
       }
     } catch (error) {
-      console.error('❌ [Product Store] Fetch error:', error);
-      const errorMessage = handleApiError(error, 'Failed to fetch products');
+      console.error('❌ [Event Store] Fetch error:', error);
+      const errorMessage = handleApiError(error, 'Failed to fetch events');
       
       set({
         fetchError: errorMessage,
         isFetching: false,
-        products: [],
+        events: [],
       });
       throw error;
     }
   },
 
-  // Fetch single product
-  fetchProduct: async (productId: string) => {
+  // Fetch single event
+  fetchEvent: async (eventId: string) => {
     const { setFetching, setFetchError } = get();
     setFetching(true);
     setFetchError(null);
     
-    console.log('📥 [Product Store] Fetching product:', productId);
+    console.log('📥 [Event Store] Fetching event:', eventId);
     
     try {
-      const response = await apiClient.get<ApiResponse<ProductDetails>>(
-        `?action=single-product&productId=${productId}`
+      const response = await apiClient.get<SingleEventResponse>(
+        `?action=single-event&eventId=${eventId}`
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
-        console.log('✅ [Product Store] Product fetched:', response.data.data.name);
+        console.log('✅ [Event Store] Event fetched:', response.data.data.name);
         set({
-          currentProduct: response.data.data,
+          currentEvent: response.data.data,
           isFetching: false,
           fetchError: null,
         });
       } else {
-        throw new Error(response.data.message || 'Failed to fetch product');
+        throw new Error(response.data.message || 'Failed to fetch event');
       }
     } catch (error) {
-      console.error('❌ [Product Store] Fetch product error:', error);
-      const errorMessage = handleApiError(error, 'Failed to fetch product');
+      console.error('❌ [Event Store] Fetch event error:', error);
+      const errorMessage = handleApiError(error, 'Failed to fetch event');
       
       set({
         fetchError: errorMessage,
         isFetching: false,
-        currentProduct: null,
+        currentEvent: null,
       });
       throw error;
     }
   },
 
-  // Create product
-  createProduct: async (data: CreateProductRequest) => {
+  // Create event
+  createEvent: async (data: CreateEventRequest) => {
     const { setCreating, setCreateError } = get();
     setCreating(true);
     setCreateError(null);
     
-    console.log('📤 [Product Store] Creating product:', data.name);
+    console.log('📤 [Event Store] Creating event:', data.name);
     
     try {
-      const requestData: CreateProductApiRequest = {
+      const requestData: CreateEventApiRequest = {
         action: 'create',
         ...data
       };
 
-      const response = await apiClient.post<UserProductsResponse>('', requestData);
+      const response = await apiClient.post<SingleEventResponse>('', requestData);
       
-      if (response.data.statusCode === 201 && response.data.data) {
-        const newProduct = response.data.data;
-        console.log('✅ [Product Store] Product created:', newProduct.id);
+      if ((response.data.statusCode === 201 || response.data.statusCode === 200) && response.data.data) {
+        const newEvent = response.data.data;
+        console.log('✅ [Event Store] Event created:', newEvent.id);
         
         // Show success toast
-        showToast('Product created successfully!', 'success');
+        showToast('Event created successfully!', 'success');
         
         set((state) => ({
-          products: [...state.products, newProduct],
+          events: [...state.events, newEvent],
           isCreating: false,
           createError: null,
         }));
         
-        return newProduct;
+        return newEvent;
       } else {
-        throw new Error(response.data.message || 'Failed to create product');
+        throw new Error(response.data.message || 'Failed to create event');
       }
     } catch (error) {
-      console.error('❌ [Product Store] Create error:', error);
-      const errorMessage = handleApiError(error, 'Failed to create product');
+      console.error('❌ [Event Store] Create error:', error);
+      const errorMessage = handleApiError(error, 'Failed to create event');
       
       set({
         createError: errorMessage,
@@ -354,47 +376,47 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     }
   },
 
-  // Update product
-  updateProduct: async (data: UpdateProductRequest) => {
+  // Update event
+  updateEvent: async (data: UpdateEventRequest) => {
     const { setUpdating, setUpdateError } = get();
     setUpdating(true);
     setUpdateError(null);
     
-    console.log('📤 [Product Store] Updating product:', data.productId);
+    console.log('📤 [Event Store] Updating event:', data.eventId);
     
     try {
-      const requestData: UpdateProductApiRequest = {
+      const requestData: UpdateEventApiRequest = {
         action: 'update',
         ...data
       };
 
-      const response = await apiClient.patch<UserProductsResponse>('', requestData);
+      const response = await apiClient.patch<SingleEventResponse>('', requestData);
       
       if (response.data.statusCode === 200 && response.data.data) {
-        const updatedProduct = response.data.data;
-        console.log('✅ [Product Store] Product updated:', updatedProduct.id);
+        const updatedEvent = response.data.data;
+        console.log('✅ [Event Store] Event updated:', updatedEvent.id);
         
         // Show success toast
-        showToast('Product updated successfully!', 'success');
+        showToast('Event updated successfully!', 'success');
         
         set((state) => ({
-          products: state.products.map(p => 
-            p.id === updatedProduct.id ? updatedProduct : p
+          events: state.events.map(e => 
+            e.id === updatedEvent.id ? updatedEvent : e
           ),
-          currentProduct: state.currentProduct?.id === updatedProduct.id 
-            ? updatedProduct 
-            : state.currentProduct,
+          currentEvent: state.currentEvent?.id === updatedEvent.id 
+            ? updatedEvent 
+            : state.currentEvent,
           isUpdating: false,
           updateError: null,
         }));
         
-        return updatedProduct;
+        return updatedEvent;
       } else {
-        throw new Error(response.data.message || 'Failed to update product');
+        throw new Error(response.data.message || 'Failed to update event');
       }
     } catch (error) {
-      console.error('❌ [Product Store] Update error:', error);
-      const errorMessage = handleApiError(error, 'Failed to update product');
+      console.error('❌ [Event Store] Update error:', error);
+      const errorMessage = handleApiError(error, 'Failed to update event');
       
       set({
         updateError: errorMessage,
@@ -404,41 +426,41 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     }
   },
 
-  // Delete product
-  deleteProduct: async (productId: string) => {
-    const { setLoading, setError } = get();
-    setLoading(true);
-    setError(null);
+  // Delete event
+  deleteEvent: async (eventId: string) => {
+    const { setDeleting, setDeleteError } = get();
+    setDeleting(true);
+    setDeleteError(null);
     
-    console.log('🗑️ [Product Store] Deleting product:', productId);
+    console.log('🗑️ [Event Store] Deleting event:', eventId);
     
     try {
-      const response = await apiClient.delete<ApiResponse>(`/${productId}`);
+      const response = await apiClient.delete<ApiResponse>(`?eventId=${eventId}`);
       
       if (response.data.statusCode === 200) {
-        console.log('✅ [Product Store] Product deleted:', productId);
+        console.log('✅ [Event Store] Event deleted:', eventId);
         
         // Show success toast
-        showToast('Product deleted successfully!', 'success');
+        showToast('Event deleted successfully!', 'success');
         
         set((state) => ({
-          products: state.products.filter(p => p.id !== productId),
-          currentProduct: state.currentProduct?.id === productId 
+          events: state.events.filter(e => e.id !== eventId),
+          currentEvent: state.currentEvent?.id === eventId 
             ? null 
-            : state.currentProduct,
-          isLoading: false,
-          error: null,
+            : state.currentEvent,
+          isDeleting: false,
+          deleteError: null,
         }));
       } else {
-        throw new Error(response.data.message || 'Failed to delete product');
+        throw new Error(response.data.message || 'Failed to delete event');
       }
     } catch (error) {
-      console.error('❌ [Product Store] Delete error:', error);
-      const errorMessage = handleApiError(error, 'Failed to delete product');
+      console.error('❌ [Event Store] Delete error:', error);
+      const errorMessage = handleApiError(error, 'Failed to delete event');
       
       set({
-        error: errorMessage,
-        isLoading: false,
+        deleteError: errorMessage,
+        isDeleting: false,
       });
       throw error;
     }
