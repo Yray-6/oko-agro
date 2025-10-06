@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios, { AxiosError } from 'axios';
+import  { AxiosError } from 'axios';
 import { ApiResponse, EventDetails } from '@/app/types';
 import { showToast } from '../hooks/useToast';
 import apiClient from '../utils/apiClient';

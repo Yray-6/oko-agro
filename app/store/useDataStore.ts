@@ -1,6 +1,6 @@
 // stores/useDataStore.ts
 import { create } from 'zustand';
-import axios, { AxiosError } from 'axios';
+import  { AxiosError } from 'axios';
 import { CropResponse, QualityResponse, CertificationResponse, ApiResponse } from '@/app/types';
 import apiClient from '../utils/apiClient';
 

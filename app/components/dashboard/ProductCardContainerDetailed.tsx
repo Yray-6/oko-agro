@@ -318,6 +318,7 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
 
   // Get display name for current filter (for the results summary)
   const getDisplayNameForFilter = (filter: StatusFilter) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const entry = Object.entries(statusDisplayMap).find(([_, value]) => value === filter);
     return entry ? entry[0] : filter;
   };

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState, useEffect } from "react";
 import {
@@ -423,6 +424,7 @@ const ProcessorMatchingUI: React.FC = () => {
   // Initial load
   useEffect(() => {
     handleSearch("lagos");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Map API data to UI format whenever processors change

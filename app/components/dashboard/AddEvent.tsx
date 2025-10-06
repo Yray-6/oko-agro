@@ -125,11 +125,11 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     const eventDate = new Date(values.date).toISOString();
     
     // Map category to referenceType
-    const referenceTypeMap: Record<string, 'custom' | 'product' | 'order'> = {
-      'quality-inspection': 'custom',
-      'delivery': 'order',
-      'crop-harvest': 'product'
-    };
+    // const referenceTypeMap: Record<string, 'custom' | 'product' | 'order'> = {
+    //   'quality-inspection': 'custom',
+    //   'delivery': 'order',
+    //   'crop-harvest': 'product'
+    // };
 
     return {
       name: values.title,

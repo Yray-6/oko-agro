@@ -1,7 +1,6 @@
 "use client";
 import DashboardIcon from "@/app/assets/icons/Dashboard";
 import ProcessorMatchingUI from "@/app/components/dashboard/ProcessorMatchingUi";
-import SearchBar from "@/app/components/forms/ProcessorSearch";
 import { useProductStore } from "@/app/store/useProductStore";
 import React from "react";
 import { TrendingUp, Users, Target } from "lucide-react";
