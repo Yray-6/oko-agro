@@ -2,15 +2,9 @@
 import { create } from 'zustand';
 import axios, { AxiosError } from 'axios';
 import { CropResponse, QualityResponse, CertificationResponse, ApiResponse } from '@/app/types';
+import apiClient from '../utils/apiClient';
 
-// Configure axios instance for client-side requests
-const apiClient = axios.create({
-  baseURL: '/api/auth',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000, // 30 seconds timeout
-});
+
 
 interface DataState {
   // Data
@@ -131,7 +125,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
     setCropsError(null);
     
     try {
-      const response = await apiClient.get<ApiResponse<CropResponse[]>>('?action=crops');
+      const response = await apiClient.get<ApiResponse<CropResponse[]>>('/auth?action=crops');
 
       if (response.data.statusCode === 200 && response.data.data) {
         set({
@@ -163,7 +157,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
     setQualityStandardsError(null);
     
     try {
-      const response = await apiClient.get<ApiResponse<QualityResponse[]>>('?action=quality-standards');
+      const response = await apiClient.get<ApiResponse<QualityResponse[]>>('/auth?action=quality-standards');
 
       if (response.data.statusCode === 200 && response.data.data) {
         set({
@@ -195,7 +189,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
     setCertificationsError(null);
     
     try {
-      const response = await apiClient.get<ApiResponse<CertificationResponse[]>>('?action=certifications');
+      const response = await apiClient.get<ApiResponse<CertificationResponse[]>>('/auth?action=certifications');
 
       if (response.data.statusCode === 200 && response.data.data) {
         set({

@@ -123,7 +123,6 @@ export async function POST(request: NextRequest) {
     const endpoint = '/products/create';
     console.log(`🌐 [Products API ${requestId}] Creating product...`);
 
-    // Make the API call to the backend
     const response = await apiClient.post(endpoint, data, {
       headers: {
         'Authorization': authHeader
@@ -136,7 +135,6 @@ export async function POST(request: NextRequest) {
       productId: response.data?.data?.id || 'N/A'
     });
 
-    // Return the response from the backend
     return NextResponse.json(response.data as ApiResponse, {
       status: response.status,
     });
@@ -223,7 +221,8 @@ export async function PATCH(request: NextRequest) {
     const endpoint = '/products/update';
     console.log(`🌐 [Products API ${requestId}] Updating product: ${data.productId}`);
 
-    // Make the API call to the backend using PATCH
+    
+
     const response = await apiClient.patch(endpoint, data, {
       headers: {
         'Authorization': authHeader
@@ -236,7 +235,6 @@ export async function PATCH(request: NextRequest) {
       productId: response.data?.data?.id || data.productId
     });
 
-    // Return the response from the backend
     return NextResponse.json(response.data as ApiResponse, {
       status: response.status,
     });
@@ -286,11 +284,17 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action');
     const userId = searchParams.get('userId');
     const productId = searchParams.get('productId');
+    const search = searchParams.get('search');
+    const pageNumber = searchParams.get('pageNumber') || '1';
+    const pageSize = searchParams.get('pageSize') || '20';
     
     console.log(`📊 [Products API ${requestId}] Query Parameters:`, {
       action,
       userId,
       productId,
+      search,
+      pageNumber,
+      pageSize,
       allParams: Object.fromEntries(searchParams.entries())
     });
 
@@ -344,12 +348,42 @@ export async function GET(request: NextRequest) {
         console.log(`🎯 [Products API ${requestId}] Fetching single product: ${productId}`);
         break;
         
+      case 'search-farmers':
+        // Build query string for farmers search
+        const farmersQuery = new URLSearchParams();
+        if (search) farmersQuery.append('search', search);
+        farmersQuery.append('pageNumber', pageNumber);
+        farmersQuery.append('pageSize', pageSize);
+        
+        endpoint = `/users/farmers?${farmersQuery.toString()}`;
+        console.log(`🌾 [Products API ${requestId}] Searching farmers with params:`, {
+          search,
+          pageNumber,
+          pageSize
+        });
+        break;
+        
+      case 'search-processors':
+        // Build query string for processors search
+        const processorsQuery = new URLSearchParams();
+        if (search) processorsQuery.append('search', search);
+        processorsQuery.append('pageNumber', pageNumber);
+        processorsQuery.append('pageSize', pageSize);
+        
+        endpoint = `/users/processors?${processorsQuery.toString()}`;
+        console.log(`🏭 [Products API ${requestId}] Searching processors with params:`, {
+          search,
+          pageNumber,
+          pageSize
+        });
+        break;
+        
       default:
         console.warn(`⚠️ [Products API ${requestId}] Invalid or missing action: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: user-products, single-product',
+            message: 'Invalid action. Valid actions are: user-products, single-product, search-farmers, search-processors',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }
@@ -364,13 +398,21 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log(`✅ [Products API ${requestId}] Products fetched successfully:`, {
+    console.log(`✅ [Products API ${requestId}] Request successful:`, {
       status: response.status,
       hasData: !!response.data,
       dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
       itemCount: Array.isArray(response.data) ? response.data.length : 'N/A'
     });
 
+    // For search actions, the response is already in the correct format
+    if (action === 'search-farmers' || action === 'search-processors') {
+      return NextResponse.json(response.data as ApiResponse, {
+        status: 200
+      });
+    }
+
+    // For other actions, wrap the response
     return NextResponse.json(
       {
         statusCode: 200,
@@ -384,7 +426,7 @@ export async function GET(request: NextRequest) {
     
     if (error instanceof AxiosError) {
       const statusCode = error.response?.status || 500;
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch products';
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch data';
       
       console.error(`🔥 [Products API ${requestId}] Axios Error Details:`, {
         status: statusCode,

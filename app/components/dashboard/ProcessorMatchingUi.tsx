@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MapPin,
   Clock,
@@ -10,11 +10,14 @@ import {
   CircleCheckBig,
   X,
   Phone,
+  Search,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import processor1 from "@/app/assets/images/Processor1.png";
 import processor2 from "@/app/assets/images/Processor2.png";
 import processor3 from "@/app/assets/images/Processor3.png";
+import { useProductStore } from "@/app/store/useProductStore";
 
 interface Processor {
   id: string;
@@ -39,6 +42,35 @@ interface Processor {
   qualityStandards?: string[];
 }
 
+// Helper function to map API data to UI format
+const mapApiToProcessor = (apiProcessor: any, index: number): Processor => {
+  const images = [processor1.src, processor2.src, processor3.src];
+  const randomImage = images[index % images.length];
+  
+  return {
+    id: apiProcessor.id,
+    name: apiProcessor.farmName || `${apiProcessor.firstName} ${apiProcessor.lastName}`,
+    contactPerson: `${apiProcessor.firstName} ${apiProcessor.lastName}`,
+    location: `${apiProcessor.state}, ${apiProcessor.country}`,
+    distance: "N/A", // Not provided by API
+    capacity: "Contact for details",
+    priceRange: "₦1,000-1,500/kg",
+    priceUnit: "negotiable",
+    products: apiProcessor.crops?.map((crop: any) => crop.name) || [],
+    urgentRequests: [],
+    responseTime: "< 2 hours",
+    activeRequests: 0,
+    rating: 4.5,
+    reviewCount: 0,
+    isMatched: apiProcessor.perfectMatch || false,
+    image: randomImage,
+    description: `Located at ${apiProcessor.farmAddress}`,
+    paymentMethod: "Escrow payment",
+    lastActive: "Recently active",
+    qualityStandards: ["Verified", "Licensed"],
+  };
+};
+
 const ProcessorModal: React.FC<{
   processor: Processor;
   isOpen: boolean;
@@ -49,7 +81,6 @@ const ProcessorModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] px-3 overflow-y-auto relative">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full p-1"
@@ -57,7 +88,6 @@ const ProcessorModal: React.FC<{
           <X size={20} />
         </button>
 
-        {/* Header Section */}
         <div className="p-6 pb-4 mt-10 border border-mainGreen/10 rounded-lg">
           <div className="flex items-start gap-4 mb-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
@@ -89,20 +119,20 @@ const ProcessorModal: React.FC<{
               <p className="text-gray-500 text-xs">
                 Last active: {processor.lastActive || "30 minutes ago"}
               </p>
-              {/* Description */}
               <p className="text-[#6B7C5A] text-xs mt-3 leading-relaxed mb-6">
                 {processor.description ||
                   "Boutique processor focusing on organic and fair trade products. Premium pricing for high-quality produce."}
               </p>
-              {/* Key Information Grid */}
               <div className="grid grid-cols-2 ">
                 <div className="space-y-3 mb-6 col-span-1">
                   <div className="flex items-center gap-3 text-sm">
                     <MapPin className="w-4 h-4 text-[#6B7C5A]" />
                     <span className="text-gray-700">{processor.location}</span>
-                    <span className="bg-[#6B7C5A]/10 text-[#6B7C5A] px-2 py-1 rounded-lg text-xs font-medium">
-                      {processor.distance}
-                    </span>
+                    {processor.distance !== "N/A" && (
+                      <span className="bg-[#6B7C5A]/10 text-[#6B7C5A] px-2 py-1 rounded-lg text-xs font-medium">
+                        {processor.distance}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
@@ -160,7 +190,6 @@ const ProcessorModal: React.FC<{
           </div>
         </div>
 
-        {/* Preferred Crops Section */}
         <div className="grid grid-cols-2 gap-5 mt-4">
           <div className=" p-6 border border-mainGreen/10 rounded-lg">
             <h3 className="font-medium text-sm text-gray-900 mb-3">
@@ -186,7 +215,6 @@ const ProcessorModal: React.FC<{
               ))}
             </div>
           </div>
-          {/* Quality Standards Section */}
           <div className=" p-6 border border-mainGreen/10 rounded-lg">
             <h3 className="font-medium text-sm mb-3">Quality Standards</h3>
             <div className="flex gap-2 flex-wrap">
@@ -204,7 +232,6 @@ const ProcessorModal: React.FC<{
           </div>
         </div>
 
-        {/* Urgent Requirements */}
         {processor.urgentRequests.length > 0 && (
           <div className="p-6 mb-6 mt-5 border border-orange/50 rounded-lg">
             <div className="flex items-center gap-2 text-[#B8860B] mb-3">
@@ -228,8 +255,7 @@ const ProcessorModal: React.FC<{
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="mb-8 pt-0 gap-4 flex ">
+        <div className="mb-8 mt-5 pt-0 gap-4 flex ">
           <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-mainGreen text-white rounded-lg hover:bg-mainGreen/90 transition-colors">
             <MessageCircle className="w-4 h-4" />
             <span className="font-medium">Send Message</span>
@@ -254,7 +280,6 @@ const ProcessorCard: React.FC<{
     <>
       <div className="bg-white rounded-lg border border-yellow p-4 ">
         <div className="flex items-start gap-4">
-          {/* Company Image */}
           <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
             <Image
               src={processor.image}
@@ -265,7 +290,6 @@ const ProcessorCard: React.FC<{
             />
           </div>
 
-          {/* Main Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -296,9 +320,11 @@ const ProcessorCard: React.FC<{
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 <span>{processor.location}</span>
-                <span className="text-mainGreen font-medium p-1 rounded-xl bg-[#6B7C5A]/10">
-                  {processor.distance}
-                </span>
+                {processor.distance !== "N/A" && (
+                  <span className="text-mainGreen font-medium p-1 rounded-xl bg-[#6B7C5A]/10">
+                    {processor.distance}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
@@ -383,100 +409,177 @@ const ProcessorCard: React.FC<{
 };
 
 const ProcessorMatchingUI: React.FC = () => {
-  const perfectMatches: Processor[] = [
-    {
-      id: "1",
-      name: "Fresh Valley Foods",
-      contactPerson: "Chioma Eze",
-      location: "Lagos, Nigeria",
-      distance: "25km",
-      capacity: "30 tons/month",
-      priceRange: "₦1,600-2,000/kg",
-      priceUnit: "for Yam",
-      products: ["Plantain", "Yam", "Cassava"],
-      urgentRequests: [" Organic Cassava"],
-      responseTime: "< 1 hour",
-      activeRequests: 15,
-      rating: 4.2,
-      reviewCount: 89,
-      isMatched: true,
-      image: processor1.src,
-    },
-    {
-      id: "2",
-      name: "Golden Foods Processing Ltd",
-      contactPerson: "Sarah Okafor",
-      location: "Abuja, Nigeria",
-      distance: "45km",
-      capacity: "50 tons/month",
-      priceRange: "₦1,000-1,200/kg",
-      priceUnit: "for Cassava",
-      products: ["Cassava", "Maize", "Rice"],
-      urgentRequests: [" Premium Cassava", " Organic Maize"],
-      responseTime: "< 2 hours",
-      activeRequests: 12,
-      rating: 4.8,
-      reviewCount: 156,
-      isMatched: true,
-      image: processor2.src,
-    },
-  ];
+  const {
+    processors,
+    processorsSearchMeta,
+    isSearchingProcessors,
+    processorsSearchError,
+    searchProcessors,
+  } = useProductStore();
 
-  const allProcessors: Processor[] = [
-    ...perfectMatches,
-    {
-      id: "3",
-      name: "Fresh Valley Foods",
-      contactPerson: "Chioma Eze",
-      location: "Lagos, Nigeria",
-      distance: "25km",
-      capacity: "30 tons/month",
-      priceRange: "₦160-200/kg",
-      priceUnit: "for Yam",
-      products: ["Plantain", "Yam", "Cassava"],
-      urgentRequests: [],
-      responseTime: "< 1 hour",
-      activeRequests: 15,
-      rating: 4.2,
-      reviewCount: 89,
-      isMatched: true,
-      image: processor3.src,
-    },
-  ];
+  const [searchTerm, setSearchTerm] = useState("");
+  const [mappedProcessors, setMappedProcessors] = useState<Processor[]>([]);
+
+  // Initial load
+  useEffect(() => {
+    handleSearch("lagos");
+  }, []);
+
+  // Map API data to UI format whenever processors change
+  useEffect(() => {
+    if (processors.length > 0) {
+      const mapped = processors.map((proc, index) => mapApiToProcessor(proc, index));
+      setMappedProcessors(mapped);
+    }
+  }, [processors]);
+
+  const handleSearch = async (term?: string) => {
+    try {
+      await searchProcessors({
+        search: term || searchTerm,
+        pageNumber: 1,
+        pageSize: 20,
+      });
+    } catch (error) {
+      console.error("Search error:", error);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (processorsSearchMeta) {
+      try {
+        await searchProcessors({
+          search: searchTerm,
+          pageNumber: processorsSearchMeta.pageNumber + 1,
+          pageSize: processorsSearchMeta.pageSize,
+        });
+      } catch (error) {
+        console.error("Load more error:", error);
+      }
+    }
+  };
+
+  const perfectMatches = mappedProcessors.filter((p) => p.isMatched);
+  const otherProcessors = mappedProcessors.filter((p) => !p.isMatched);
 
   return (
     <div className=" mx-auto bg-gray-50 min-h-screen">
-      {/* Perfect Matches Section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 my-2">
-          <h2 className=" font-medium text-gray-900">Perfect Matches</h2>
-          <span className="bg-orange text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
-            2
-          </span>
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search by location, Name, Address (e.g., Lagos, Abuja)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+          />
+          <button
+            onClick={() => handleSearch()}
+            disabled={isSearchingProcessors}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-mainGreen text-white rounded-lg hover:bg-mainGreen/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSearchingProcessors ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Searching...</span>
+              </>
+            ) : (
+              <span className="text-sm">Search</span>
+            )}
+          </button>
         </div>
-        <div className="space-y-4">
-          {perfectMatches.map((processor) => (
-            <ProcessorCard key={processor.id} processor={processor} />
-          ))}
-        </div>
+        
+        {processorsSearchError && (
+          <div className="mt-2 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+            {processorsSearchError}
+          </div>
+        )}
+
+        {processorsSearchMeta && (
+          <div className="mt-2 text-sm text-gray-600">
+            Showing {mappedProcessors.length} of {processorsSearchMeta.totalRecord} processors
+            {processorsSearchMeta.matchedRecord > 0 && (
+              <span className="ml-2 text-mainGreen font-medium">
+                ({processorsSearchMeta.matchedRecord} perfect matches)
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* Loading State */}
+      {isSearchingProcessors && mappedProcessors.length === 0 && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-mainGreen" />
+        </div>
+      )}
+
+      {/* No Results */}
+      {!isSearchingProcessors && mappedProcessors.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No processors found. Try a different search term.</p>
+        </div>
+      )}
+
+      {/* Perfect Matches Section */}
+      {perfectMatches.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 my-2">
+            <h2 className=" font-medium text-gray-900">Perfect Matches</h2>
+            <span className="bg-orange text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
+              {perfectMatches.length}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {perfectMatches.map((processor) => (
+              <ProcessorCard key={processor.id} processor={processor} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* All Processors Section */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className=" font-medium text-gray-900">All Processors</h2>
-          <span className="text-gray-600">(4)</span>
+      {otherProcessors.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className=" font-medium text-gray-900">All Processors</h2>
+            <span className="text-gray-600">({otherProcessors.length})</span>
+          </div>
+          <div className="space-y-4">
+            {otherProcessors.map((processor) => (
+              <ProcessorCard
+                key={processor.id}
+                processor={processor}
+                showContactButton={false}
+              />
+            ))}
+          </div>
         </div>
-        <div className="space-y-4">
-          {allProcessors.slice(2).map((processor) => (
-            <ProcessorCard
-              key={processor.id}
-              processor={processor}
-              showContactButton={false}
-            />
-          ))}
+      )}
+
+      {/* Load More Button */}
+      {processorsSearchMeta && 
+       processorsSearchMeta.pageNumber * processorsSearchMeta.pageSize < processorsSearchMeta.totalRecord && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={handleLoadMore}
+            disabled={isSearchingProcessors}
+            className="px-6 py-3 bg-white border border-mainGreen text-mainGreen rounded-lg hover:bg-mainGreen/5 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSearchingProcessors ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <span>Load More Processors</span>
+            )}
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

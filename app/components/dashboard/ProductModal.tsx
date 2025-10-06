@@ -161,68 +161,69 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
     });
   };
 
-  const handleSubmit = async (values: ProductFormValues) => {
-    if (!user?.id) {
-      console.error('User not authenticated');
-      return;
-    }
+const handleSubmit = async (values: ProductFormValues) => {
+  if (!user?.id) {
+    console.error('User not authenticated');
+    return;
+  }
 
-    setIsSubmitting(true);
-    
-    try {
+  setIsSubmitting(true);
+  
+  try {
+    // Prepare the payload excluding photos and cropId for edit mode
+    const productData: any = {
+      name: values.name,
+      quantity: values.quantity,
+      quantityUnit: values.quantityUnit as 'kilogram' | 'tonne',
+      pricePerUnit: values.pricePerUnit,
+      priceCurrency: values.priceCurrency,
+      locationAddress: values.locationAddress,
+    };
+
+    if (!isEditing) {
       // Convert files to base64 for new products
       const photos: string[] = [];
       
-      if (!isEditing) {
-        if (values.mainPicture) {
-          const mainPhotoBase64 = await fileToBase64(values.mainPicture);
-          photos.push(mainPhotoBase64);
-        }
-        
-        if (values.additionalPictures.length > 0) {
-          const additionalPhotosBase64 = await Promise.all(
-            values.additionalPictures.map(file => fileToBase64(file))
-          );
-          photos.push(...additionalPhotosBase64);
-        }
-      }
-
-      if (isEditing && editingProduct) {
-        // Update existing product
-        await updateProduct({
-          productId: editingProduct.id,
-          name: values.name,
-          quantity: values.quantity,
-          quantityUnit: values.quantityUnit,
-          pricePerUnit: values.pricePerUnit,
-          priceCurrency: values.priceCurrency,
-          harvestDate: values.harvestDate,
-          locationAddress: values.locationAddress,
-        });
-      } else {
-        // Create new product
-        await createProduct({
-          name: values.name,
-          cropId: values.cropId,
-          quantity: values.quantity,
-          quantityUnit: values.quantityUnit as 'kilogram' | 'tonne',
-          pricePerUnit: values.pricePerUnit,
-          priceCurrency: values.priceCurrency,
-          harvestDate: new Date(values.harvestDate).toISOString(),
-          locationAddress: values.locationAddress,
-          photos,
-        });
+      if (values.mainPicture) {
+        const mainPhotoBase64 = await fileToBase64(values.mainPicture);
+        photos.push(mainPhotoBase64);
       }
       
-      onClose();
-      onSuccess();
-    } catch (error) {
-      console.error('Product operation failed:', error);
-      // You might want to show an error toast here
-    } finally {
-      setIsSubmitting(false);
+      if (values.additionalPictures.length > 0) {
+        const additionalPhotosBase64 = await Promise.all(
+          values.additionalPictures.map(file => fileToBase64(file))
+        );
+        photos.push(...additionalPhotosBase64);
+      }
+
+      // Include photos and cropId for new products
+      productData.cropId = values.cropId;
+      productData.harvestDate = new Date(values.harvestDate).toISOString();
+      productData.photos = photos;
     }
-  };
+
+    if (isEditing && editingProduct) {
+      // Update existing product, exclude cropId and photos
+      await updateProduct({
+        productId: editingProduct.id,
+        ...productData,
+      });
+    } else {
+      // Create new product
+      await createProduct(productData);
+    }
+    
+    onClose();
+    onSuccess();
+  } catch (error) {
+    console.error('Product operation failed:', error);
+    // You might want to show an error toast here
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
 
   const handleFileUpload = (
     event: React.ChangeEvent<HTMLInputElement>,

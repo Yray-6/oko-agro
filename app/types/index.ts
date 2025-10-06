@@ -344,3 +344,166 @@ export interface EditProduct {
   harvestDate: string;
   locationAddress: string;
 }
+
+
+
+export interface UserProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  farmName: string | null;
+  state: string;
+  country: string;
+  farmAddress: string;
+  crops: Crop[];
+  perfectMatch: boolean;
+}
+
+export interface UsersSearchResponse {
+  items: UserProfile[];
+  matchedRecord: number;
+  totalRecord: number;
+  pageNumber: number;
+  pageSize: number;
+}
+
+// Request interfaces for the store (simplified DTOs)
+export interface CreateProductRequest {
+  name: string;
+  cropId: string;
+  quantity: string;
+  quantityUnit: 'kilogram' | 'tonne';
+  pricePerUnit: string;
+  priceCurrency: string;
+  harvestDate: string;
+  locationAddress: string;
+  photos: string[];
+}
+
+export interface UpdateProductRequest {
+  productId: string;
+  name: string;
+  quantity: string;
+  quantityUnit: string;
+  pricePerUnit: string;
+  priceCurrency: string;
+  harvestDate?: string;
+  locationAddress: string;
+}
+
+export interface SearchUsersParams {
+  search?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// Internal request interfaces with action field
+export interface CreateProductApiRequest extends CreateProductRequest {
+  action: 'create';
+}
+
+export interface UpdateProductApiRequest extends UpdateProductRequest {
+  action: 'update';
+}
+
+
+export interface EventOwner {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  farmAddress: string;
+  country: string;
+  state: string;
+  farmName: string;
+  role: string;
+  userVerified: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Event interfaces
+export interface EventDetails {
+  id: string;
+  name: string;
+  description?: string;
+  referenceType: string;
+  referenceId?: string;
+  eventDate: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+}
+
+// Product/Crop Info
+
+export interface CropType {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
+export interface EventProduct {
+  id: string;
+  name: string;
+  cropType: CropType;
+  quantity: string;
+  quantityUnit: string;
+  pricePerUnit: string;
+  priceCurrency: string;
+  locationAddress: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Main Event Interface
+export interface Event {
+  id: string;
+  name: string;
+  description: string | null;
+  referenceId: string | null;
+  referenceType: 'custom' | 'product' | 'order';
+  eventDate: string; // ISO 8601 format
+  status: 'upcoming' | 'in-progress' | 'completed';
+  owner: EventOwner;
+  product: EventProduct | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// API Response Types
+export interface CreateEventResponse {
+  statusCode: 201;
+  message: string;
+  data: EventDetails;
+}
+
+export interface GetEventResponse {
+  statusCode: 200;
+  message: string;
+  data: EventDetails;
+}
+
+export interface GetUserEventsResponse {
+  statusCode: 200;
+  message: string;
+  data: EventDetails[];
+}
+
+// UI-specific types
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD format
+  time: string;
+  location: string;
+  status: 'upcoming' | 'in-progress' | 'completed';
+  category: 'quality-inspection' | 'delivery' | 'crop-harvest' | 'custom';
+  description?: string;
+}

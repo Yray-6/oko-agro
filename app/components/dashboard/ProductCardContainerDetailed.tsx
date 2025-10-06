@@ -6,7 +6,7 @@ import { imageLoader } from "@/app/helpers";
 
 // Updated interface to match what the page component actually provides
 export interface ProductCardData {
-  id: number;
+  id: string;
   name: string;
   quantity: string;
   price: string;
@@ -21,9 +21,9 @@ export interface ProductCardData {
 
 interface ProductCardContainerDetailedProps {
   products: ProductCardData[];
-  onEditListing?: (productId: number) => void;
-  onSuspendListing?: (productId: number) => void;
-  onCancelListing?: (productId: number) => void;
+  onEditListing?: (productId: string) => void;
+  onSuspendListing?: (productId: string) => void;
+  onCancelListing?: (productId: string) => void;
 }
 
 type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out" | "Suspended";
@@ -150,7 +150,7 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
 
   // Action Buttons Component
   const ActionButtons: React.FC<{
-    productId: number;
+    productId: string;
     status: ProductCardData["status"];
   }> = ({ productId, status }) => {
     return (

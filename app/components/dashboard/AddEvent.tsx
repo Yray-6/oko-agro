@@ -135,7 +135,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       name: values.title,
       description: values.notes || `${values.category}`,
       referenceType: 'custom',
-      referenceId: "",
+      referenceId: null,
       eventDate: eventDate // ISO 8601 format: 2025-10-01T00:00:00.000Z
     };
   };

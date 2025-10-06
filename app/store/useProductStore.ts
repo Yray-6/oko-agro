@@ -2,42 +2,24 @@ import { create } from 'zustand';
 import axios, { AxiosError } from 'axios';
 import { 
   ApiResponse, 
+  CreateProductApiRequest, 
+  CreateProductRequest, 
   ProductDetails, 
+  SearchUsersParams, 
+  UpdateProductApiRequest, 
+  UpdateProductRequest, 
   UserProducts, 
-  UserProductsResponse 
+  UserProductsResponse, 
+  UserProfile,
+  UsersSearchResponse
 } from '@/app/types';
 import { showToast } from '../hooks/useToast';
-// Request interfaces for the store (simplified DTOs)
-export interface CreateProductRequest {
+import apiClient from '../utils/apiClient';
+
+// User interfaces for farmers and processors
+export interface Crop {
+  id: string;
   name: string;
-  cropId: string;
-  quantity: string;
-  quantityUnit: 'kilogram' | 'tonne';
-  pricePerUnit: string;
-  priceCurrency: string;
-  harvestDate: string;
-  locationAddress: string;
-  photos: string[];
-}
-
-export interface UpdateProductRequest {
-  productId: string;
-  name: string;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
-  priceCurrency: string;
-  harvestDate: string;
-  locationAddress: string;
-}
-
-// Internal request interfaces with action field
-interface CreateProductApiRequest extends CreateProductRequest {
-  action: 'create';
-}
-
-interface UpdateProductApiRequest extends UpdateProductRequest {
-  action: 'update';
 }
 
 // API Error Response Interface
@@ -48,44 +30,20 @@ interface ApiErrorResponse {
 }
 
 // Configure axios instance
-const apiClient = axios.create({
-  baseURL: '/api/products',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000,
-});
-
-// Helper function to get token
-const getAuthToken = (): string | null => {
-  try {
-    const authStorage = localStorage.getItem('auth-storage');
-    if (!authStorage) return null;
-    
-    const authData = JSON.parse(authStorage);
-    return authData?.state?.tokens?.accessToken || null;
-  } catch (error) {
-    console.error('Error getting auth token:', error);
-    return null;
-  }
-};
 
 // Helper function to format error messages
 const formatErrorMessage = (error: unknown): string => {
   if (error instanceof AxiosError && error.response?.data) {
     const errorData = error.response.data as ApiErrorResponse;
     
-    // Handle array of error messages (validation errors)
     if (Array.isArray(errorData.message)) {
       return errorData.message.join(', ');
     }
     
-    // Handle single error message
     if (typeof errorData.message === 'string') {
       return errorData.message;
     }
     
-    // Fallback to error field or status text
     return errorData.error || error.message;
   }
   
@@ -96,7 +54,6 @@ const formatErrorMessage = (error: unknown): string => {
 const handleApiError = (error: unknown, defaultMessage: string): string => {
   const errorMessage = formatErrorMessage(error);
   
-  // Show toast for 400 errors and other client errors
   if (error instanceof AxiosError && error.response?.status) {
     const status = error.response.status;
     if (status >= 400 && status < 500) {
@@ -112,52 +69,45 @@ const handleApiError = (error: unknown, defaultMessage: string): string => {
 };
 
 // Request interceptor
-apiClient.interceptors.request.use((config) => {
-  const token = getAuthToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-    console.log('🔐 [Product Store] Token attached');
-  } else {
-    console.warn('⚠️ [Product Store] No token found');
-  }
-  return config;
-});
 
-// Response interceptor
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log('✅ [Product Store] API Response:', {
-      status: response.status,
-      url: response.config.url,
-      method: response.config.method?.toUpperCase()
-    });
-    return response;
-  },
-  (error) => {
-    console.error('❌ [Product Store] API Error:', {
-      status: error.response?.status,
-      message: error.response?.data?.message || error.message,
-      url: error.config?.url
-    });
-    return Promise.reject(error);
-  }
-);
+
+
 
 interface ProductState {
   products: ProductDetails[];
   currentProduct: ProductDetails | null;
+  
+  // User search state
+  farmers: UserProfile[];
+  processors: UserProfile[];
+  farmersSearchMeta: {
+    matchedRecord: number;
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+  } | null;
+  processorsSearchMeta: {
+    matchedRecord: number;
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+  } | null;
   
   // Loading states
   isLoading: boolean;
   isCreating: boolean;
   isUpdating: boolean;
   isFetching: boolean;
+  isSearchingFarmers: boolean;
+  isSearchingProcessors: boolean;
   
   // Error states
   error: string | null;
   createError: string | null;
   updateError: string | null;
   fetchError: string | null;
+  farmersSearchError: string | null;
+  processorsSearchError: string | null;
 }
 
 interface ProductActions {
@@ -166,6 +116,12 @@ interface ProductActions {
   createProduct: (data: CreateProductRequest) => Promise<ProductDetails>;
   updateProduct: (data: UpdateProductRequest) => Promise<ProductDetails>;
   deleteProduct: (productId: string) => Promise<void>;
+  
+  // User search actions
+  searchFarmers: (params: SearchUsersParams) => Promise<UsersSearchResponse>;
+  searchProcessors: (params: SearchUsersParams) => Promise<UsersSearchResponse>;
+  clearFarmersSearch: () => void;
+  clearProcessorsSearch: () => void;
   
   setCurrentProduct: (product: ProductDetails | null) => void;
   clearCurrentProduct: () => void;
@@ -190,16 +146,24 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   // Initial state
   products: [],
   currentProduct: null,
+  farmers: [],
+  processors: [],
+  farmersSearchMeta: null,
+  processorsSearchMeta: null,
   
   isLoading: false,
   isCreating: false,
   isUpdating: false,
   isFetching: false,
+  isSearchingFarmers: false,
+  isSearchingProcessors: false,
   
   error: null,
   createError: null,
   updateError: null,
   fetchError: null,
+  farmersSearchError: null,
+  processorsSearchError: null,
 
   // State setters
   setCurrentProduct: (product) => set({ currentProduct: product }),
@@ -220,20 +184,142 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     createError: null,
     updateError: null,
     fetchError: null,
+    farmersSearchError: null,
+    processorsSearchError: null,
+  }),
+
+  clearFarmersSearch: () => set({
+    farmers: [],
+    farmersSearchMeta: null,
+    farmersSearchError: null,
+  }),
+
+  clearProcessorsSearch: () => set({
+    processors: [],
+    processorsSearchMeta: null,
+    processorsSearchError: null,
   }),
 
   reset: () => set({
     products: [],
     currentProduct: null,
+    farmers: [],
+    processors: [],
+    farmersSearchMeta: null,
+    processorsSearchMeta: null,
     isLoading: false,
     isCreating: false,
     isUpdating: false,
     isFetching: false,
+    isSearchingFarmers: false,
+    isSearchingProcessors: false,
     error: null,
     createError: null,
     updateError: null,
     fetchError: null,
+    farmersSearchError: null,
+    processorsSearchError: null,
   }),
+
+  // Search farmers
+  searchFarmers: async (params: SearchUsersParams) => {
+    set({ isSearchingFarmers: true, farmersSearchError: null });
+    
+    console.log('🔍 [Product Store] Searching farmers:', params);
+    
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+      
+      const response = await apiClient.get<ApiResponse<UsersSearchResponse>>(
+        `/products?action=search-farmers&${queryParams.toString()}`
+      );
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        const searchData = response.data.data;
+        console.log('✅ [Product Store] Farmers found:', searchData.items.length);
+        
+        set({
+          farmers: searchData.items,
+          farmersSearchMeta: {
+            matchedRecord: searchData.matchedRecord,
+            totalRecord: searchData.totalRecord,
+            pageNumber: searchData.pageNumber,
+            pageSize: searchData.pageSize,
+          },
+          isSearchingFarmers: false,
+          farmersSearchError: null,
+        });
+        
+        return searchData;
+      } else {
+        throw new Error(response.data.message || 'Failed to search farmers');
+      }
+    } catch (error) {
+      console.error('❌ [Product Store] Search farmers error:', error);
+      const errorMessage = handleApiError(error, 'Failed to search farmers');
+      
+      set({
+        farmersSearchError: errorMessage,
+        isSearchingFarmers: false,
+        farmers: [],
+        farmersSearchMeta: null,
+      });
+      throw error;
+    }
+  },
+
+  // Search processors
+  searchProcessors: async (params: SearchUsersParams) => {
+    set({ isSearchingProcessors: true, processorsSearchError: null });
+    
+    console.log('🔍 [Product Store] Searching processors:', params);
+    
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+      
+      const response = await apiClient.get<ApiResponse<UsersSearchResponse>>(
+        `/products?action=search-processors&${queryParams.toString()}`
+      );
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        const searchData = response.data.data;
+        console.log('✅ [Product Store] Processors found:', searchData.items.length);
+        
+        set({
+          processors: searchData.items,
+          processorsSearchMeta: {
+            matchedRecord: searchData.matchedRecord,
+            totalRecord: searchData.totalRecord,
+            pageNumber: searchData.pageNumber,
+            pageSize: searchData.pageSize,
+          },
+          isSearchingProcessors: false,
+          processorsSearchError: null,
+        });
+        
+        return searchData;
+      } else {
+        throw new Error(response.data.message || 'Failed to search processors');
+      }
+    } catch (error) {
+      console.error('❌ [Product Store] Search processors error:', error);
+      const errorMessage = handleApiError(error, 'Failed to search processors');
+      
+      set({
+        processorsSearchError: errorMessage,
+        isSearchingProcessors: false,
+        processors: [],
+        processorsSearchMeta: null,
+      });
+      throw error;
+    }
+  },
 
   // Fetch user products
   fetchUserProducts: async (userId: string) => {
@@ -245,7 +331,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     
     try {
       const response = await apiClient.get<ApiResponse<UserProducts>>(
-        `?action=user-products&userId=${userId}`
+        `/products?action=user-products&userId=${userId}`
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
@@ -283,7 +369,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     
     try {
       const response = await apiClient.get<ApiResponse<ProductDetails>>(
-        `?action=single-product&productId=${productId}`
+        `/products?action=single-product&productId=${productId}`
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
@@ -323,13 +409,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
         ...data
       };
 
-      const response = await apiClient.post<UserProductsResponse>('', requestData);
+      const response = await apiClient.post<UserProductsResponse>('/products', requestData);
       
       if (response.data.statusCode === 201 && response.data.data) {
         const newProduct = response.data.data;
         console.log('✅ [Product Store] Product created:', newProduct.id);
         
-        // Show success toast
         showToast('Product created successfully!', 'success');
         
         set((state) => ({
@@ -368,13 +453,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
         ...data
       };
 
-      const response = await apiClient.patch<UserProductsResponse>('', requestData);
+      const response = await apiClient.patch<UserProductsResponse>('/products', requestData);
       
       if (response.data.statusCode === 200 && response.data.data) {
         const updatedProduct = response.data.data;
         console.log('✅ [Product Store] Product updated:', updatedProduct.id);
         
-        // Show success toast
         showToast('Product updated successfully!', 'success');
         
         set((state) => ({
@@ -413,12 +497,11 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     console.log('🗑️ [Product Store] Deleting product:', productId);
     
     try {
-      const response = await apiClient.delete<ApiResponse>(`/${productId}`);
+      const response = await apiClient.delete<ApiResponse>(`/products/${productId}`);
       
       if (response.data.statusCode === 200) {
         console.log('✅ [Product Store] Product deleted:', productId);
         
-        // Show success toast
         showToast('Product deleted successfully!', 'success');
         
         set((state) => ({

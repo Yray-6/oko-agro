@@ -68,10 +68,10 @@ export default function Page() {
   };
 
   // Handler functions
-const handleEditListing = (productId: number) => {
+const handleEditListing = (productId: string) => {
   try {
     console.log("Edit button clicked for product ID:", productId);
-    const product = products.find(p => parseInt(p.id) === productId);
+    const product = products.find(p => p.id === productId); // Direct string comparison
     
     if (!product) {
       console.error("Product not found:", productId);
@@ -79,8 +79,6 @@ const handleEditListing = (productId: number) => {
     }
 
     console.log("Found product:", product);
-    
-    // Pass the original ProductDetails object directly
     setCurrentProduct(product);
     setEditingProduct(product.id);
     setShowListProductModal(true);
@@ -88,7 +86,7 @@ const handleEditListing = (productId: number) => {
     console.error("Failed to load product for editing:", error);
   }
 };
-  const handleSuspendListing = async (productId: number) => {
+  const handleSuspendListing = async (productId: string) => {
     try {
       // You'll need to implement suspend functionality in your store
       console.log("Suspend listing for product:", productId);
@@ -99,7 +97,7 @@ const handleEditListing = (productId: number) => {
     }
   };
 
-  const handleCancelListing = async (productId: number) => {
+  const handleCancelListing = async (productId: string) => {
     try {
       await deleteProduct(productId.toString());
       setSuccessMessage("Product listing has been cancelled successfully.");
@@ -141,7 +139,7 @@ const handleEditListing = (productId: number) => {
     const status = getProductStatus(product);
     
     return {
-      id: parseInt(product.id),
+      id: product.id,
       name: product.name,
       quantity: formatQuantity(product.quantity, product.quantityUnit),
       price: formatPrice(product.pricePerUnit, product.priceCurrency, product.quantityUnit),
@@ -210,7 +208,7 @@ const handleEditListing = (productId: number) => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mainGreen"></div>
               <span className="ml-2 text-gray-600">Loading products...</span>
             </div>
-          ) : transformedProducts.length === 0 ? (
+          ) : products && transformedProducts.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-gray-900 mb-2">No products listed yet</h3>
               <p className="text-gray-500 mb-4">Start by adding your first product listing</p>

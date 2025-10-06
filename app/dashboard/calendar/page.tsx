@@ -4,31 +4,69 @@ import ScheduleEvent from "@/app/components/dashboard/Schedule";
 import ScheduleSummary from "@/app/components/dashboard/ScheduleSummary";
 import { AddEventModal } from "@/app/components/dashboard/AddEvent";
 import { Clock, Plus } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useEventStore } from '@/app/store/useEventStore';
+import { CalendarEvent } from "@/app/types";
+import { countEventsByCategory, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
 
-interface EventFormValues {
-  title: string;
-  category: 'quality-inspection' | 'delivery' | 'crop-harvest' | '';
-  date: string;
-  time: string;
-  location: string;
-  notes: string;
-}
+
+// Get user ID from auth storage
+const getUserId = (): string | null => {
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (!authStorage) return null;
+    
+    const authData = JSON.parse(authStorage);
+    return authData?.state?.user?.id || null;
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+    return null;
+  }
+};
 
 export default function SchedulePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [events, setEvents] = useState<EventFormValues[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [todaysEvents, setTodaysEvents] = useState<CalendarEvent[]>([]);
+  
+  const { events, fetchUserEvents, isFetching } = useEventStore();
 
-  const handleAddEvent = (values: EventFormValues) => {
-    console.log('New event added:', values);
-    // Add the new event to your events array
-    setEvents(prev => [...prev, values]);
-    
-    // Here you would typically make an API call to save the event
-    // Example: await createEvent(values);
-    
-    // Optionally show a success message
-    // toast.success('Event added successfully!');
+  // Fetch events on component mount
+  useEffect(() => {
+    const userId = getUserId();
+    if (userId) {
+      fetchUserEvents(userId);
+    }
+  }, [fetchUserEvents]);
+
+  // Transform API events to calendar events when they change
+  useEffect(() => {
+    if (events.length > 0) {
+      const transformed = events.map(transformEventToCalendarEvent);
+      setCalendarEvents(transformed);
+      setTodaysEvents(getTodaysEvents(transformed));
+    }
+  }, [events]);
+
+  // Handle successful event creation
+  const handleEventSuccess = () => {
+    const userId = getUserId();
+    if (userId) {
+      fetchUserEvents(userId); // Refresh events list
+    }
+  };
+
+  // Calculate summary data
+  const upcomingEvents = calendarEvents.filter(e => e.status === 'upcoming').length;
+  const todaysCount = todaysEvents.length;
+  const categoryCounts = countEventsByCategory(calendarEvents);
+
+  const summaryData = {
+    upcoming: upcomingEvents,
+    today: todaysCount,
+    inspections: categoryCounts.inspections,
+    deliveries: categoryCounts.deliveries,
+    harvests: categoryCounts.harvests
   };
 
   return (
@@ -55,33 +93,45 @@ export default function SchedulePage() {
         <div className="flex items-center gap-2">
           <Clock size={17}/> Today&apos;s Schedule 
           <span className="text-mainGreen bg-mainGreen/20 rounded-full text-xs px-2 py-1 font-medium">
-            1 event
+            {todaysCount} {todaysCount === 1 ? 'event' : 'events'}
           </span>
         </div>
         <div className="mt-6">
-          <ScheduleEvent 
-            title="Farm Inspection" 
-            time="10:00 AM" 
-            location="Main Farm" 
-            status="upcoming" 
-          />
+          {isFetching ? (
+            <div className="text-center py-4 text-gray-500">Loading events...</div>
+          ) : todaysEvents.length > 0 ? (
+            <div className="space-y-3">
+              {todaysEvents.map(event => (
+                <ScheduleEvent 
+                  key={event.id}
+                  title={event.title}
+                  time={event.time}
+                  location={event.location}
+                  status={event.status}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              No events scheduled for today
+            </div>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-3 mt-5 gap-4">
         <div className="col-span-2">
-          <CalendarView/>
+          <CalendarView events={calendarEvents} />
         </div>
         <div className="col-span-1">
-          <ScheduleSummary/>
+          <ScheduleSummary data={summaryData} />
         </div>
       </div>
 
-      {/* Add Event Modal */}
       <AddEventModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddEvent}
+        onSuccess={handleEventSuccess}
       />
     </div>
   );

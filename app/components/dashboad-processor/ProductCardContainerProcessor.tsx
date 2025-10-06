@@ -67,7 +67,7 @@ const ProductCardContainerProcessor: React.FC = () => {
   return (
     <div >
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-medium">My Products</h1>
+        <h1 className="font-medium">Recent Requests</h1>
         
         <button
           onClick={handleToggleView}
