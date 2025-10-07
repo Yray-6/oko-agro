@@ -112,7 +112,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     {
       icon: <Calendar size={20} />,
       label: "Calendar",
-      href: "/dashboard/calendar-processor",
+      href: "/dashboard-processor/calendar-processor",
     },
     { icon: <Message size={20} />, label: "Messages", href: "/messages" },
     {
@@ -121,6 +121,9 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       href: "/dashboard-processor/settings",
     },
   ];
+
+
+
 
   const handleLogout = async () => {
     try {

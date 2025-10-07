@@ -8,12 +8,14 @@ import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { ProductDetails } from "@/app/types";
 import { formatPrice } from "@/app/helpers";
+import AnimatedLoading from "@/app/Loading";
 
 export default function Page() {
   // Store hooks
   const { 
     products, 
     isLoading,
+    isFetching,
     error,
     fetchUserProducts,
     deleteProduct,
@@ -194,7 +196,7 @@ const handleEditListing = (productId: string) => {
           </button>
           <button 
             onClick={handleAddNewListing}
-            className="flex gap-2 items-center px-4 py-2 rounded-lg text-sm bg-mainGreen text-white hover:bg-mainGreen/90 transition-colors"
+            className="flex gap-2 items-center px-4 py-2 rounded-lg text-sm bg-mainGreen cursor-pointer text-white hover:bg-mainGreen/90 transition-colors"
           >
             <PlusIcon color="white" size={16} /> Add New Listing
           </button>
@@ -203,7 +205,7 @@ const handleEditListing = (productId: string) => {
              
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-9">
-          {isLoading ? (
+          {isLoading || isFetching ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mainGreen"></div>
               <span className="ml-2 text-gray-600">Loading products...</span>
@@ -277,7 +279,7 @@ const handleEditListing = (productId: string) => {
         title="Success!"
         message={successMessage}
         buttonText="Continue"
-      />
+      />{isFetching && <AnimatedLoading/>}
     </div>
   );
 }

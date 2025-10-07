@@ -507,3 +507,198 @@ export interface CalendarEvent {
   category: 'quality-inspection' | 'delivery' | 'crop-harvest' | 'custom';
   description?: string;
 }
+
+
+// export type ProductQuantityUnit = 'kilogram' | 'tons' | 'bags' | 'pieces';
+export type PaymentMethod = 'pay_on_delivery' | 'bank_transfer' | 'mobile_money' | 'cash';
+// export type BuyRequestStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+// export type BusinessType = 'food processing' | 'export' | 'retail' | 'wholesale';
+// export type OperationsType = 'seasonal' | 'year-round';
+
+
+
+
+
+// File/Document
+export interface UserFile {
+  id: string;
+  name: string;
+  description: string;
+  mimeType: string;
+  size: string;
+  url: string;
+  publicId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Buyer/Seller User Profile (Processor or Farmer)
+export interface BuyRequestUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  farmAddress: string;
+  country: string;
+  state: string;
+  role: 'processor' | 'farmer';
+  userVerified: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Farmer-specific fields
+  farmName?: string | null;
+  farmSize?: string | null;
+  farmSizeUnit?: string | null;
+  estimatedAnnualProduction?: string | null;
+  farmingExperience?: string | null;
+  internetAccess?: string | null;
+  howUserSellCrops?: string | null;
+  
+  // Processor-specific fields
+  companyName?: string | null;
+  businessRegNumber?: string | null;
+  yearEstablished?: string | null;
+  businessType?: string| null;
+  processsingCapacitySize?: string | null;
+  processsingCapacityUnit?: string | null;
+  operatingDaysPerWeek?: string | null;
+  storageCapacity?: string | null;
+  minimumOrderQuality?: string | null;
+  OperationsType?: string| null;
+  
+  // Common optional fields
+  bankName?: string | null;
+  accountNumber?: string | null;
+  
+  // Relationships
+  certifications?: CertificationResponse[];
+  qualityStandards?: QualityResponse[];
+  crops?: CropType[];
+  files?: UserFile[];
+}
+
+// Full Buyer Profile (includes sensitive data like password - only in detailed fetch)
+export interface BuyRequestBuyerFull extends BuyRequestUser {
+  password?: string;
+  userVerificationOtp?: string | null;
+  userVerificationOtpExpiryTime?: string | null;
+  passwordResetToken?: string | null;
+  passwordResetExpiryTime?: string | null;
+  passwordChangedAt?: string | null;
+}
+
+// Product reference (if linked to a specific product)
+export interface ProductReference {
+  id: string;
+  name: string;
+  // Add other product fields as needed
+}
+
+// Main Buy Request Interface
+export interface BuyRequest {
+  id: string;
+  requestNumber: number | string;
+  description: string;
+  cropType: CropType;
+  qualityStandardType: QualityResponse;
+  productQuantity: string;
+  productQuantityUnit: string;
+  pricePerUnitOffer: string;
+  estimatedDeliveryDate: string;
+  deliveryLocation: string;
+  preferredPaymentMethod: PaymentMethod;
+  status: string;
+  isGeneral: boolean;
+  buyer: BuyRequestUser | BuyRequestBuyerFull;
+  seller: BuyRequestUser | null;
+  product: ProductReference | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Create Buy Request Payload
+export interface CreateBuyRequestRequest {
+  description: string;
+  cropId: string;
+  qualityStandardId: string;
+  productQuantity: string;
+  productQuantityUnit: string;
+  pricePerUnitOffer: string;
+  estimatedDeliveryDate: string;
+  deliveryLocation: string;
+  preferredPaymentMethod: PaymentMethod;
+  isGeneral: boolean;
+  productId?: string; // Optional - if linking to specific product
+}
+
+// Update Buy Request Payload
+export interface UpdateBuyRequestRequest {
+  buyRequestId: string;
+  description?: string;
+  cropId?: string;
+  qualityStandardId?: string;
+  productQuantity?: string;
+  productQuantityUnit?: string;
+  pricePerUnitOffer?: string;
+  estimatedDeliveryDate?: string;
+  deliveryLocation?: string;
+  preferredPaymentMethod?: PaymentMethod;
+  isGeneral?: boolean;
+  productId?: string;
+}
+
+// Update Buy Request Status Payload (for farmers)
+export interface UpdateBuyRequestStatusRequest {
+  buyRequestId: string;
+  status:string;
+  productId?: string; // If farmer is linking their product
+}
+
+// API Request Types with action
+export interface CreateBuyRequestApiRequest extends CreateBuyRequestRequest {
+  action: 'create';
+}
+
+export interface UpdateBuyRequestApiRequest extends UpdateBuyRequestRequest {
+  action: 'update';
+}
+
+export interface UpdateBuyRequestStatusApiRequest extends UpdateBuyRequestStatusRequest {
+  action: 'update-status';
+}
+
+// API Response Types
+export interface BuyRequestResponse {
+  statusCode: number;
+  message: string;
+  data: BuyRequest;
+}
+
+export interface BuyRequestsListResponse {
+  statusCode: number;
+  message: string;
+  data: MyBuyRequest;
+}
+
+export interface GeneralBuyRequestsListResponse {
+  statusCode: number;
+  message: string;
+  data: BuyRequest[];
+}
+
+export interface MyBuyRequest {
+  items:BuyRequest[];
+   totalRecord: number,
+  pageNumber: number,
+    pageSize: number
+}
+
+export interface DeleteBuyRequestResponse {
+  statusCode: number;
+  message: string;
+  data?: null;
+}

@@ -1,153 +1,273 @@
 "use client";
 
-import React, { useState } from "react";
-import rice from "@/app/assets/images/rice.png";
-import cassava from "@/app/assets/images/yam.png";
-import maize from "@/app/assets/images/maize.png";
-import potato from "@/app/assets/images/potato.png";
-import {
-  ListNewProductModal,
-  SuccessModal,
-} from "@/app/components/dashboard/ProductModal";
-import DashboardIcon from "@/app/assets/icons/Dashboard";
-import ProductCardContainerDetailedProcessor from "@/app/components/dashboad-processor/ProductCardContainerDetaledProcessor";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { MapPin } from "lucide-react";
+import {
+  MapPin,
+  ArrowLeft,
+  Loader2,
+  Phone,
+  Mail,
+} from "lucide-react";
+import { useProductStore } from "@/app/store/useProductStore";
+import ProductCardContainerDetailedProcessor from "@/app/components/dashboad-processor/ProductCardContainerDetaledProcessor";
 import CalendarViewProcessor from "@/app/components/dashboad-processor/CalendarViewProcessor";
+import rice from "@/app/assets/images/rice.png";
+import { UserProfile } from "@/app/types";
+import AnimatedLoading from "@/app/Loading";
+import { formatPrice } from "@/app/helpers";
 
-export default function Page() {
-  // Modal states
-  const [showListProductModal, setShowListProductModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+export default function FarmerDetailsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const farmerId = searchParams.get("farmerId");
 
-  // Sample product data
-  const sampleProducts = [
-    {
-      id: 1,
-      name: "Long Grain Rice",
-      quantity: "500kg",
-      price: "₦1,000/kg",
-      certification: "Grade A",
-      status: "Active" as const,
-      listedDate: "08 Aug 2025",
-      image: rice.src,
-      inventoryStatus: "200/500kg (60% Sold)",
-      inventoryPercentage: 60,
-      slug: "long-grain-rice",
-    },
-    {
-      id: 2,
-      name: "Premium Cassava",
-      quantity: "500kg",
-      price: "₦1,000/kg",
-      certification: "Grade A",
-      status: "Pending Inspection" as const,
-      listedDate: "08 Aug 2025",
-      image: cassava.src,
-      inventoryStatus: "Unlisted",
-      inventoryPercentage: 0,
-      slug: "premium-cassava",
-    },
-    {
-      id: 3,
-      name: "Fresh Maize",
-      quantity: "2 Tons",
-      price: "₦800/kg",
-      certification: "Grade A",
-      status: "Sold Out" as const,
-      listedDate: "08 Aug 2025",
-      image: maize.src,
-      inventoryStatus: "500/500kg (100% Sold)",
-      inventoryPercentage: 100,
-      slug: "fresh-maize",
-    },
-    {
-      id: 4,
-      name: "Sweet Potato",
-      quantity: "300kg",
-      price: "₦1,200/kg",
-      certification: "Grade A",
-      status: "Active" as const,
-      listedDate: "07 Aug 2025",
-      image: potato.src,
-      inventoryStatus: "150/300kg (50% Sold)",
-      inventoryPercentage: 50,
-      slug: "sweet-potato",
-    },
-  ];
+  const { products, isFetching, fetchError, fetchUserProducts } = useProductStore();
 
 
+  const productOwner = products[0]?.owner
 
-  const handleListingSuccess = () => {
-    setShowSuccessModal(true);
+  const [farmerDetails, setFarmerDetails] = useState<UserProfile | null>(null);
+  const [isLoadingFarmer, setIsLoadingFarmer] = useState(true);
+
+  // Fetch farmer details from the farmers list in store
+  useEffect(() => {
+    if (farmerId) {
+      // Get farmer from the store's farmers list
+      const { farmers } = useProductStore.getState();
+      const farmer = farmers.find((f) => f.id === farmerId);
+      
+      if (farmer) {
+        setFarmerDetails(farmer);
+        setIsLoadingFarmer(false);
+      } else {
+        setIsLoadingFarmer(false);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch farmer's products
+  useEffect(() => {
+    if (farmerId) {
+      fetchUserProducts(farmerId);
+    }
+  }, [farmerId, fetchUserProducts]);
+
+  // Map products to the format expected by ProductCardContainer
+  const mappedProducts = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    quantity: `${product.quantity} ${product.quantityUnit}`,
+    price: formatPrice(product.pricePerUnit, product.priceCurrency, product.quantityUnit),
+    certification: "Grade A",
+    status: product.status || "Active",
+    listedDate: new Date(product.createdAt).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    image: product.photos?.[0]?.url || rice.src,
+    inventoryStatus: `${product.quantity}/${product.quantity}${product.quantityUnit}`,
+    inventoryPercentage: 100,
+    slug: product.id,
+  }));
+
+  const handleBack = () => {
+    router.back();
   };
 
-  const closeAllModals = () => {
-    setShowListProductModal(false);
-    setShowSuccessModal(false);
-  };
+  if (isLoadingFarmer) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-mainGreen" />
+      </div>
+    );
+  }
+
+  // if (!farmerDetails) {
+  //   return (
+  //     <div className="p-6">
+  //       <button
+  //         onClick={handleBack}
+  //         className="flex items-center gap-2 text-mainGreen hover:underline mb-4"
+  //       >
+  //         <ArrowLeft className="w-4 h-4" />
+  //         Back
+  //       </button>
+  //       <div className="text-center py-12">
+  //         <p className="text-gray-500">Farmer not found</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
-    <div>
-      <div className="justify-between flex items-center py-4">
-        <div className="flex items-center space-x-4 flex-1">
-          <Image
-            src={rice.src}
-            alt={"image"}
-            width={64}
-            height={64}
-            className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-          />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <div className="bg-white ">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-mainGreen hover:underline mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Farmers
+          </button>
 
-          <div className="flex-1 flex-col">
-            <h3 className="font-medium text-gray-900  hover:text-blue-600 transition-colors cursor-pointer">
-              Pristine Crops and Livestock
-            </h3>
-            <p className="text-sm text-gray">Oghenevwaire onobrudu</p>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-[#6B7C5A]" />
-              <span className="text-[#6B7C5A]">Lagos,Nigeria</span>
-              <span className="bg-[#6B7C5A]/10 text-[#6B7C5A] px-2 py-1 rounded-lg text-xs font-medium">
-                25km
-              </span>
+          <div className="flex items-start gap-6">
+            {/* Farmer Profile Image */}
+            <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
+              <Image
+                src={rice.src}
+                alt={farmerDetails?.farmName || "Farmer"}
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Farmer Info */}
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {farmerDetails?.farmName || `${farmerDetails?.firstName} ${farmerDetails?.lastName}`}
+                  </h1>
+                  <p className="text-gray-600 mt-1">
+                    {farmerDetails?.firstName} {farmerDetails?.lastName}
+                  </p>
+                </div>
+
+                <button className="px-6 py-2 bg-mainGreen text-white flex items-center gap-2 justify-center rounded-lg hover:bg-green-800 transition-colors">
+                  Contact Farmer <Phone size={16}/>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 text-mainGreen" />
+                  <span>
+                    {farmerDetails?.state}, {farmerDetails?.country}
+                  </span>
+                  
+                </div>
+                
+
+                {productOwner?.phoneNumber && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Phone className="w-4 h-4 text-mainGreen" />
+                    <span>{productOwner.phoneNumber}</span>
+                  </div>
+                )}
+
+                {productOwner?.email && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail className="w-4 h-4 text-mainGreen" />
+                    <span>{productOwner.email}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Crops */}
+          
             </div>
           </div>
         </div>
-        <div>
-          <button className="flex gap-2 items-center px-4 py-2 rounded-lg text-sm text-mainGreen border border-mainGreen">
-            <DashboardIcon color="#004829" size={16} /> Back to Dashboard
-          </button>
-        </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-9">
-          <ProductCardContainerDetailedProcessor products={sampleProducts} />
+      {/* Additional Farmer Details */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Farmer Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {farmerDetails?.farmAddress && (
+              <div>
+                <p className="text-sm text-gray-500">Farm Address</p>
+                 <p className="text-gray-900 font-medium">
+                      {farmerDetails.farmAddress}
+                 </p>
+           
+              </div>
+            )}
+
+            {productOwner?.farmSize && (
+              <div>
+                <p className="text-sm text-gray-500">Farm Size</p>
+                <p className="text-gray-900 font-medium">
+                  {productOwner.farmSize} {productOwner.farmSizeUnit}
+                </p>
+              </div>
+            )}
+
+            {productOwner?.estimatedAnnualProduction && (
+              <div>
+                <p className="text-sm text-gray-500">Est. Annual Production</p>
+                <p className="text-gray-900 font-medium">
+                  {productOwner.estimatedAnnualProduction}
+                </p>
+              </div>
+            )}
+
+            {productOwner?.farmingExperience && (
+              <div>
+                <p className="text-sm text-gray-500">Farming Experience</p>
+                <p className="text-gray-900 font-medium">{productOwner.farmingExperience}</p>
+              </div>
+            )}
+
+            {productOwner?.internetAccess && (
+              <div>
+                <p className="text-sm text-gray-500">Internet Access</p>
+                <p className="text-gray-900 font-medium">{productOwner.internetAccess}</p>
+              </div>
+            )}
+
+            {productOwner?.howUserSellCrops && (
+              <div>
+                <p className="text-sm text-gray-500">Selling Method</p>
+                <p className="text-gray-900 font-medium">{productOwner.howUserSellCrops}</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Optional sidebar for additional info */}
-        <div className="col-span-12 lg:col-span-3"></div>
-      </div>
-      <div className="grid grid-cols-4 mt-12">
-        <div className="col-span-3">
-          <CalendarViewProcessor />
+        {/* Products Section */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Available Products</h2>
+            <span className="text-sm text-gray-600">
+              {products.length} {products.length === 1 ? "product" : "products"}
+            </span>
+          </div>
+
+          {isFetching ? (
+            <div className="flex items-center justify-center py-12 bg-white rounded-lg">
+              <Loader2 className="w-8 h-8 animate-spin text-mainGreen" />
+            </div>
+          ) : fetchError ? (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+              {fetchError}
+            </div>
+          ) : mappedProducts.length > 0 ? (
+            <ProductCardContainerDetailedProcessor products={mappedProducts} />
+          ) : (
+            <div className="bg-white rounded-lg p-12 text-center">
+              <p className="text-gray-500">No products available at the moment</p>
+            </div>
+          )}
         </div>
+
+        {/* Calendar View */}
+        {mappedProducts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-xl font-semibold mb-4">Harvest Calendar</h2>
+            <CalendarViewProcessor />
+          </div>
+        )}
       </div>
-
-      {/* Modals */}
-      <ListNewProductModal
-        isOpen={showListProductModal}
-        onClose={() => setShowListProductModal(false)}
-        onSuccess={handleListingSuccess}
-      />
-
-      <SuccessModal
-        isOpen={showSuccessModal}
-        onClose={closeAllModals}
-        title="Success!"
-        message="Your action has been completed successfully."
-        buttonText="Continue"
-      />
+      {isFetching && <AnimatedLoading/>}
     </div>
   );
 }

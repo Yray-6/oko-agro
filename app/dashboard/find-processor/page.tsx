@@ -1,9 +1,9 @@
 "use client";
-import DashboardIcon from "@/app/assets/icons/Dashboard";
 import ProcessorMatchingUI from "@/app/components/dashboard/ProcessorMatchingUi";
 import { useProductStore } from "@/app/store/useProductStore";
 import React from "react";
 import { TrendingUp, Users, Target } from "lucide-react";
+import Link from "next/link";
 
 interface StatsData {
   perfectMatches: number;
@@ -76,10 +76,9 @@ export default function Page() {
             Connect with processors looking for your crops
           </p>
         </div>
-        <div>
-          <button className="flex gap-2 items-center cursor-pointer px-4 py-2 rounded-lg text-sm text-mainGreen border border-mainGreen hover:bg-mainGreen/5 transition-colors">
-            <DashboardIcon color="#004829" size={16} /> Back to Dashboard
-          </button>
+        <div><Link href="/dashboard">
+        </Link>
+      
         </div>
       </div>
       {/* <div>

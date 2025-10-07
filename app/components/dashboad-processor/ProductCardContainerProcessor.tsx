@@ -71,7 +71,7 @@ const ProductCardContainerProcessor: React.FC = () => {
         
         <button
           onClick={handleToggleView}
-          className="text-mainGreen underline font-medium transition-colors"
+          className="text-mainGreen underline font-medium cursor-pointer transition-colors"
         >
           {showAll ? 'Show Less' : 'View all'}
         </button>

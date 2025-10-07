@@ -17,7 +17,7 @@ import AnimatedLoading from "../Loading";
 
 export default function Page() {
   // Store hooks
-  const { products, fetchUserProducts,isLoading } = useProductStore();
+  const { products, fetchUserProducts,isLoading,isFetching } = useProductStore();
   const { user } = useAuthStore();
   
   // Modal states
@@ -147,7 +147,7 @@ export default function Page() {
         message="Product listed successfully!"
         buttonText="Continue"
       />
-      {isLoading && <AnimatedLoading/>}
+      {isLoading || isFetching  && <AnimatedLoading/>}
     </div>
   );
 }

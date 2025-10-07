@@ -1,17 +1,18 @@
 import { create } from 'zustand';
-import axios, { AxiosError } from 'axios';
-import { 
-  ApiResponse, 
-  CreateProductApiRequest, 
-  CreateProductRequest, 
-  ProductDetails, 
-  SearchUsersParams, 
-  UpdateProductApiRequest, 
-  UpdateProductRequest, 
-  UserProducts, 
-  UserProductsResponse, 
+import { persist } from 'zustand/middleware';
+import { AxiosError } from 'axios';
+import {
+  ApiResponse,
+  CreateProductApiRequest,
+  CreateProductRequest,
+  ProductDetails,
+  SearchUsersParams,
+  UpdateProductApiRequest,
+  UpdateProductRequest,
+  UserProducts,
+  UserProductsResponse,
   UserProfile,
-  UsersSearchResponse
+  UsersSearchResponse,
 } from '@/app/types';
 import { showToast } from '../hooks/useToast';
 import apiClient from '../utils/apiClient';
@@ -29,31 +30,29 @@ interface ApiErrorResponse {
   error?: string;
 }
 
-// Configure axios instance
-
 // Helper function to format error messages
 const formatErrorMessage = (error: unknown): string => {
   if (error instanceof AxiosError && error.response?.data) {
     const errorData = error.response.data as ApiErrorResponse;
-    
+
     if (Array.isArray(errorData.message)) {
       return errorData.message.join(', ');
     }
-    
+
     if (typeof errorData.message === 'string') {
       return errorData.message;
     }
-    
+
     return errorData.error || error.message;
   }
-  
+
   return error instanceof Error ? error.message : 'An unexpected error occurred';
 };
 
 // Helper function to handle errors and show toasts
 const handleApiError = (error: unknown, defaultMessage: string): string => {
   const errorMessage = formatErrorMessage(error);
-  
+
   if (error instanceof AxiosError && error.response?.status) {
     const status = error.response.status;
     if (status >= 400 && status < 500) {
@@ -64,20 +63,15 @@ const handleApiError = (error: unknown, defaultMessage: string): string => {
   } else {
     showToast(errorMessage || defaultMessage, 'error');
   }
-  
+
   return errorMessage;
 };
 
-// Request interceptor
-
-
-
-
+// State and Actions
 interface ProductState {
   products: ProductDetails[];
   currentProduct: ProductDetails | null;
-  
-  // User search state
+
   farmers: UserProfile[];
   processors: UserProfile[];
   farmersSearchMeta: {
@@ -92,16 +86,14 @@ interface ProductState {
     pageNumber: number;
     pageSize: number;
   } | null;
-  
-  // Loading states
+
   isLoading: boolean;
   isCreating: boolean;
   isUpdating: boolean;
   isFetching: boolean;
   isSearchingFarmers: boolean;
   isSearchingProcessors: boolean;
-  
-  // Error states
+
   error: string | null;
   createError: string | null;
   updateError: string | null;
@@ -116,110 +108,116 @@ interface ProductActions {
   createProduct: (data: CreateProductRequest) => Promise<ProductDetails>;
   updateProduct: (data: UpdateProductRequest) => Promise<ProductDetails>;
   deleteProduct: (productId: string) => Promise<void>;
-  
-  // User search actions
+
   searchFarmers: (params: SearchUsersParams) => Promise<UsersSearchResponse>;
   searchProcessors: (params: SearchUsersParams) => Promise<UsersSearchResponse>;
   clearFarmersSearch: () => void;
   clearProcessorsSearch: () => void;
-  
+
   setCurrentProduct: (product: ProductDetails | null) => void;
   clearCurrentProduct: () => void;
-  
+
   setLoading: (loading: boolean) => void;
   setCreating: (creating: boolean) => void;
   setUpdating: (updating: boolean) => void;
   setFetching: (fetching: boolean) => void;
-  
+
   setError: (error: string | null) => void;
   setCreateError: (error: string | null) => void;
   setUpdateError: (error: string | null) => void;
   setFetchError: (error: string | null) => void;
   clearErrors: () => void;
-  
+
   reset: () => void;
 }
 
 type ProductStore = ProductState & ProductActions;
 
-export const useProductStore = create<ProductStore>((set, get) => ({
-  // Initial state
-  products: [],
-  currentProduct: null,
-  farmers: [],
-  processors: [],
-  farmersSearchMeta: null,
-  processorsSearchMeta: null,
-  
-  isLoading: false,
-  isCreating: false,
-  isUpdating: false,
-  isFetching: false,
-  isSearchingFarmers: false,
-  isSearchingProcessors: false,
-  
-  error: null,
-  createError: null,
-  updateError: null,
-  fetchError: null,
-  farmersSearchError: null,
-  processorsSearchError: null,
+// ✅ Persisted Zustand store
+export const useProductStore = create<ProductStore>()(
+  persist(
+    (set, get) => ({
+      // --- initial state ---
+      products: [],
+      currentProduct: null,
+      farmers: [],
+      processors: [],
+      farmersSearchMeta: null,
+      processorsSearchMeta: null,
 
-  // State setters
-  setCurrentProduct: (product) => set({ currentProduct: product }),
-  clearCurrentProduct: () => set({ currentProduct: null }),
-  
-  setLoading: (loading) => set({ isLoading: loading }),
-  setCreating: (creating) => set({ isCreating: creating }),
-  setUpdating: (updating) => set({ isUpdating: updating }),
-  setFetching: (fetching) => set({ isFetching: fetching }),
-  
-  setError: (error) => set({ error }),
-  setCreateError: (error) => set({ createError: error }),
-  setUpdateError: (error) => set({ updateError: error }),
-  setFetchError: (error) => set({ fetchError: error }),
-  
-  clearErrors: () => set({
-    error: null,
-    createError: null,
-    updateError: null,
-    fetchError: null,
-    farmersSearchError: null,
-    processorsSearchError: null,
-  }),
+      isLoading: false,
+      isCreating: false,
+      isUpdating: false,
+      isFetching: false,
+      isSearchingFarmers: false,
+      isSearchingProcessors: false,
 
-  clearFarmersSearch: () => set({
-    farmers: [],
-    farmersSearchMeta: null,
-    farmersSearchError: null,
-  }),
+      error: null,
+      createError: null,
+      updateError: null,
+      fetchError: null,
+      farmersSearchError: null,
+      processorsSearchError: null,
 
-  clearProcessorsSearch: () => set({
-    processors: [],
-    processorsSearchMeta: null,
-    processorsSearchError: null,
-  }),
+      // --- state setters ---
+      setCurrentProduct: (product) => set({ currentProduct: product }),
+      clearCurrentProduct: () => set({ currentProduct: null }),
 
-  reset: () => set({
-    products: [],
-    currentProduct: null,
-    farmers: [],
-    processors: [],
-    farmersSearchMeta: null,
-    processorsSearchMeta: null,
-    isLoading: false,
-    isCreating: false,
-    isUpdating: false,
-    isFetching: false,
-    isSearchingFarmers: false,
-    isSearchingProcessors: false,
-    error: null,
-    createError: null,
-    updateError: null,
-    fetchError: null,
-    farmersSearchError: null,
-    processorsSearchError: null,
-  }),
+      setLoading: (loading) => set({ isLoading: loading }),
+      setCreating: (creating) => set({ isCreating: creating }),
+      setUpdating: (updating) => set({ isUpdating: updating }),
+      setFetching: (fetching) => set({ isFetching: fetching }),
+
+      setError: (error) => set({ error }),
+      setCreateError: (error) => set({ createError: error }),
+      setUpdateError: (error) => set({ updateError: error }),
+      setFetchError: (error) => set({ fetchError: error }),
+
+      clearErrors: () =>
+        set({
+          error: null,
+          createError: null,
+          updateError: null,
+          fetchError: null,
+          farmersSearchError: null,
+          processorsSearchError: null,
+        }),
+
+      clearFarmersSearch: () =>
+        set({
+          farmers: [],
+          farmersSearchMeta: null,
+          farmersSearchError: null,
+        }),
+
+      clearProcessorsSearch: () =>
+        set({
+          processors: [],
+          processorsSearchMeta: null,
+          processorsSearchError: null,
+        }),
+
+      reset: () =>
+        set({
+          products: [],
+          currentProduct: null,
+          farmers: [],
+          processors: [],
+          farmersSearchMeta: null,
+          processorsSearchMeta: null,
+          isLoading: false,
+          isCreating: false,
+          isUpdating: false,
+          isFetching: false,
+          isSearchingFarmers: false,
+          isSearchingProcessors: false,
+          error: null,
+          createError: null,
+          updateError: null,
+          fetchError: null,
+          farmersSearchError: null,
+          processorsSearchError: null,
+        }),
 
   // Search farmers
   searchFarmers: async (params: SearchUsersParams) => {
@@ -526,4 +524,16 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       throw error;
     }
   },
-}));
+}), 
+  {
+      name: 'product-store', // localStorage key
+      partialize: (state) => ({
+        // choose which states to persist
+        products: state.products,
+        currentProduct: state.currentProduct,
+        farmers: state.farmers,
+        processors: state.processors,
+      }),
+    }
+  )
+);
