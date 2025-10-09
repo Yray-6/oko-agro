@@ -1,4 +1,5 @@
-import React from "react";
+'use client'
+import React, { useState, useEffect } from "react";
 import Card from "../components/dashboard/Cards";
 import Revenue from "../assets/icons/Revenue";
 import Listings from "../assets/icons/Listings";
@@ -10,24 +11,71 @@ import Calendar from "../assets/icons/Calendar";
 import RecentActivity from "../components/dashboard/RecentActivity";
 import { Plus } from "lucide-react";
 import ProductCardContainerProcessor from "../components/dashboad-processor/ProductCardContainerProcessor";
+import CreateNewRequestModal from "../components/dashboad-processor/CreateNewRequest";
+import { SuccessModal } from "@/app/components/dashboard/ProductModal";
+import { useBuyRequestStore } from "../store/useRequestStore";
+import { useAuthStore } from "@/app/store/useAuthStore";
+import AnimatedLoading from "../Loading";
 
-export default function page() {
+export default function Page() {
+  // Store hooks
+  const { myRequests, fetchMyRequests, isFetching, isCreating } = useBuyRequestStore();
+  const { user } = useAuthStore();
+  
+  // Modal states
+  const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<{ name: string; id: string } | null>(null);
+
+  // Fetch user's buy requests on component mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchMyRequests().catch(console.error);
+    }
+  }, [user?.id, fetchMyRequests]);
+
+  // Calculate active requests count
+  const activeRequestsCount = myRequests.filter(req => req.status === 'pending').length;
+
+  // Calculate total expense (sum of all request prices)
+  const totalExpense = myRequests.reduce((acc, req) => {
+    const quantity = parseFloat(req.productQuantity || '0');
+    const pricePerUnit = parseFloat(req.pricePerUnitOffer || '0');
+    return acc + (quantity * pricePerUnit);
+  }, 0);
+
+  const handleNewRequestClick = () => {
+    setShowCreateRequestModal(true);
+  };
+
+  const handleRequestSuccess = () => {
+    setShowSuccessModal(true);
+    // Refresh requests list
+    fetchMyRequests().catch(console.error);
+  };
+
+  const closeAllModals = () => {
+    setShowCreateRequestModal(false);
+    setShowSuccessModal(false);
+    setSelectedProduct(null);
+  };
+
   return (
     <div>
-      <div className="text-2xl">Hello, Oghenevwaire</div>
+      <div className="text-2xl">Hello, {user?.firstName || 'Oghenevwaire'}</div>
       <div className="grid grid-cols-4 py-4 gap-4">
         <Card
           title="Expense"
-          value="₦8,250,000"
+          value={`₦${totalExpense.toLocaleString()}`}
           subtitle="+12% from last month"
           subtitleColor="text-green"
           iconColor="text-green"
-          icon={Revenue} // ✅ Pass component reference, not JSX
+          icon={Revenue}
         />
         <Card
-          title=" Active Request"
-          value="9"
-          subtitle="Budget 40% left"
+          title="Active Request"
+          value={activeRequestsCount.toString()}
+          subtitle={`Total: ${myRequests.length} requests`}
           subtitleColor="text-black"
           iconColor="text-blue"
           icon={Listings}
@@ -52,15 +100,30 @@ export default function page() {
         <div className="col-span-9">
           <div className="rounded-lg border border-gray-200 p-2">
             <p className="font-medium mb-2">Quick Actions</p>
-            <div className="grid grid-cols-4 gap-2  ">
+            <div className="grid grid-cols-4 gap-2">
               <LinkCard
-                title={"Find Farmer"}
+                title="Find Farmer"
                 icon={FindProcessor}
                 href="/dashboard-processor/find-farmer"
               />
-              <LinkCard title={"New Request"} icon={Plus} href="/dashboard/new-request" />
-              <LinkCard title={"View Orders"} icon={ViewOrders} href="/dashboard-processor/orders" />
-              <LinkCard title={"View Schedule"} icon={Calendar} href="/dashboard-processor/calendar" />
+              <div onClick={handleNewRequestClick} className="cursor-pointer">
+                <LinkCard 
+                  title="New Request" 
+                  icon={Plus} 
+                  href="#"
+                  className="w-full"
+                />
+              </div>
+              <LinkCard 
+                title="View Orders" 
+                icon={ViewOrders} 
+                href="/dashboard-processor/orders" 
+              />
+              <LinkCard 
+                title="View Schedule" 
+                icon={Calendar} 
+                href="/dashboard-processor/calendar" 
+              />
             </div>
           </div>
           <div className="p-2 mt-3">
@@ -68,9 +131,29 @@ export default function page() {
           </div>
         </div>
         <div className="col-span-3 rounded-lg border border-gray-200 p-2">
-                <RecentActivity/>
+          <RecentActivity />
         </div>
       </div>
+
+      {/* Create New Request Modal */}
+      <CreateNewRequestModal
+        isOpen={showCreateRequestModal}
+        onClose={closeAllModals}
+        onSuccess={handleRequestSuccess}
+        productName={selectedProduct?.name}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={closeAllModals}
+        title="Success!"
+        message="Buy request created successfully!"
+        buttonText="Continue"
+      />
+
+      {/* Loading Overlay */}
+      {(isFetching || isCreating) && <AnimatedLoading />}
     </div>
   );
 }

@@ -18,12 +18,14 @@ export interface Product {
   slug?: string;
   inventoryStatus?: string;
   inventoryPercentage?: number;
+  sellerId?: string; // Add seller ID for targeting specific requests
+   cropId?: string; // Add this field
 }
 
 interface ProductCardContainerDetailedProps {
   products: Product[] | ProductDetails[];
   onRequestSuccess?: () => void;
-  showQuickOrder?: boolean; // Control if quick order button should show
+  showQuickOrder?: boolean;
 }
 
 type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out";
@@ -42,14 +44,15 @@ const ProductCardContainerDetailedProcessor: React.FC<
       return product as Product;
     }
 
-    // Convert ProductDetails to Product format
-    const apiProduct = product as ProductDetails;
+  const apiProduct = product as ProductDetails;
+  
+        console.log("apiProduct",apiProduct)
     return {
       id: apiProduct.id,
       name: apiProduct.name,
       quantity: `${apiProduct.quantity} ${apiProduct.quantityUnit}`,
-      price: formatPrice(product.pricePerUnit, product.priceCurrency, product.quantityUnit),
-      certification: "Grade A", // Default or fetch from API if available
+      price: formatPrice(apiProduct.pricePerUnit, apiProduct.priceCurrency, apiProduct.quantityUnit),
+      certification: "Grade A",
       status: apiProduct.status || "Active",
       listedDate: new Date(apiProduct.createdAt).toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -60,8 +63,14 @@ const ProductCardContainerDetailedProcessor: React.FC<
       slug: apiProduct.id,
       inventoryStatus: `${apiProduct.quantity}/${apiProduct.quantity}${apiProduct.quantityUnit}`,
       inventoryPercentage: 100,
+      sellerId: apiProduct.owner?.id, // Extract seller ID from owner
+      cropId:apiProduct.cropId
     };
+
+
   };
+
+
 
   // Normalize all products
   const normalizedProducts = products.map(normalizeProduct);
@@ -87,13 +96,12 @@ const ProductCardContainerDetailedProcessor: React.FC<
     activeFilter === "All"
       ? normalizedProducts
       : normalizedProducts.filter((product) => {
-          // Normalize status comparison (case-insensitive)
           const productStatus = product.status.toLowerCase();
           const filterStatus = activeFilter.toLowerCase();
           return productStatus === filterStatus;
         });
 
-  // Get count for each status using the actual filter value
+  // Get count for each status
   const getStatusCount = (displayName: string) => {
     const filterValue = statusDisplayMap[displayName];
     if (filterValue === "All") return normalizedProducts.length;
@@ -125,7 +133,6 @@ const ProductCardContainerDetailedProcessor: React.FC<
   const handleRequestSuccess = () => {
     setShowCreateRequestModal(false);
     setSelectedProduct(null);
-    // Call optional callback if provided
     if (onRequestSuccess) {
       onRequestSuccess();
     }
@@ -136,16 +143,12 @@ const ProductCardContainerDetailedProcessor: React.FC<
     const getStatusStyles = () => {
       const normalizedStatus = status.toLowerCase();
       
-      if (normalizedStatus === "active") {
+      if (normalizedStatus === "active" || normalizedStatus === "available") {
         return "bg-green-500 text-white";
       } else if (normalizedStatus.includes("pending")) {
         return "bg-yellow-500 text-white";
-      } else if (normalizedStatus.includes("sold")) {
+      } else if (normalizedStatus.includes("sold") || normalizedStatus === "unavailable") {
         return "bg-gray-500 text-white";
-      } else if (normalizedStatus === "available") {
-        return "bg-green-500 text-white";
-      } else if (normalizedStatus === "unavailable") {
-        return "bg-red-500 text-white";
       } else {
         return "bg-gray-400 text-white";
       }
@@ -203,7 +206,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
             <p className="text-sm text-gray-600">
               Listed: {product.listedDate}
             </p>
-            {/* Quick Order Button - Only show if enabled */}
+            {/* Quick Order Button */}
             {showQuickOrder && (
               <div className="flex justify-end mt-4">
                 <button 
@@ -220,12 +223,27 @@ const ProductCardContainerDetailedProcessor: React.FC<
     );
   };
 
-  // Get display name for current filter (for the results summary)
+  // Get display name for current filter
   const getDisplayNameForFilter = (filter: StatusFilter) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const entry = Object.entries(statusDisplayMap).find(([_, value]) => value === filter);
     return entry ? entry[0] : filter;
   };
+
+  // Get selected product details for modal
+  const getSelectedProductDetails = () => {
+    if (!selectedProduct) return { productName: '', productId: undefined, sellerId: undefined };
+    
+    const normalized = 'price' in selectedProduct ? selectedProduct : normalizeProduct(selectedProduct);
+    return {
+      productName: normalized.name,
+      productId: normalized.id.toString(),
+      sellerId: normalized.sellerId,
+      cropId:normalized.cropId
+    };
+  };
+
+  const selectedProductDetails = getSelectedProductDetails();
 
   return (
     <div className="w-full space-y-6">
@@ -233,7 +251,6 @@ const ProductCardContainerDetailedProcessor: React.FC<
       <div className="flex flex-wrap gap-3">
         {availableStatusDisplayNames.map((displayName) => {
           const count = getStatusCount(displayName);
-          // Only show filter if there are products with that status (or it's "All Listings")
           if (count === 0 && displayName !== "All Listings") return null;
           
           return (
@@ -292,7 +309,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
         )}
       </div>
 
-      {/* Load More Button - Optional, can be controlled by parent */}
+      {/* Load More Button */}
       {filteredProducts.length > 0 && filteredProducts.length >= 10 && (
         <div className="text-center pt-6">
           <button className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
@@ -301,7 +318,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
         </div>
       )}
 
-      {/* Create New Request Modal */}
+      {/* Create New Request Modal - Pass productId and sellerId */}
       <CreateNewRequestModal
         isOpen={showCreateRequestModal}
         onClose={() => {
@@ -309,8 +326,10 @@ const ProductCardContainerDetailedProcessor: React.FC<
           setSelectedProduct(null);
         }}
         onSuccess={handleRequestSuccess}
-        productName={selectedProduct?.name || ""}
-        // productId={selectedProduct?.id?.toString()}
+        productName={selectedProductDetails.productName}
+        productId={selectedProductDetails.productId}
+        sellerId={selectedProductDetails.sellerId}
+        cropId={selectedProductDetails.cropId}
       />
     </div>
   );

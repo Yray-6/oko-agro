@@ -1,6 +1,8 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
+import { EventDetails } from '@/app/types';
+import { transformEventToCalendarEvent } from '@/app/helpers';
 
 // ScheduleEvent Component
 interface ScheduleEventProps {
@@ -46,18 +48,14 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
   const colors = getStatusColors(status);
 
   return (
-    <div className={`bg-white border-l-4 border-red rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+    <div className={`bg-white border-l-4 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${className} ${colors.border}`}>
       <div className="flex items-center gap-4">
-        {/* Status Indicator Line */}
         <div className={`w-1 h-12 rounded-full ${colors.border.replace('border-', 'bg-')}`}></div>
         
-        {/* Content */}
         <div className="flex-1 flex items-center justify-between">
           <div className="flex-1">
-            {/* Title */}
             <h3 className="font-medium text-base mb-1">{title}</h3>
             
-            {/* Time and Location */}
             <div className="flex items-center gap-4 text-xs text-[#6A7C6A]">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -70,7 +68,6 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
             </div>
           </div>
           
-          {/* Status Badge */}
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
             {status}
           </span>
@@ -89,27 +86,17 @@ interface CalendarEvent {
   status: 'upcoming' | 'in-progress' | 'completed';
 }
 
-const CalendarViewProcessor: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1)); // August 2025
+interface CalendarViewProcessorProps {
+  events?: EventDetails[];
+}
+
+const CalendarViewProcessor: React.FC<CalendarViewProcessorProps> = ({ events: apiEvents = [] }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
   
-  const events: CalendarEvent[] = [
-    {
-      id: '1',
-      title: 'Maize Quality Inspection',
-      date: '2025-08-22',
-      time: '10:30 AM',
-      location: 'Farm Block A',
-      status: 'upcoming'
-    },
-    {
-      id: '2',
-      title: 'Delivery to Augustus Mill Factory',
-      date: '2025-08-23',
-      time: '4:00 PM',
-      location: 'Main Gate',
-      status: 'upcoming'
-    }
-  ];
+  // Transform API events to calendar events
+  const events: CalendarEvent[] = useMemo(() => {
+    return apiEvents.map(transformEventToCalendarEvent);
+  }, [apiEvents]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -134,21 +121,30 @@ const CalendarViewProcessor: React.FC = () => {
     });
   };
 
+  // Get events for the current month
+  const monthEvents = useMemo(() => {
+    return events.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate.getMonth() === currentDate.getMonth() &&
+             eventDate.getFullYear() === currentDate.getFullYear();
+    });
+  }, [events, currentDate]);
+
   const hasEvent = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.find(event => event.date === dateStr);
+    return monthEvents.find(event => event.date === dateStr);
   };
 
   const getEventColor = (status: string) => {
     switch (status) {
       case 'upcoming':
-        return 'bg-mainGreen';
+        return 'bg-mainGreen text-white';
       case 'in-progress':
-        return 'bg-blue-100 border-blue-400';
+        return 'bg-blue-500 text-white';
       case 'completed':
-        return 'bg-green-100 border-green-400';
+        return 'bg-green-500 text-white';
       default:
-        return 'bg-gray-100 border-gray-400';
+        return 'bg-gray-400 text-white';
     }
   };
 
@@ -168,15 +164,18 @@ const CalendarViewProcessor: React.FC = () => {
     }
 
     // Current month days
+    const today = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
       const event = hasEvent(day);
+      const isToday = day === today.getDate() && 
+                      currentDate.getMonth() === today.getMonth() && 
+                      currentDate.getFullYear() === today.getFullYear();
+      
       days.push(
         <div key={day} className="p-3 text-sm hover:bg-gray-50 cursor-pointer relative">
           <div className={`w-8 h-8 flex items-center justify-center rounded-full ${
-            event ? getEventColor(event.status) + ' border-2' : ''
-          } ${day === 22 ? 'bg-red text-white ' : ''} ${
-            day === 23 ? 'bg-green text-white ' : ''
-          }`}>
+            event ? getEventColor(event.status) : ''
+          } ${isToday && !event ? 'bg-gray-200 font-semibold' : ''}`}>
             {day}
           </div>
         </div>
@@ -197,10 +196,10 @@ const CalendarViewProcessor: React.FC = () => {
   };
 
   return (
-    <div className="  bg-white">
+    <div className="bg-white">
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 ">
+        <div className="px-6 py-4">
           <h1 className="text-lg font-semibold text-gray-900">Calendar View</h1>
         </div>
 
@@ -232,7 +231,7 @@ const CalendarViewProcessor: React.FC = () => {
           {/* Day Headers */}
           <div className="grid grid-cols-7 mb-4">
             {dayNames.map(day => (
-              <div key={day} className="p-3 text-sm font-medium text-mainGreen ">
+              <div key={day} className="p-3 text-sm font-medium text-mainGreen">
                 {day}
               </div>
             ))}
@@ -251,15 +250,21 @@ const CalendarViewProcessor: React.FC = () => {
           </h3>
           
           <div className="space-y-3">
-            {events.map(event => (
-              <ScheduleEvent
-                key={event.id}
-                title={event.title}
-                time={event.time}
-                location={event.location}
-                status={event.status}
-              />
-            ))}
+            {monthEvents.length > 0 ? (
+              monthEvents.map(event => (
+                <ScheduleEvent
+                  key={event.id}
+                  title={event.title}
+                  time={event.time}
+                  location={event.location}
+                  status={event.status}
+                />
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                No events scheduled for this month
+              </div>
+            )}
           </div>
         </div>
       </div>

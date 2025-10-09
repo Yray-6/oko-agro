@@ -12,7 +12,8 @@ import {
   UpdateBuyRequestStatusRequest,
   UpdateBuyRequestStatusApiRequest,
   DeleteBuyRequestResponse,
-  GeneralBuyRequestsListResponse
+  GeneralBuyRequestsListResponse,
+  ApiResponse
 } from '@/app/types';
 import { showToast } from '../hooks/useToast';
 import apiClient from '../utils/apiClient';
@@ -194,7 +195,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
         ...data
       };
 
-      const response = await apiClient.post<BuyRequestResponse>('/buy-requests', requestData);
+      const response = await apiClient.post<BuyRequestResponse>('/requests', requestData);
       
       if (response.data.statusCode === 201 && response.data.data) {
         const newRequest = response.data.data;
@@ -239,7 +240,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
         ...data
       };
 
-      const response = await apiClient.put<BuyRequestResponse>('/buy-requests', requestData);
+      const response = await apiClient.put<BuyRequestResponse>('/requests', requestData);
       
       if (response.data.statusCode === 200 && response.data.data) {
         const updatedRequest = response.data.data;
@@ -294,7 +295,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
         ...data
       };
 
-      const response = await apiClient.put<BuyRequestResponse>('/buy-requests', requestData);
+      const response = await apiClient.put<BuyRequestResponse>('/requests', requestData);
       
       if (response.data.statusCode === 200 && response.data.data) {
         const updatedRequest = response.data.data;
@@ -345,7 +346,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     
     try {
       const response = await apiClient.get<GeneralBuyRequestsListResponse>(
-        '/buy-requests?action=general'
+        '/requests?action=general'
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
@@ -381,12 +382,12 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     console.log('📥 [Buy Request Store] Fetching my requests...');
     
     try {
-      const response = await apiClient.get<BuyRequestsListResponse>(
-        '/buy-requests?action=my-requests'
+      const response = await apiClient.get<ApiResponse<BuyRequestsListResponse>>(
+        '/requests?action=my-requests'
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
-        const requests = response.data.data.items;
+        const requests = response.data.data.data.items;
         console.log('✅ [Buy Request Store] My requests fetched:', requests.length);
         
         set({
@@ -419,7 +420,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     
     try {
       const response = await apiClient.get<BuyRequestResponse>(
-        `/buy-requests?action=single-request&buyRequestId=${buyRequestId}`
+        `/requests?action=single-request&buyRequestId=${buyRequestId}`
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
@@ -457,7 +458,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     
     try {
       const response = await apiClient.delete<DeleteBuyRequestResponse>(
-        `/buy-requests?buyRequestId=${buyRequestId}`
+        `/requests?buyRequestId=${buyRequestId}`
       );
       
       if (response.data.statusCode === 200) {

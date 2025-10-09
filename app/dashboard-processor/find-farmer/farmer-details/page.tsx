@@ -11,6 +11,7 @@ import {
   Mail,
 } from "lucide-react";
 import { useProductStore } from "@/app/store/useProductStore";
+import { useEventStore } from "@/app/store/useEventStore";
 import ProductCardContainerDetailedProcessor from "@/app/components/dashboad-processor/ProductCardContainerDetaledProcessor";
 import CalendarViewProcessor from "@/app/components/dashboad-processor/CalendarViewProcessor";
 import rice from "@/app/assets/images/rice.png";
@@ -24,9 +25,9 @@ export default function FarmerDetailsPage() {
   const farmerId = searchParams.get("farmerId");
 
   const { products, isFetching, fetchError, fetchUserProducts } = useProductStore();
+  const { events, isFetching: isFetchingEvents, fetchUserEvents } = useEventStore();
 
-
-  const productOwner = products[0]?.owner
+  const productOwner = products[0]?.owner;
 
   const [farmerDetails, setFarmerDetails] = useState<UserProfile | null>(null);
   const [isLoadingFarmer, setIsLoadingFarmer] = useState(true);
@@ -34,7 +35,6 @@ export default function FarmerDetailsPage() {
   // Fetch farmer details from the farmers list in store
   useEffect(() => {
     if (farmerId) {
-      // Get farmer from the store's farmers list
       const { farmers } = useProductStore.getState();
       const farmer = farmers.find((f) => f.id === farmerId);
       
@@ -55,6 +55,13 @@ export default function FarmerDetailsPage() {
     }
   }, [farmerId, fetchUserProducts]);
 
+  // Fetch farmer's events
+  useEffect(() => {
+    if (farmerId) {
+      fetchUserEvents(farmerId);
+    }
+  }, [farmerId, fetchUserEvents]);
+
   // Map products to the format expected by ProductCardContainer
   const mappedProducts = products.map((product) => ({
     id: product.id,
@@ -72,6 +79,8 @@ export default function FarmerDetailsPage() {
     inventoryStatus: `${product.quantity}/${product.quantity}${product.quantityUnit}`,
     inventoryPercentage: 100,
     slug: product.id,
+    sellerId:product.owner?.id,
+    cropId:product.cropType?.id
   }));
 
   const handleBack = () => {
@@ -85,23 +94,6 @@ export default function FarmerDetailsPage() {
       </div>
     );
   }
-
-  // if (!farmerDetails) {
-  //   return (
-  //     <div className="p-6">
-  //       <button
-  //         onClick={handleBack}
-  //         className="flex items-center gap-2 text-mainGreen hover:underline mb-4"
-  //       >
-  //         <ArrowLeft className="w-4 h-4" />
-  //         Back
-  //       </button>
-  //       <div className="text-center py-12">
-  //         <p className="text-gray-500">Farmer not found</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -151,9 +143,7 @@ export default function FarmerDetailsPage() {
                   <span>
                     {farmerDetails?.state}, {farmerDetails?.country}
                   </span>
-                  
                 </div>
-                
 
                 {productOwner?.phoneNumber && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -169,9 +159,6 @@ export default function FarmerDetailsPage() {
                   </div>
                 )}
               </div>
-
-              {/* Crops */}
-          
             </div>
           </div>
         </div>
@@ -188,7 +175,6 @@ export default function FarmerDetailsPage() {
                  <p className="text-gray-900 font-medium">
                       {farmerDetails.farmAddress}
                  </p>
-           
               </div>
             )}
 
@@ -259,15 +245,19 @@ export default function FarmerDetailsPage() {
           )}
         </div>
 
-        {/* Calendar View */}
-        {mappedProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-xl font-semibold mb-4">Harvest Calendar</h2>
-            <CalendarViewProcessor />
-          </div>
-        )}
+        {/* Calendar View - Always show, independent of products */}
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold mb-4">Schedule & Calendar</h2>
+          {isFetchingEvents ? (
+            <div className="flex items-center justify-center py-12 bg-white rounded-lg">
+              <Loader2 className="w-8 h-8 animate-spin text-mainGreen" />
+            </div>
+          ) : (
+            <CalendarViewProcessor events={events} />
+          )}
+        </div>
       </div>
-      {isFetching && <AnimatedLoading/>}
+      {(isFetching || isFetchingEvents) && <AnimatedLoading/>}
     </div>
   );
 }

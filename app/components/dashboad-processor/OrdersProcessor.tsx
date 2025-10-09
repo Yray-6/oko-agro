@@ -1,28 +1,28 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useState, useEffect } from "react";
 import { X, Download, FileText } from "lucide-react";
 import Image from "next/image";
 import Logo from "@/app/assets/icons/Logo";
 
-// Mock icons - replace with your actual icons
+// Mock icons
 const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}>
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
   </svg>
 );
 
-const AddChat = ({ size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-  </svg>
-);
+// const AddChat = ({ size = 15 }) => (
+//   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+//     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+//   </svg>
+// );
 
-const UserCard = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
+// const UserCard = ({ size = 18 }) => (
+//   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+//     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+//   </svg>
+// );
 
 // TypeScript interfaces
 export interface Order {
@@ -31,7 +31,7 @@ export interface Order {
   quantity: string;
   price: string;
   certification: string;
-  status: "Pending" | "Active" | "Completed";
+  status: "Pending" | "Active" | "Completed" | "MyRequest";
   createdDate: string;
   deliveryDate?: string;
   orderValue: string;
@@ -39,6 +39,8 @@ export interface Order {
   buyerName: string;
   buyerLocation: string;
   productImage: string;
+  isGeneral?: boolean;
+  originalStatus?: string;
 }
 
 interface InvoiceData {
@@ -70,7 +72,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   onClose,
   invoiceData,
 }) => {
-  // Handle escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isOpen) {
@@ -90,7 +91,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   }, [isOpen, onClose]);
 
   const handleDownloadPDF = () => {
-    // Create a new window with the invoice content for printing/PDF
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -100,182 +100,39 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         <head>
           <title>Invoice - ${invoiceData.orderNumber}</title>
           <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              line-height: 1.4;
-              color: #333;
-              background: white;
-              padding: 40px;
-            }
-            .invoice-container {
-              max-width: 800px;
-              margin: 0 auto;
-              background: white;
-              border-radius: 12px;
-              border: 1px solid #e5e7eb;
-              overflow: hidden;
-            }
-            .invoice-header {
-              text-align: center;
-              padding: 30px;
-              background: #f9fafb;
-              border-bottom: 1px solid #e5e7eb;
-            }
-            .invoice-title {
-              font-size: 32px;
-              font-weight: 600;
-              color: #1f2937;
-              margin-bottom: 20px;
-            }
-            .order-info {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 0;
-            }
-            .order-number {
-              font-size: 16px;
-              color: #374151;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-            .created-date {
-              font-size: 14px;
-              color: #6b7280;
-            }
-            .invoice-content {
-              padding: 40px;
-            }
-            .section-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 40px;
-              margin-bottom: 40px;
-            }
-            .section-title {
-              font-size: 16px;
-              font-weight: 500;
-              color: #374151;
-              margin-bottom: 16px;
-            }
-            .product-info, .farmer-info {
-              display: flex;
-              gap: 16px;
-              align-items: flex-start;
-            }
-            .product-image, .farmer-image {
-              width: 60px;
-              height: 60px;
-              border-radius: 8px;
-              object-fit: cover;
-              flex-shrink: 0;
-            }
-            .farmer-image {
-              border-radius: 50%;
-              background: #d1d5db;
-            }
-            .info-details h3 {
-              font-size: 16px;
-              font-weight: 500;
-              color: #111827;
-              margin-bottom: 8px;
-            }
-            .info-details p {
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 4px;
-            }
-            .order-summary {
-              background: #f0f9ff;
-              border-radius: 8px;
-              padding: 24px;
-              margin-bottom: 40px;
-            }
-            .summary-grid {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 24px;
-            }
-            .summary-item h4 {
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 8px;
-            }
-            .summary-item p {
-              font-size: 16px;
-              font-weight: 600;
-              color: #111827;
-            }
-            .order-value p {
-              color: #059669 !important;
-              font-size: 18px;
-            }
-            .payment-status {
-              text-align: center;
-              margin-bottom: 40px;
-            }
-            .payment-status h4 {
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 8px;
-            }
-            .status-badge {
-              display: inline-block;
-              padding: 8px 16px;
-              border-radius: 20px;
-              font-size: 14px;
-              font-weight: 500;
-            }
-            .status-completed {
-              background: #d1fae5;
-              color: #065f46;
-            }
-            .status-pending {
-              background: #fef3c7;
-              color: #92400e;
-            }
-            .status-failed {
-              background: #fee2e2;
-              color: #991b1b;
-            }
-            .company-footer {
-              text-align: center;
-              padding: 30px;
-              border-top: 1px solid #e5e7eb;
-              background: #f9fafb;
-            }
-            .company-logo {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 8px;
-              margin-bottom: 8px;
-            }
-            .logo-icon {
-              width: 24px;
-              height: 24px;
-              background: #059669;
-              border-radius: 4px;
-            }
-            .company-name {
-              font-size: 18px;
-              font-weight: 600;
-              color: #059669;
-            }
-            .company-tagline {
-              font-size: 14px;
-              color: #059669;
-              font-style: italic;
-            }
-            @media print {
-              body { padding: 0; }
-            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.4; color: #333; background: white; padding: 40px; }
+            .invoice-container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+            .invoice-header { text-align: center; padding: 30px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+            .invoice-title { font-size: 32px; font-weight: 600; color: #1f2937; margin-bottom: 20px; }
+            .order-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
+            .order-number { font-size: 16px; color: #374151; display: flex; align-items: center; gap: 8px; }
+            .created-date { font-size: 14px; color: #6b7280; }
+            .invoice-content { padding: 40px; }
+            .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            .section-title { font-size: 16px; font-weight: 500; color: #374151; margin-bottom: 16px; }
+            .product-info, .farmer-info { display: flex; gap: 16px; align-items: flex-start; }
+            .product-image, .farmer-image { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+            .farmer-image { border-radius: 50%; background: #d1d5db; }
+            .info-details h3 { font-size: 16px; font-weight: 500; color: #111827; margin-bottom: 8px; }
+            .info-details p { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
+            .order-summary { background: #f0f9ff; border-radius: 8px; padding: 24px; margin-bottom: 40px; }
+            .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+            .summary-item h4 { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+            .summary-item p { font-size: 16px; font-weight: 600; color: #111827; }
+            .order-value p { color: #059669 !important; font-size: 18px; }
+            .payment-status { text-align: center; margin-bottom: 40px; }
+            .payment-status h4 { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+            .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+            .status-completed { background: #d1fae5; color: #065f46; }
+            .status-pending { background: #fef3c7; color: #92400e; }
+            .status-failed { background: #fee2e2; color: #991b1b; }
+            .company-footer { text-align: center; padding: 30px; border-top: 1px solid #e5e7eb; background: #f9fafb; }
+            .company-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+            .logo-icon { width: 24px; height: 24px; background: #059669; border-radius: 4px; }
+            .company-name { font-size: 18px; font-weight: 600; color: #059669; }
+            .company-tagline { font-size: 14px; color: #059669; font-style: italic; }
+            @media print { body { padding: 0; } }
           </style>
         </head>
         <body>
@@ -359,7 +216,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
     printWindow.document.write(invoiceHTML);
     printWindow.document.close();
     
-    // Wait for content to load, then print
     printWindow.onload = () => {
       setTimeout(() => {
         printWindow.print();
@@ -385,19 +241,16 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div
           className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header with Close and Download buttons */}
           <div className="flex justify-between items-center p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">Invoice</h2>
             <div className="flex items-center gap-3">
@@ -417,9 +270,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
           </div>
 
-          {/* Scrollable Invoice Content */}
           <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
-            {/* Invoice Header */}
             <div className="text-center py-4 px-6 bg-gray-50 border-b border-gray-200">
               <h1 className="text-2xl font-semibold text-gray-900 mb-6">Invoice</h1>
               <div className="flex justify-between items-center">
@@ -433,11 +284,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
               </div>
             </div>
 
-            {/* Invoice Body */}
             <div className="p-8">
-              {/* Product Details and Farmer Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* Product Details */}
                 <div>
                   <h3 className="text-base font-medium text-gray-900 mb-4">
                     Product Details
@@ -470,7 +318,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   </div>
                 </div>
 
-                {/* Farmer Information */}
                 <div>
                   <h3 className="text-base font-medium text-gray-900 mb-4">
                     Farmer Information
@@ -505,7 +352,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 </div>
               </div>
 
-              {/* Order Summary */}
               <div className="bg-skyBlue rounded-lg px-6 py-2 ">
                 <div className="space-y-6 flex flex-col justify-center text-center items-center">
                   <div>
@@ -526,25 +372,21 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                       {invoiceData.deliveryDate}
                     </p>
                   </div>
-                     <div >
-                <p className="text-sm text-gray-600 mb-2">Payment Status</p>
-                <span
-                  className={`inline-block px-4  rounded-full  font-medium ${getPaymentStatusStyle()}`}
-                >
-                  {invoiceData.paymentStatus}
-                </span>
-              </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">Payment Status</p>
+                    <span
+                      className={`inline-block px-4 rounded-full font-medium ${getPaymentStatusStyle()}`}
+                    >
+                      {invoiceData.paymentStatus}
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              {/* Payment Status */}
-           
             </div>
 
-            {/* Company Footer */}
             <div className="text-center py-8 px-6 bg-gray-50 border-t border-gray-200">
               <div className="flex items-center justify-center gap-2 mb-2">
-                    <Logo color="#004829"/>
+                <Logo color="#004829"/>
                 <span className="text-lg font-semibold text-mainGreen">
                   Oko Agro
                 </span>
@@ -560,7 +402,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   );
 };
 
-// Updated OrdersProcessor component with invoice modal integration
 interface OrdersProps {
   orders: Order[];
   onAcceptOrder?: (orderId: string) => void;
@@ -569,20 +410,18 @@ interface OrdersProps {
   onMessage?: (orderId: string) => void;
 }
 
-type StatusFilter = "All" | "Pending" | "Active" | "Completed";
+type StatusFilter = "All" | "MyRequests" | "Pending" | "Active" | "Completed";
 
 const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   orders,
   onAcceptOrder,
   onDeclineOrder,
-  onViewProfile,
-  onMessage,
+  
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
-  // Convert Order to InvoiceData
   const convertOrderToInvoiceData = (order: Order): InvoiceData => {
     return {
       orderNumber: order.id,
@@ -592,9 +431,9 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
       price: order.price,
       certification: order.certification,
       productImage: order.productImage,
-      farmerName: order.buyerName, // Assuming this represents the farmer
+      farmerName: order.buyerName,
       farmerLocation: order.buyerLocation,
-      farmerImage: "", // You can add this to your Order interface if needed
+      farmerImage: "",
       orderValue: order.orderValue,
       paymentTerms: order.paymentTerms,
       deliveryDate: order.deliveryDate || "TBD",
@@ -616,9 +455,9 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     setSelectedInvoice(null);
   };
 
-  // Status display mapping
   const statusDisplayMap: Record<string, StatusFilter> = {
     "All Orders": "All",
+    "My Requests": "MyRequests",
     "Pending Orders": "Pending",
     "Active Orders": "Active",
     "Completed Orders": "Completed",
@@ -626,16 +465,26 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
 
   const availableStatusDisplayNames = [
     "All Orders",
+    "My Requests",
     "Pending Orders",
     "Active Orders",
     "Completed Orders",
   ];
 
-  // Filter orders based on active filter
-  const filteredOrders =
-    activeFilter === "All"
-      ? orders
-      : orders.filter((order) => order.status === activeFilter);
+  const filteredOrders = (() => {
+    if (activeFilter === "All") {
+      return orders;
+    }
+    
+    if (activeFilter === "MyRequests") {
+      return orders.filter((order) => order.isGeneral === true);
+    }
+    
+    return orders.filter((order) => {
+      if (order.isGeneral) return false;
+      return order.status === activeFilter;
+    });
+  })();
 
   const getButtonStyles = (displayName: string) => {
     const baseStyles =
@@ -649,9 +498,12 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     }
   };
 
-  // Status Badge Component
-  const StatusBadge: React.FC<{ status: Order["status"] }> = ({ status }) => {
+  const StatusBadge: React.FC<{ status: Order["status"]; originalStatus?: string }> = ({ status, originalStatus }) => {
     const getStatusStyles = () => {
+      if (status === "MyRequest") {
+        return "bg-blue-100 text-blue-800 border border-blue-200";
+      }
+      
       switch (status) {
         case "Pending":
           return "bg-yellow-500 text-white";
@@ -664,20 +516,24 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
       }
     };
 
+    const displayStatus = status === "MyRequest" ? "General Request" : (originalStatus || status);
+
     return (
       <span
         className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusStyles()}`}
       >
-        {status}
+        {displayStatus}
       </span>
     );
   };
 
-  // Order Card Component
   const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
+    const isMyRequest = order.isGeneral === true;
+    const canEdit = order.status === "Pending" || isMyRequest;
+    const canViewInvoice = !isMyRequest && order.status !== "Pending";
+
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-        {/* Header with Order ID and Status */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-start space-x-2">
             <ViewOrders color="black" className="pt-1" />
@@ -688,12 +544,10 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               </div>
             </div>
           </div>
-          <StatusBadge status={order.status} />
+          <StatusBadge status={order.status} originalStatus={order.originalStatus} />
         </div>
 
-        {/* Main Content Area */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Product Details */}
           <div>
             <h4 className="font-medium mb-4">Product Details</h4>
             <div className="flex items-start space-x-4">
@@ -722,10 +576,9 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </div>
           </div>
 
-          {/* Buyer Information */}
           <div>
             <h4 className="font-medium text-gray-900 mb-4">
-              Buyer Information
+              {isMyRequest ? "Request Information" : "Buyer Information"}
             </h4>
             <div className="flex items-start space-x-4">
               <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
@@ -736,30 +589,31 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               <div className="flex-1">
                 <h5 className="font-medium text-gray-900">{order.buyerName}</h5>
                 <p className="text-sm text-gray-600">{order.buyerLocation}</p>
-                <div className="flex items-center space-x-4 mt-4">
-                  {onMessage && (
-                    <button
-                      onClick={() => onMessage(order.id)}
-                      className="text-sm flex gap-1 items-center text-mainGreen hover:text-mainGreen/90"
-                    >
-                      <AddChat size={15} /> Message
-                    </button>
-                  )}
-                  {onViewProfile && (
-                    <button
-                      onClick={() => onViewProfile(order.id)}
-                      className="text-sm flex gap-1 items-center text-mainGreen hover:text-mainGreen/90"
-                    >
-                      <UserCard size={18} /> View profile
-                    </button>
-                  )}
-                </div>
+                {/* {!isMyRequest && (
+                  <div className="flex items-center space-x-4 mt-4">
+                    {onMessage && (
+                      <button
+                        onClick={() => onMessage(order.id)}
+                        className="text-sm flex gap-1 items-center text-mainGreen hover:text-mainGreen/90"
+                      >
+                        <AddChat size={15} /> Message
+                      </button>
+                    )}
+                    {onViewProfile && (
+                      <button
+                        onClick={() => onViewProfile(order.id)}
+                        className="text-sm flex gap-1 items-center text-mainGreen hover:text-mainGreen/90"
+                      >
+                        <UserCard size={18} /> View profile
+                      </button>
+                    )}
+                  </div>
+                )} */}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Order Summary */}
         <div className="grid grid-cols-3 gap-6 mt-6 pt-6 bg-sky-50 p-4 rounded-lg">
           <div>
             <p className="text-sm text-gray-600 mb-3">Order Value</p>
@@ -779,17 +633,16 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons - Only show for Pending orders */}
-        {order.status === "Pending" && (onAcceptOrder || onDeclineOrder) && (
+        {canEdit && (onAcceptOrder || onDeclineOrder) && (
           <div className="flex items-center space-x-3 mt-6 pt-6 border-t border-gray-100">
-            {onAcceptOrder && (
+            {/* {onAcceptOrder && (
               <button
                 onClick={() => onAcceptOrder(order.id)}
                 className="px-10 py-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
               >
                 Edit Request
               </button>
-            )}
+            )} */}
             {onDeclineOrder && (
               <button
                 onClick={() => onDeclineOrder(order.id)}
@@ -801,7 +654,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
           </div>
         )}
 
-        {order.status !== "Pending" && (
+        {canViewInvoice && (
           <button 
             onClick={() => handleViewInvoice(order.id)}
             className="px-10 mt-5 py-2 flex items-center gap-2 border-mainGreen text-mainGreen border rounded-md hover:bg-green-50 transition-colors font-medium"
@@ -815,7 +668,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
 
   const getDisplayNameForFilter = (filter: StatusFilter) => {
     const entry = Object.entries(statusDisplayMap).find(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       ([_, value]) => value === filter
     );
     return entry ? entry[0] : filter;
@@ -823,7 +675,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
 
   return (
     <div className="w-full space-y-6">
-      {/* Status Filter Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
           {availableStatusDisplayNames.map((displayName) => (
@@ -838,7 +689,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
         </nav>
       </div>
 
-      {/* Orders Grid */}
       <div className="space-y-4">
         {filteredOrders.length > 0 ? (
           filteredOrders.map((order) => (
@@ -881,7 +731,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
         )}
       </div>
 
-      {/* Load More Button */}
       {filteredOrders.length > 0 && filteredOrders.length >= 10 && (
         <div className="text-center pt-6">
           <button className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
@@ -890,7 +739,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
         </div>
       )}
 
-      {/* Invoice Modal */}
       {selectedInvoice && (
         <InvoiceModal
           isOpen={isInvoiceModalOpen}
@@ -901,4 +749,5 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     </div>
   );
 };
-export default OrdersProcessorWithInvoice
+
+export default OrdersProcessorWithInvoice;

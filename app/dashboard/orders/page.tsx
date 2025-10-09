@@ -1,7 +1,7 @@
 "use client";
 import Orders from "@/app/components/dashboard/Orders";
-import {Plus } from "lucide-react";
-import React from "react";
+import { Plus } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import rice from "@/app/assets/images/rice.png";
 import cassava from "@/app/assets/images/yam.png";
 import maize from "@/app/assets/images/maize.png";
@@ -13,104 +13,170 @@ import Tick from "@/app/assets/icons/Tick";
 import Truck from "@/app/assets/icons/Truck";
 import Package from "@/app/assets/icons/Package";
 import Link from "next/link";
+import { useBuyRequestStore } from "@/app/store/useRequestStore";
+import { BuyRequest } from "@/app/types";
 
-export default function Page() {
-  // Sample orders data - replace with your actual data source
-  const sampleOrders = [
-    {
-      id: "OA20398474",
-      productName: "Long Grain Rice",
-      quantity: "500kg",
-      price: "₦1,000/kg",
-      certification: "Grade A",
-      status: "Pending" as const,
-      createdDate: "Aug 18, 2025",
-      deliveryDate: "28 Sept 2025",
-      orderValue: "₦350,000",
-      paymentTerms: "On Delivery",
-      buyerName: "Augustus Processing Company",
-      buyerLocation: "Lagos, Nigeria",
-      productImage: rice.src,
-    },
-    {
-      id: "OA20398475",
-      productName: "Premium Cassava Flour",
-      quantity: "200kg",
-      price: "₦800/kg",
-      certification: "Organic",
-      status: "Active" as const,
-      createdDate: "Aug 15, 2025",
-      deliveryDate: "25 Sept 2025",
-      orderValue: "₦160,000",
-      paymentTerms: "50% Advance",
-      buyerName: "Golden Foods Ltd",
-      buyerLocation: "Abuja, Nigeria",
-      productImage: cassava.src,
-    },
-    {
-      id: "OA20398476",
-      productName: "Fresh Yam Tubers",
-      quantity: "100kg",
-      price: "₦500/kg",
-      certification: "Grade B",
-      status: "Completed" as const,
-      createdDate: "Aug 10, 2025",
-      deliveryDate: "20 Sept 2025",
-      orderValue: "₦50,000",
-      paymentTerms: "Cash on Delivery",
-      buyerName: "Healthy Farms Market",
-      buyerLocation: "Kano, Nigeria",
-      productImage: potato.src,
-    },
-    {
-      id: "OA20398477",
-      productName: "Dried Maize",
-      quantity: "300kg",
-      price: "₦600/kg",
-      certification: "Grade A",
-      status: "Pending" as const,
-      createdDate: "Aug 20, 2025",
-      deliveryDate: "30 Sept 2025",
-      orderValue: "₦180,000",
-      paymentTerms: "Bank Transfer",
-      buyerName: "Livestock Feed Co.",
-      buyerLocation: "Kaduna, Nigeria",
-      productImage: maize.src,
-    },
-    {
-      id: "OA20398478",
-      productName: "Sweet Potato",
-      quantity: "150kg",
-      price: "₦400/kg",
-      certification: "Organic",
-      status: "Active" as const,
-      createdDate: "Aug 17, 2025",
-      deliveryDate: "27 Sept 2025",
-      orderValue: "₦60,000",
-      paymentTerms: "On Delivery",
-      buyerName: "Fresh Mart Stores",
-      buyerLocation: "Port Harcourt, Nigeria",
-      productImage: "/api/placeholder/60/60",
-    },
-  ];
+// Helper function to get product image based on crop type
+const getProductImage = (cropName: string): string => {
+  const cropNameLower = cropName.toLowerCase();
+  if (cropNameLower.includes("rice")) return rice.src;
+  if (cropNameLower.includes("cassava") || cropNameLower.includes("yam")) return cassava.src;
+  if (cropNameLower.includes("maize") || cropNameLower.includes("corn")) return maize.src;
+  if (cropNameLower.includes("potato")) return potato.src;
+  return rice.src; // Default image
+};
 
-  // Order action handlers
-  const handleAcceptOrder = (orderId: string) => {
-    console.log("Accepting order:", orderId);
-    // Implement your accept order logic here
-    // e.g., API call to accept the order
+// Helper function to convert BuyRequest to Order format for seller
+const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
+  const statusMap: { [key: string]: "Pending" | "Active" | "Completed" } = {
+    pending: "Pending",
+    accepted: "Active",
+    active: "Active",
+    completed: "Completed",
+    rejected: "Completed",
+    cancelled: "Completed"
   };
 
-  const handleDeclineOrder = (orderId: string) => {
-    console.log("Declining order:", orderId);
-    // Implement your decline order logic here
-    // e.g., API call to decline the order
+  return {
+    id: buyRequest.requestNumber.toString(),
+    buyRequestId: buyRequest.id, // Store the actual ID for API calls
+    productName: buyRequest.cropType.name,
+    quantity: `${buyRequest.productQuantity}${buyRequest.productQuantityUnit}`,
+    price: `₦${buyRequest.pricePerUnitOffer}/${buyRequest.productQuantityUnit}`,
+    certification: buyRequest.qualityStandardType.name,
+    status: statusMap[buyRequest.status.toLowerCase()] || "Pending",
+    createdDate: new Date(buyRequest.createdAt).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }),
+    deliveryDate: new Date(buyRequest.estimatedDeliveryDate).toLocaleDateString('en-US', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    }),
+    orderValue: `₦${(parseFloat(buyRequest.pricePerUnitOffer) * parseFloat(buyRequest.productQuantity)).toLocaleString()}`,
+    paymentTerms: buyRequest.preferredPaymentMethod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    buyerName: buyRequest.buyer.companyName || `${buyRequest.buyer.firstName} ${buyRequest.buyer.lastName}`,
+    buyerLocation: buyRequest.deliveryLocation || `${buyRequest.buyer.state}, ${buyRequest.buyer.country}`,
+    productImage: getProductImage(buyRequest.cropType.name),
+    originalStatus: buyRequest.status,
+  };
+};
+
+export default function Page() {
+  const { 
+    myRequests, 
+    fetchMyRequests, 
+    updateBuyRequestStatus,
+    isFetching,
+    isUpdating
+  } = useBuyRequestStore();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [orders, setOrders] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    totalValue: 0,
+    completed: 0,
+    active: 0,
+    pending: 0
+  });
+
+  // Fetch buy requests on component mount
+  useEffect(() => {
+    fetchMyRequests();
+  }, [fetchMyRequests]);
+
+  // Convert buy requests to orders format and calculate stats
+  useEffect(() => {
+    if (myRequests.length > 0) {
+      // Filter out general requests since seller only sees requests sent to them
+      const nonGeneralRequests = myRequests.filter(req => !req.isGeneral && !req.isDeleted);
+      const convertedOrders = nonGeneralRequests.map(convertBuyRequestToOrder);
+      
+      setOrders(convertedOrders);
+
+      // Calculate statistics
+      const totalValue = nonGeneralRequests.reduce((sum, req) => {
+        return sum + (parseFloat(req.pricePerUnitOffer) * parseFloat(req.productQuantity));
+      }, 0);
+
+      const completed = nonGeneralRequests.filter(req => {
+        const statusLower = req.status.toLowerCase();
+        return statusLower === 'completed' || statusLower === 'rejected' || statusLower === 'cancelled';
+      }).length;
+
+      const active = nonGeneralRequests.filter(req => {
+        const statusLower = req.status.toLowerCase();
+        return statusLower === 'accepted' || statusLower === 'active';
+      }).length;
+
+      const pending = nonGeneralRequests.filter(req => 
+        req.status.toLowerCase() === 'pending'
+      ).length;
+
+      setStats({
+        total: nonGeneralRequests.length,
+        totalValue,
+        completed,
+        active,
+        pending
+      });
+    } else {
+      setStats({
+        total: 0,
+        totalValue: 0,
+        completed: 0,
+        active: 0,
+        pending: 0
+      });
+    }
+  }, [myRequests]);
+
+  // Order action handlers
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        await updateBuyRequestStatus({
+          buyRequestId: order.buyRequestId,
+          status: 'accepted', // Set status to active/accepted
+        });
+        // Refresh the list
+        await fetchMyRequests();
+      }
+    } catch (error) {
+      console.error("Error accepting order:", error);
+    }
+  };
+
+  const handleDeclineOrder = async (orderId: string) => {
+    if (window.confirm("Are you sure you want to decline this order?")) {
+      try {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          await updateBuyRequestStatus({
+            buyRequestId: order.buyRequestId,
+            status: 'rejected',
+          });
+          // Refresh the list
+          await fetchMyRequests();
+        }
+      } catch (error) {
+        console.error("Error declining order:", error);
+      }
+    }
   };
 
   const handleViewProfile = (orderId: string) => {
     console.log("Viewing buyer profile for order:", orderId);
-    // Implement navigation to buyer profile
-    // e.g., router.push(`/buyer-profile/${buyerId}`)
+    const buyRequest = myRequests.find(req => req.requestNumber.toString() === orderId);
+    if (buyRequest) {
+      const profileId = buyRequest.buyer.id;
+      // router.push(`/profile/${profileId}`)
+      console.log("Buyer Profile ID:", profileId);
+    }
   };
 
   const handleMessage = (orderId: string) => {
@@ -118,6 +184,17 @@ export default function Page() {
     // Implement messaging functionality
     // e.g., open chat modal or navigate to messages
   };
+
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mainGreen mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your orders...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -140,29 +217,51 @@ export default function Page() {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-9">
-          <Orders
-            orders={sampleOrders}
-            onAcceptOrder={handleAcceptOrder}
-            onDeclineOrder={handleDeclineOrder}
-            onViewProfile={handleViewProfile}
-            onMessage={handleMessage}
-          />
+          {isUpdating ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mainGreen mx-auto"></div>
+              <p className="mt-4 text-gray-600">Processing...</p>
+            </div>
+          ) : (
+            <Orders
+              orders={orders}
+              onAcceptOrder={handleAcceptOrder}
+              onDeclineOrder={handleDeclineOrder}
+              onViewProfile={handleViewProfile}
+              onMessage={handleMessage}
+            />
+          )}
         </div>
         <div className="col-span-3 space-y-2 mt-10">
           <Card
             title="Total Orders"
-            value="12"
-            subtitle="Value: ₦1,200,000"
+            value={stats.total.toString()}
+            subtitle={`Value: ₦${stats.totalValue.toLocaleString()}`}
             subtitleColor="text-black"
             iconColor="text-mainGreen"
-            icon={ViewOrders} // ✅ Pass component reference, not JSX
+            icon={ViewOrders}
           />
-          <OrderCard text="Completed Orders" count={5} icon={Tick} iconColor="#0BA964" bgColor="bg-green/10" />
-            <OrderCard text="Active Orders" count={1} icon={Truck}iconColor="#0B99A9" bgColor="bg-skyBlue" />
-
-  <OrderCard text="Pending Orders" count={2} icon={Package} iconColor="#FFDD55" bgColor="bg-yellow/10" />
-
-
+          <OrderCard 
+            text="Completed Orders" 
+            count={stats.completed} 
+            icon={Tick} 
+            iconColor="#0BA964" 
+            bgColor="bg-green/10" 
+          />
+          <OrderCard 
+            text="Active Orders" 
+            count={stats.active} 
+            icon={Truck}
+            iconColor="#0B99A9" 
+            bgColor="bg-skyBlue" 
+          />
+          <OrderCard 
+            text="Pending Orders" 
+            count={stats.pending} 
+            icon={Package} 
+            iconColor="#FFDD55" 
+            bgColor="bg-yellow/10" 
+          />
         </div>
       </div>
     </div>

@@ -633,6 +633,7 @@ export interface CreateBuyRequestRequest {
   preferredPaymentMethod: PaymentMethod;
   isGeneral: boolean;
   productId?: string; // Optional - if linking to specific product
+  sellerId?:string
 }
 
 // Update Buy Request Payload
