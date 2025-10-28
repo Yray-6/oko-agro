@@ -106,14 +106,15 @@ export default function Page() {
                 icon={FindProcessor}
                 href="/dashboard-processor/find-farmer"
               />
-              <div onClick={handleNewRequestClick} className="cursor-pointer">
+     
                 <LinkCard 
                   title="New Request" 
                   icon={Plus} 
                   href="#"
                   className="w-full"
+                  onClick={handleNewRequestClick}
                 />
-              </div>
+              
               <LinkCard 
                 title="View Orders" 
                 icon={ViewOrders} 

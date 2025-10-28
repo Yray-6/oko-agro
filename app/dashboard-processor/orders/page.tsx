@@ -17,6 +17,7 @@ import { BuyRequest } from "@/app/types";
 import CreateNewRequestModal from "@/app/components/dashboad-processor/CreateNewRequest";
 import { SuccessModal } from "@/app/components/dashboard/ProductModal";
 import AnimatedLoading from "@/app/Loading";
+import { showToast } from "@/app/hooks/useToast";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -50,6 +51,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
 
   return {
     id: buyRequest.requestNumber.toString(),
+    buyRequestId: buyRequest.id, // Store the actual ID for API calls
     productName: buyRequest.cropType.name,
     quantity: `${buyRequest.productQuantity}${buyRequest.productQuantityUnit}`,
     price: `₦${buyRequest.pricePerUnitOffer}/${buyRequest.productQuantityUnit}`,
@@ -83,7 +85,9 @@ export default function Page() {
     fetchMyRequests, 
     isFetching,
     deleteBuyRequest,
-    isDeleting
+    isDeleting,
+    updateBuyRequest,
+    isUpdating
   } = useBuyRequestStore();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,6 +103,7 @@ export default function Page() {
   // Modal states
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [editingBuyRequest, setEditingBuyRequest] = useState<BuyRequest | null>(null);
 
   // Fetch buy requests on component mount
   useEffect(() => {
@@ -143,13 +148,29 @@ export default function Page() {
     }
   }, [myRequests]);
 
-  // Order action handlers
+  // Edit request handler - for "My Requests" tab
   const handleAcceptOrder = (orderId: string) => {
     console.log("Editing order:", orderId);
     // Navigate to edit page or open edit modal
     // You can use router.push(`/dashboard/edit-request/${orderId}`)
   };
 
+  const handleEditRequest = (orderId: string) => {
+    console.log("Editing order:", orderId);
+    
+    // Find the buy request by order ID
+    const buyRequest = myRequests.find(req => req.requestNumber.toString() === orderId);
+    
+    if (buyRequest) {
+      setEditingBuyRequest(buyRequest);
+      setShowCreateRequestModal(true);
+    } else {
+      showToast("Request not found", "error");
+    }
+  };
+
+
+  // Cancel/Delete request handler
   const handleDeclineOrder = async (orderId: string) => {
     if (window.confirm("Are you sure you want to cancel this request?")) {
       try {
@@ -160,6 +181,43 @@ export default function Page() {
       } catch (error) {
         console.error("Error deleting request:", error);
       }
+    }
+  };
+
+  // Make payment handler - for Active orders (DUMMY IMPLEMENTATION)
+  const handleMakePayment = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      // This is a dummy implementation - replace with actual payment integration
+      showToast(`Payment initiated for Order #${orderId}`, 'info');
+      console.log("Processing payment for order:", {
+        orderId: orderId,
+        buyRequestId: order.buyRequestId,
+        amount: order.orderValue,
+        paymentMethod: order.paymentTerms
+      });
+      
+      // Simulate payment processing
+      setTimeout(() => {
+        showToast('Payment processing... (This is a dummy implementation)', 'success');
+      }, 1000);
+      
+      // TODO: Real implementation steps:
+      // 1. Open payment modal/gateway (Paystack, Flutterwave, etc.)
+      // 2. Process payment through your payment provider
+      // 3. Update order status to 'paid' or 'completed'
+      // 4. Call API to mark payment complete
+      // 5. Refresh the orders list
+      
+      // Example for real implementation:
+      // openPaymentModal({
+      //   amount: parseFloat(order.orderValue.replace(/[₦,]/g, '')),
+      //   orderId: order.buyRequestId,
+      //   onSuccess: async () => {
+      //     await updateOrderStatus(order.buyRequestId, 'paid');
+      //     await fetchMyRequests();
+      //   }
+      // });
     }
   };
 
@@ -180,6 +238,7 @@ export default function Page() {
   };
 
   const handleNewRequestClick = () => {
+    setEditingBuyRequest(null);
     setShowCreateRequestModal(true);
   };
 
@@ -196,7 +255,7 @@ export default function Page() {
 
   if (isFetching) {
     return (
-    <AnimatedLoading/>
+      <AnimatedLoading/>
     );
   }
 
@@ -231,9 +290,11 @@ export default function Page() {
             <OrdersProcessorWithInvoice
               orders={orders}
               onAcceptOrder={handleAcceptOrder}
+              onEditRequest={handleEditRequest}
               onDeclineOrder={handleDeclineOrder}
               onViewProfile={handleViewProfile}
               onMessage={handleMessage}
+              onMakePayment={handleMakePayment}
             />
           )}
         </div>
@@ -275,14 +336,15 @@ export default function Page() {
         isOpen={showCreateRequestModal}
         onClose={closeAllModals}
         onSuccess={handleRequestSuccess}
+        buyRequest={editingBuyRequest} 
       />
 
       {/* Success Modal */}
-      <SuccessModal
+    <SuccessModal
         isOpen={showSuccessModal}
         onClose={closeAllModals}
         title="Success!"
-        message="Buy request created successfully!"
+        message={editingBuyRequest ? "Buy request updated successfully!" : "Buy request created successfully!"}
         buttonText="Continue"
       />
     </div>

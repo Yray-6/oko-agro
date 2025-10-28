@@ -244,6 +244,11 @@ export const unitOptions: SelectOption[] = [
   { value: "tonne", label: "Tonne" },
 ];
 
+export const unitOptionsLand: SelectOption[] = [
+  { value: "acre", label: "Acres" },
+  { value: "hectare", label: "Hectares" },
+];
+
 export const cropsOptions: SelectOption[] = [
   { value: "Rice", label: "Rice" },
   { value: "Maize", label: "Maize" },

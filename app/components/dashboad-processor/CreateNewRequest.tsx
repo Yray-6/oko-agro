@@ -10,6 +10,7 @@ import {
 } from '../forms/FormFields';
 import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { useDataStore } from '@/app/store/useDataStore';
+import { BuyRequest } from '@/app/types';
 
 interface CreateRequestFormValues {
   cropType: string;
@@ -54,14 +55,17 @@ const validationSchema = Yup.object({
   description: Yup.string().required('Description is required'),
 });
 
+
+
 interface CreateNewRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (isEdit?: boolean) => void;
   productName?: string;
   productId?: string;
   sellerId?: string;
   cropId?: string;
+  buyRequest?: BuyRequest | null; 
 }
 
 const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
@@ -71,25 +75,14 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
   productName,
   productId,
   sellerId,
-  cropId
+  cropId,
+  buyRequest
 }) => {
-  const { createBuyRequest, isCreating } = useBuyRequestStore();
-  const {crops, fetchCrops, qualityStandards, fetchQualityStandards} = useDataStore();
+  const { createBuyRequest, updateBuyRequest, isCreating, isUpdating } = useBuyRequestStore();
+  const isEditMode = !!buyRequest;
+  const { crops, fetchCrops, qualityStandards, fetchQualityStandards } = useDataStore();
   
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-  // Log props when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      console.log('========== MODAL OPENED ==========');
-      console.log('Props received:', {
-        productName,
-        productId,
-        sellerId,
-        cropId
-      });
-    }
-  }, [isOpen, productName, productId, sellerId, cropId]);
 
   // Fetch crops and quality standards on mount
   useEffect(() => {
@@ -142,6 +135,7 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
       }
     };
 
+    
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
@@ -167,13 +161,47 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
     label: quality.name
   }));
 
-  const handleSubmit = async (values: CreateRequestFormValues) => {
-    try {
-      const isGeneralRequest = !productId && !sellerId;
+  // Get initial values - handles both create and edit modes
+  const getInitialValues = (): CreateRequestFormValues => {
+    // If editing, populate from buyRequest
+    if (isEditMode && buyRequest) {
+      return {
+        cropType: buyRequest.cropType.id,
+        qualityStandard: buyRequest.qualityStandardType.id,
+        requestQuantity: buyRequest.productQuantity,
+        unit: buyRequest.productQuantityUnit,
+        pricePerUnit: buyRequest.pricePerUnitOffer,
+        estimatedDeliveryDate: buyRequest.estimatedDeliveryDate.split('T')[0], // Format for date input
+        deliveryLocation: buyRequest.deliveryLocation,
+        preferredPaymentMethod: buyRequest.preferredPaymentMethod,
+        description: buyRequest.description,
+      };
+    }
+    
+    // If creating new request
+    const baseValues = { ...initialValues };
+    
+    // Pre-fill cropType if cropId is provided
+    if (cropId && cropOptions.some(option => option.value === cropId)) {
+      baseValues.cropType = cropId;
+      console.log('Setting cropType to:', cropId);
+    }
+    
+    // Pre-fill description if productName is provided
+    if (productName) {
+      baseValues.description = `Request for ${productName}`;
+    }
+    
+    return baseValues;
+  };
 
-      await createBuyRequest({
+const handleSubmit = async (values: CreateRequestFormValues) => {
+  try {
+    if (isEditMode && buyRequest) {
+      // Update existing request - DON'T send cropId or isGeneral
+      await updateBuyRequest({
+        buyRequestId: buyRequest.id,
         description: values.description,
-        cropId: values.cropType,
         qualityStandardId: values.qualityStandard,
         productQuantity: String(values.requestQuantity),
         productQuantityUnit: values.unit,
@@ -182,33 +210,36 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
         deliveryLocation: values.deliveryLocation,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         preferredPaymentMethod: values.preferredPaymentMethod as any,
-        isGeneral: isGeneralRequest,
+        ...(buyRequest.product?.id && { productId: buyRequest.product.id }),
+      });
+      
+      onSuccess(true); // true indicates it's an edit
+    } else {
+      // Create new request - include cropId and isGeneral
+      const isGeneralRequest = !productId && !sellerId;
+
+      await createBuyRequest({
+        description: values.description,
+        cropId: values.cropType, // Only for create
+        qualityStandardId: values.qualityStandard,
+        productQuantity: String(values.requestQuantity),
+        productQuantityUnit: values.unit,
+        pricePerUnitOffer: String(values.pricePerUnit),
+        estimatedDeliveryDate: values.estimatedDeliveryDate,
+        deliveryLocation: values.deliveryLocation,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        preferredPaymentMethod: values.preferredPaymentMethod as any,
+        isGeneral: isGeneralRequest, // Only for create
         ...(productId && { productId }),
         ...(sellerId && { sellerId }),
       });
       
-      onSuccess();
-    } catch (error) {
-      console.error('Request submission failed:', error);
+      onSuccess(false); // false indicates it's a create
     }
-  };
-
-  // Get initial values - only set cropType if cropId exists in options
-  const getInitialValues = (): CreateRequestFormValues => {
-    const baseValues = { ...initialValues };
-    
-    if (cropId && cropOptions.some(option => option.value === cropId)) {
-      baseValues.cropType = cropId;
-      console.log('Setting cropType to:', cropId);
-    }
-    
-    if (productName) {
-      baseValues.description = `Request for ${productName}`;
-    }
-    
-    return baseValues;
-  };
-
+  } catch (error) {
+    console.error('Request submission failed:', error);
+  }
+};
   // Show loading state while data is being fetched
   if (!isDataLoaded) {
     return (
@@ -243,12 +274,20 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="h-full flex flex-col">
+            {/* Header */}
             <div className="flex-shrink-0 flex justify-between items-center p-6 border-b border-gray-200">
               <div>
-                <h2 className="text-xl font-semibold text-black">Create New Request</h2>
-                {productId && sellerId && (
+                <h2 className="text-xl font-semibold text-black">
+                  {isEditMode ? 'Edit Buy Request' : 'Create New Request'}
+                </h2>
+                {productId && sellerId && !isEditMode && (
                   <p className="text-sm text-gray-500 mt-1">
                     Creating specific request for selected product
+                  </p>
+                )}
+                {isEditMode && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Request #{buyRequest?.requestNumber}
                   </p>
                 )}
               </div>
@@ -260,6 +299,7 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
               </button>
             </div>
 
+            {/* Form Content */}
             <div className="flex-1 overflow-y-auto py-6 px-12">
               <Formik
                 initialValues={getInitialValues()}
@@ -272,7 +312,10 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
                     <div>
                       <h3 className="text-base font-medium mb-2">Product Details</h3>
                       <p className="text-sm text-gray-600 mb-6">
-                        Add information on the product you are requesting
+                        {isEditMode 
+                          ? 'Update the information for your buy request' 
+                          : 'Add information on the product you are requesting'
+                        }
                       </p>
 
                       <div className="space-y-6">
@@ -376,12 +419,13 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
                       </div>
                     </div>
 
+                    {/* Footer Buttons */}
                     <div className="sticky bottom-0 bg-white pt-6 pb-2 border-t border-gray-200">
                       <div className="flex flex-col sm:flex-row gap-3">
                         <button
                           type="button"
                           onClick={onClose}
-                          disabled={isCreating}
+                          disabled={isCreating || isUpdating}
                           className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Cancel
@@ -389,19 +433,19 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
                         
                         <button
                           type="submit"
-                          disabled={isCreating}
+                          disabled={isCreating || isUpdating}
                           className="flex-1 px-6 py-3 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                         >
-                          {isCreating ? (
+                          {(isCreating || isUpdating) ? (
                             <span className="flex items-center justify-center gap-2">
                               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
                                 <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                               </svg>
-                              Submitting Request...
+                              {isEditMode ? 'Updating Request...' : 'Submitting Request...'}
                             </span>
                           ) : (
-                            'Submit Request'
+                            isEditMode ? 'Update Request' : 'Submit Request'
                           )}
                         </button>
                       </div>

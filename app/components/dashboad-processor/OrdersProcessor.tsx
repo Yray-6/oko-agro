@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useState, useEffect } from "react";
-import { X, Download, FileText } from "lucide-react";
+import { X, Download, FileText, CreditCard } from "lucide-react";
 import Image from "next/image";
 import Logo from "@/app/assets/icons/Logo";
 
@@ -12,21 +12,10 @@ const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
   </svg>
 );
 
-// const AddChat = ({ size = 15 }) => (
-//   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-//     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-//   </svg>
-// );
-
-// const UserCard = ({ size = 18 }) => (
-//   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-//     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-//   </svg>
-// );
-
 // TypeScript interfaces
 export interface Order {
   id: string;
+  buyRequestId?: string;
   productName: string;
   quantity: string;
   price: string;
@@ -408,6 +397,8 @@ interface OrdersProps {
   onDeclineOrder?: (orderId: string) => void;
   onViewProfile?: (orderId: string) => void;
   onMessage?: (orderId: string) => void;
+  onMakePayment?: (orderId: string) => void;
+  onEditRequest?: (orderId: string) => void;
 }
 
 type StatusFilter = "All" | "MyRequests" | "Pending" | "Active" | "Completed";
@@ -416,7 +407,8 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   orders,
   onAcceptOrder,
   onDeclineOrder,
-  
+  onMakePayment,
+  onEditRequest
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
@@ -527,10 +519,12 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     );
   };
 
-  const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
+ const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
     const isMyRequest = order.isGeneral === true;
+    const isActive = order.status === "Active";
     const canEdit = order.status === "Pending" || isMyRequest;
     const canViewInvoice = !isMyRequest && order.status !== "Pending";
+    const canMakePayment = isActive && !isMyRequest && onMakePayment;
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -578,7 +572,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
 
           <div>
             <h4 className="font-medium text-gray-900 mb-4">
-              {isMyRequest ? "Request Information" : "Buyer Information"}
+              {isMyRequest ? "Request Information" : "Seller Information"}
             </h4>
             <div className="flex items-start space-x-4">
               <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
@@ -589,26 +583,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               <div className="flex-1">
                 <h5 className="font-medium text-gray-900">{order.buyerName}</h5>
                 <p className="text-sm text-gray-600">{order.buyerLocation}</p>
-                {/* {!isMyRequest && (
-                  <div className="flex items-center space-x-4 mt-4">
-                    {onMessage && (
-                      <button
-                        onClick={() => onMessage(order.id)}
-                        className="text-sm flex gap-1 items-center text-mainGreen hover:text-mainGreen/90"
-                      >
-                        <AddChat size={15} /> Message
-                      </button>
-                    )}
-                    {onViewProfile && (
-                      <button
-                        onClick={() => onViewProfile(order.id)}
-                        className="text-sm flex gap-1 items-center text-mainGreen hover:text-mainGreen/90"
-                      >
-                        <UserCard size={18} /> View profile
-                      </button>
-                    )}
-                  </div>
-                )} */}
               </div>
             </div>
           </div>
@@ -633,35 +607,47 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
           </div>
         </div>
 
-        {canEdit && (onAcceptOrder || onDeclineOrder) && (
-          <div className="flex items-center space-x-3 mt-6 pt-6 border-t border-gray-100">
-            {/* {onAcceptOrder && (
-              <button
-                onClick={() => onAcceptOrder(order.id)}
-                className="px-10 py-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
-              >
-                Edit Request
-              </button>
-            )} */}
-            {onDeclineOrder && (
-              <button
-                onClick={() => onDeclineOrder(order.id)}
-                className="px-10 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
-              >
-                Cancel Request
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex items-center flex-wrap gap-3 mt-6 pt-6 border-t border-gray-100">
+          {/* Make Payment Button - Only for Active orders (processor side) */}
+          {canMakePayment && (
+            <button
+              onClick={() => onMakePayment(order.id)}
+              className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
+            >
+              <CreditCard className="w-4 h-4" />
+              Make Payment
+            </button>
+          )}
 
-        {canViewInvoice && (
-          <button 
-            onClick={() => handleViewInvoice(order.id)}
-            className="px-10 mt-5 py-2 flex items-center gap-2 border-mainGreen text-mainGreen border rounded-md hover:bg-green-50 transition-colors font-medium"
-          >
-            <ViewOrders color="#004829" size={20} /> View Invoice
-          </button>
-        )}
+                {canEdit && order?.isGeneral && onEditRequest && (
+            <button
+              onClick={() => onEditRequest(order.id)}
+              className="px-6 py-2 border bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
+            >
+              Edit Request
+            </button>
+          )}
+
+          {/* Cancel/Delete Button - For My Requests only */}
+          {canEdit && onDeclineOrder && (
+            <button
+              onClick={() => onDeclineOrder(order.id)}
+              className="px-6 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
+            >
+              Cancel Request
+            </button>
+          )}
+
+          {/* View Invoice Button - For non-pending orders */}
+          {canViewInvoice && (
+            <button 
+              onClick={() => handleViewInvoice(order.id)}
+              className="px-6 py-2 flex items-center gap-2 border-mainGreen text-mainGreen border rounded-md hover:bg-green-50 transition-colors font-medium"
+            >
+              <ViewOrders color="#004829" size={20} /> View Invoice
+            </button>
+          )}
+        </div>
       </div>
     );
   };

@@ -286,10 +286,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const buyRequestId = searchParams.get('buyRequestId');
+    const userId = searchParams.get('userId');
     
     console.log(`📊 [Buy Requests API ${requestId}] Query Parameters:`, {
       action,
       buyRequestId,
+      userId,
       allParams: Object.fromEntries(searchParams.entries())
     });
 
@@ -337,12 +339,28 @@ export async function GET(request: NextRequest) {
         console.log(`🎯 [Buy Requests API ${requestId}] Fetching single buy request: ${buyRequestId}`);
         break;
         
+      case 'user-requests':
+        if (!userId) {
+          console.warn(`⚠️ [Buy Requests API ${requestId}] Missing userId for user-requests action`);
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'userId is required for user-requests action',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        endpoint = `/buy-requests/user/${userId}`;
+        console.log(`👥 [Buy Requests API ${requestId}] Fetching buy requests for user: ${userId}`);
+        break;
+        
       default:
         console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid or missing action: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: general, my-requests, single-request',
+            message: 'Invalid action. Valid actions are: general, my-requests, single-request, user-requests',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }
@@ -367,7 +385,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         statusCode: 200,
-        message: action === 'single-request' ? 'Buy request fetched successfully' : 'Buy requests fetched successfully',
+        message: action === 'single-request' 
+          ? 'Buy request fetched successfully' 
+          : action === 'user-requests'
+          ? 'User buy requests fetched successfully'
+          : 'Buy requests fetched successfully',
         data: response.data
       } as ApiResponse,
       { status: 200 }

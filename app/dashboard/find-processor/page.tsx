@@ -1,9 +1,11 @@
 "use client";
-import ProcessorMatchingUI from "@/app/components/dashboard/ProcessorMatchingUi";
-import { useProductStore } from "@/app/store/useProductStore";
+
 import React from "react";
 import { TrendingUp, Users, Target } from "lucide-react";
+import { useProductStore } from "@/app/store/useProductStore";
+import ProcessorMatchingUI from "@/app/components/dashboard/ProcessorMatchingUi";
 import Link from "next/link";
+import DashboardIcon from "@/app/assets/icons/Dashboard";
 
 interface StatsData {
   perfectMatches: number;
@@ -16,7 +18,7 @@ interface StatsData {
   pageSize: number;
 }
 
-export default function Page() {
+export default function FindProcessorsPage() {
   const {
     processors,
     processorsSearchMeta,
@@ -68,28 +70,37 @@ export default function Page() {
   }, [processors, processorsSearchMeta]);
 
   return (
-    <div>
-      <div className="justify-between flex items-center py-4">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header Section */}
+      <div className="justify-between flex items-center py-4 mb-6">
         <div>
           <p className="font-medium text-lg">Find Processors</p>
-          <p className="text-sm">
+          <p className="text-sm text-gray-600">
             Connect with processors looking for your crops
           </p>
         </div>
-        <div><Link href="/dashboard">
-        </Link>
-      
+        <div>
+          <Link href="/dashboard">
+            <button className="flex gap-2 items-center cursor-pointer px-4 py-2 rounded-lg text-sm text-mainGreen border border-mainGreen hover:bg-mainGreen/5 transition-colors">
+              <DashboardIcon color="#004829" size={16} /> 
+              Back to Dashboard
+            </button>
+          </Link>
         </div>
       </div>
-      {/* <div>
-        <SearchBar />
-      </div> */}
-      <div className="grid grid-cols-12 gap-4 mt-4">
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Main Content Area - 9 columns */}
         <div className="col-span-9">
-          <ProcessorMatchingUI />
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <ProcessorMatchingUI />
+          </div>
         </div>
-        <div className="col-span-3 flex flex-col gap-3 mt-10">
-          {/* Perfect Matches with Icon */}
+
+        {/* Stats Sidebar - 3 columns */}
+        <div className="col-span-3 flex flex-col gap-3">
+          {/* Perfect Matches */}
           <div className="flex justify-center items-center flex-col border border-[#B8860B]/30 bg-[#B8860B]/5 text-[#6B7C5A] rounded-xl py-4 w-full transition-all hover:shadow-md">
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-[#B8860B]" />

@@ -102,14 +102,15 @@ export default function Page() {
                 icon={FindProcessor}
                 href="/dashboard/find-processor"
               />
-              <div onClick={handleListNewProduct} className="cursor-pointer bg-skyBlue text-center  w-full">
+              
                 <LinkCard 
                   title="List new product" 
                   icon={Listings} 
                   href="#"
                   className="w-full"
+                  onClick={handleListNewProduct}
                 />
-              </div>
+  
               <LinkCard 
                 title="View Orders" 
                 icon={ViewOrders} 

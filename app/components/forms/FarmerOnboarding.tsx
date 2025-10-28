@@ -19,6 +19,7 @@ import {
   internetAccessOptions,
   currentSellingMethodOptions,
   bankOptions,
+  unitOptionsLand,
 } from "./FormFields";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import UserIcon from "@/app/assets/icons/UserIcon";
@@ -828,7 +829,7 @@ const handleSubmit = async (
                       name="unit"
                       label="Unit"
                       placeholder="Select Unit"
-                      options={unitOptions}
+                      options={unitOptionsLand}
                       required
                     />
                   </div>

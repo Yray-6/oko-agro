@@ -703,3 +703,21 @@ export interface DeleteBuyRequestResponse {
   message: string;
   data?: null;
 }
+
+export interface UserBuyRequestsListResponse {
+  statusCode: number;
+  message: string;
+  data: BuyRequest[];
+}
+
+// If you want to add it to the store state, also add this interface:
+export interface FetchUserRequestsParams {
+  userId: string;
+}
+
+export enum BuyRequestStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
+}

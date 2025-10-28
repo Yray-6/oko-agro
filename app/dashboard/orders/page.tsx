@@ -15,6 +15,8 @@ import Package from "@/app/assets/icons/Package";
 import Link from "next/link";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import { BuyRequest } from "@/app/types";
+import AnimatedLoading from "@/app/Loading";
+import { showToast } from "@/app/hooks/useToast";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -134,37 +136,44 @@ export default function Page() {
     }
   }, [myRequests]);
 
-  // Order action handlers
+  // Accept order handler - Changes status to 'accepted' and moves to Active tab
   const handleAcceptOrder = async (orderId: string) => {
     try {
       const order = orders.find(o => o.id === orderId);
       if (order) {
+        showToast('Accepting order...', 'info');
         await updateBuyRequestStatus({
           buyRequestId: order.buyRequestId,
-          status: 'accepted', // Set status to active/accepted
+          status: 'accepted',
         });
+        showToast('Order accepted successfully! It has been moved to Active orders.', 'success');
         // Refresh the list
         await fetchMyRequests();
       }
     } catch (error) {
       console.error("Error accepting order:", error);
+      showToast('Failed to accept order. Please try again.', 'error');
     }
   };
 
+  // Decline order handler - Changes status to 'rejected' and removes from list
   const handleDeclineOrder = async (orderId: string) => {
-    if (window.confirm("Are you sure you want to decline this order?")) {
+    if (window.confirm("Are you sure you want to reject this order? This action cannot be undone.")) {
       try {
         const order = orders.find(o => o.id === orderId);
         if (order) {
+          showToast('Rejecting order...', 'info');
           await updateBuyRequestStatus({
             buyRequestId: order.buyRequestId,
             status: 'rejected',
           });
+          showToast('Order rejected successfully.', 'success');
           // Refresh the list
           await fetchMyRequests();
         }
       } catch (error) {
         console.error("Error declining order:", error);
+        showToast('Failed to reject order. Please try again.', 'error');
       }
     }
   };
@@ -187,12 +196,7 @@ export default function Page() {
 
   if (isFetching) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mainGreen mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your orders...</p>
-        </div>
-      </div>
+      <AnimatedLoading />
     );
   }
 
@@ -205,14 +209,6 @@ export default function Page() {
             Track and manage your product orders
           </p>
         </div>
-        <div>
-          <Link href={'/dashboard/products'}>
-            <button className="flex gap-2 items-center px-4 py-2 rounded-lg text-sm text-white bg-mainGreen hover:bg-green-600 transition-colors">
-              <Plus color="white" size={16} />
-              Add new Listing
-            </button>
-          </Link>
-        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
@@ -220,7 +216,7 @@ export default function Page() {
           {isUpdating ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mainGreen mx-auto"></div>
-              <p className="mt-4 text-gray-600">Processing...</p>
+              <p className="mt-4 text-gray-600">Processing order update...</p>
             </div>
           ) : (
             <Orders

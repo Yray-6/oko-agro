@@ -13,7 +13,8 @@ import {
   UpdateBuyRequestStatusApiRequest,
   DeleteBuyRequestResponse,
   GeneralBuyRequestsListResponse,
-  ApiResponse
+  ApiResponse,
+  UserBuyRequestsListResponse,
 } from '@/app/types';
 import { showToast } from '../hooks/useToast';
 import apiClient from '../utils/apiClient';
@@ -68,6 +69,7 @@ interface BuyRequestState {
   myRequests: BuyRequest[];
   generalRequests: BuyRequest[];
   currentRequest: BuyRequest | null;
+    userRequests: BuyRequest[];
   
   // Loading states
   isLoading: boolean;
@@ -99,6 +101,7 @@ interface BuyRequestActions {
   // State management
   setCurrentRequest: (request: BuyRequest | null) => void;
   clearCurrentRequest: () => void;
+   fetchUserRequests: (userId: string) => Promise<void>;
   
   // Loading states
   setLoading: (loading: boolean) => void;
@@ -127,6 +130,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
   myRequests: [],
   generalRequests: [],
   currentRequest: null,
+  userRequests: [],
   
   isLoading: false,
   isCreating: false,
@@ -179,6 +183,7 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     updateError: null,
     fetchError: null,
     deleteError: null,
+      userRequests: [],
   }),
 
   // Create buy request
@@ -288,6 +293,8 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     setUpdateError(null);
     
     console.log('📤 [Buy Request Store] Updating buy request status:', data.buyRequestId, data.status);
+    
+  
     
     try {
       const requestData: UpdateBuyRequestStatusApiRequest = {
@@ -443,6 +450,42 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
         fetchError: errorMessage,
         isFetching: false,
         currentRequest: null,
+      });
+      throw error;
+    }
+  },
+   fetchUserRequests: async (userId: string) => {
+    const { setFetching, setFetchError } = get();
+    setFetching(true);
+    setFetchError(null);
+    
+    console.log('📥 [Buy Request Store] Fetching buy requests for user:', userId);
+    
+    try {
+      const response = await apiClient.get<ApiResponse<UserBuyRequestsListResponse>>(
+        `/requests?action=user-requests&userId=${userId}`
+      );
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        const requests = response.data.data.data;
+        console.log('✅ [Buy Request Store] User buy requests fetched:', requests.length);
+        
+        set({
+          userRequests: requests,
+          isFetching: false,
+          fetchError: null,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch user buy requests');
+      }
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Fetch user buy requests error:', error);
+      const errorMessage = handleApiError(error, 'Failed to fetch user buy requests');
+      
+      set({
+        fetchError: errorMessage,
+        isFetching: false,
+        userRequests: [],
       });
       throw error;
     }
