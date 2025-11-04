@@ -306,7 +306,7 @@ export const bankOptions: SelectOption[] = [
   { value: "GTBank", label: "GTBank" },
   { value: "Access Bank", label: "Access Bank" },
   { value: "UBA", label: "UBA" },
-  { value: "Fidelity Bank", label: "Fidelity Bank" },
+  { value: "Fidelity", label: "Fidelity Bank" },
   { value: "FCMB", label: "FCMB" },
   { value: "Stanbic IBTC", label: "Stanbic IBTC" }
 ];
