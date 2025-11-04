@@ -96,7 +96,7 @@ const Modal: React.FC<ModalProps> = ({
         )}
         
         {/* Content */}
-        <div className="py-10 px-16 overflow-y-auto max-h-[calc(90vh-8rem)]">
+        <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
           {children}
         </div>
       </div>

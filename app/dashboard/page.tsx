@@ -10,6 +10,7 @@ import FindProcessor from "../assets/icons/FindProcessor";
 import Calendar from "../assets/icons/Calendar";
 import ProductCardContainer from "../components/dashboard/ProductCardContainer";
 import RecentActivity from "../components/dashboard/RecentActivity";
+import ChartCard from "../components/dashboard/ChartCard";
 import { ListNewProductModal, SuccessModal } from "@/app/components/dashboard/ProductModal";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
@@ -91,6 +92,11 @@ export default function Page() {
           subtitleColor="text-black"
           icon={Star}
         />
+      </div>
+      <div className="grid grid-cols-12 gap-4 mb-4">
+        <div className="col-span-12">
+          <ChartCard title="User Distribution" />
+        </div>
       </div>
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-9">

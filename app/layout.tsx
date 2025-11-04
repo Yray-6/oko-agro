@@ -21,11 +21,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en"   className={`${urbanist.variable} `}>
+    <html lang="en" className={`${urbanist.variable}`}>
       <body
-      
+        className="font-urbanist"
+        style={{
+          fontFamily: "Urbanist, sans-serif",
+        }}
       >
-         <ToastContainer />
+        <ToastContainer />
         {children}
       </body>
     </html>

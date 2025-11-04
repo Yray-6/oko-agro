@@ -10,7 +10,12 @@
   --color-red:#CD0003;
   --color-gray:#28433D;
   --color-skyBlue:#F3FBF8B2;
-  --color-orange:#B8860B
+  --color-orange:#B8860B;
+  --font-family-urbanist: var(--font-urbanist), "Urbanist", sans-serif;
+}
+
+body {
+  font-family: var(--font-urbanist), "Urbanist", sans-serif;
 }
 
 .hero-bg {
