@@ -1,6 +1,6 @@
 'use client'
 import { useState } from "react";
-import ProductCardProcessor from "./ProductCardProcessor";
+import ProductCardProcessor, { Product } from "./ProductCardProcessor";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import { BuyRequest } from "@/app/types";
 
@@ -30,16 +30,23 @@ const ProductCardContainerProcessor: React.FC = () => {
       return '/assets/images/default-crop.png'; // fallback image
     };
 
-    // Map status to display format
-    const getStatusDisplay = (status: string): 'Active' | 'Pending Inspection' | 'Sold Out' => {
-      const statusMap: Record<string, 'Active' | 'Pending Inspection' | 'Sold Out'> = {
-        'pending': 'Active',
-        'accepted': 'Pending Inspection',
-        'completed': 'Sold Out',
-        'rejected': 'Sold Out',
-        'cancelled': 'Sold Out',
+    // Map status - pass through the actual status from API
+    const getStatusDisplay = (status: string): string => {
+      // Return the status as-is if it's one of the valid statuses
+      const validStatuses = ['pending', 'accepted', 'awaiting_shipping', 'in_transit', 'delivered', 'completed'];
+      const normalizedStatus = status.toLowerCase();
+      
+      if (validStatuses.includes(normalizedStatus)) {
+        return normalizedStatus;
+      }
+      
+      // Fallback for legacy statuses
+      const statusMap: Record<string, string> = {
+        'rejected': 'completed',
+        'cancelled': 'completed',
       };
-      return statusMap[status.toLowerCase()] || 'Active';
+      
+      return statusMap[normalizedStatus] || 'pending';
     };
 
     return {
@@ -48,7 +55,7 @@ const ProductCardContainerProcessor: React.FC = () => {
       quantity: `${request.productQuantity} ${request.productQuantityUnit}`,
       price: `₦${parseFloat(request.pricePerUnitOffer || '0').toLocaleString()}/${request.productQuantityUnit}`,
       certification: request.qualityStandardType?.name || 'N/A',
-      status: getStatusDisplay(request.status),
+      status: getStatusDisplay(request.status) as Product['status'],
       listedDate: new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',

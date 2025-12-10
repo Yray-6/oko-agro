@@ -2,9 +2,21 @@
 // app/api/requests/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
+import https from 'https';
 import { ApiResponse } from '@/app/types';
 
 const baseUrl = process.env.BASE_URL || 'https://oko-agro-nestjs.onrender.com';
+
+// Create HTTPS agent with proper SSL configuration
+// This fixes SSL/TLS "bad record mac" errors that can occur due to connection reuse issues
+const httpsAgent = new https.Agent({
+  keepAlive: false, // Disable keep-alive to avoid SSL session reuse issues
+  maxSockets: Infinity,
+  maxFreeSockets: 256,
+  timeout: 30000,
+  // Reject unauthorized certificates for security
+  rejectUnauthorized: true,
+});
 
 // Configure axios instance
 const apiClient = axios.create({
@@ -13,6 +25,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000,
+  httpsAgent: httpsAgent,
 });
 
 // Add request interceptor for logging
@@ -85,8 +98,23 @@ export async function POST(request: NextRequest) {
     const body: BuyRequestApiRequest = await request.json();
     const { action, ...data } = body;
     
+    // Ensure isGeneral defaults to true if not provided
+    if (data.isGeneral === undefined) {
+      data.isGeneral = true;
+    }
+    
+    // Only include purchaseOrderDoc when isGeneral is false (specific request)
+    // Remove purchaseOrderDoc if isGeneral is true
+    if (data.isGeneral === true && data.purchaseOrderDoc !== undefined) {
+      delete data.purchaseOrderDoc;
+    }
+    
     console.log(`📊 [Buy Requests API ${requestId}] Request Details:`, {
       action,
+      isGeneral: data.isGeneral,
+      hasPurchaseOrderDoc: !!data.purchaseOrderDoc,
+      hasProductId: !!data.productId,
+      hasSellerId: !!data.sellerId,
       bodyKeys: Object.keys(data)
     });
 
@@ -178,7 +206,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     console.log(`📥 [Buy Requests API ${requestId}] Parsing request body...`);
-    const body: { action: 'update' | 'update-status'; [key: string]: any } = await request.json();
+    const body: { action: 'update' | 'update-status' | 'update-order-state'; [key: string]: any } = await request.json();
     const { action, ...data } = body;
     
     console.log(`📊 [Buy Requests API ${requestId}] Request Details:`, {
@@ -213,13 +241,18 @@ export async function PUT(request: NextRequest) {
         endpoint = '/buy-requests/update-status';
         console.log(`🌐 [Buy Requests API ${requestId}] Updating buy request status (farmers only)`);
         break;
+
+      case 'update-order-state':
+        endpoint = '/buy-requests/update-order-state';
+        console.log(`🌐 [Buy Requests API ${requestId}] Updating order state (admin & buyer only)`);
+        break;
         
       default:
         console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid action for PUT: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'PUT method only supports update and update-status actions',
+            message: 'PUT method only supports update, update-status, and update-order-state actions',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }
@@ -287,6 +320,10 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action');
     const buyRequestId = searchParams.get('buyRequestId');
     const userId = searchParams.get('userId');
+    const search = searchParams.get('search') || '';
+    const state = searchParams.get('state') || '';
+    const pageNumber = searchParams.get('pageNumber') || '1';
+    const pageSize = searchParams.get('pageSize') || '20';
     
     console.log(`📊 [Buy Requests API ${requestId}] Query Parameters:`, {
       action,
@@ -354,13 +391,30 @@ export async function GET(request: NextRequest) {
         endpoint = `/buy-requests/user/${userId}`;
         console.log(`👥 [Buy Requests API ${requestId}] Fetching buy requests for user: ${userId}`);
         break;
+
+      case 'ongoing-buyrequest':
+        // Build query string for ongoing buy requests (admin only)
+        const ongoingQuery = new URLSearchParams();
+        if (search) ongoingQuery.append('search', search);
+        if (state) ongoingQuery.append('state', state);
+        ongoingQuery.append('pageNumber', pageNumber);
+        ongoingQuery.append('pageSize', pageSize);
+        
+        endpoint = `/buy-requests/ongoing-buyrequest?${ongoingQuery.toString()}`;
+        console.log(`📋 [Buy Requests API ${requestId}] Fetching ongoing buy requests with params:`, {
+          search,
+          state,
+          pageNumber,
+          pageSize
+        });
+        break;
         
       default:
         console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid or missing action: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: general, my-requests, single-request, user-requests',
+            message: 'Invalid action. Valid actions are: general, my-requests, single-request, user-requests, ongoing-buyrequest',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }
@@ -374,6 +428,13 @@ export async function GET(request: NextRequest) {
         'Authorization': authHeader
       }
     });
+
+    // For ongoing-buyrequest, the response is already in the correct format
+    if (action === 'ongoing-buyrequest') {
+      return NextResponse.json(response.data as ApiResponse, {
+        status: 200
+      });
+    }
 
     console.log(`✅ [Buy Requests API ${requestId}] Request successful:`, {
       status: response.status,

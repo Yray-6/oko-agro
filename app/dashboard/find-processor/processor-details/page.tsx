@@ -12,7 +12,6 @@ import {
   Building2,
   Calendar,
   Package,
-  ShoppingCart,
   MessageSquare,
   DollarSign,
   TruckIcon,
@@ -73,11 +72,6 @@ export default function ProcessorDetailsPage() {
 
   const handleBack = () => {
     router.back();
-  };
-
-  const handleQuickOrder = () => {
-    // Navigate to create order page or open order modal
-    router.push(`/dashboard/create-order?processorId=${processorId}`);
   };
 
   const handleContact = () => {
@@ -150,13 +144,6 @@ export default function ProcessorDetailsPage() {
                   >
                     <Phone size={16}/>
                     Contact
-                  </button>
-                  <button 
-                    onClick={handleQuickOrder}
-                    className="px-6 py-2 bg-mainGreen text-white flex items-center gap-2 justify-center rounded-lg hover:bg-green-800 transition-colors"
-                  >
-                    <ShoppingCart size={16}/>
-                    Quick Order
                   </button>
                 </div>
               </div>
@@ -256,11 +243,11 @@ export default function ProcessorDetailsPage() {
               </div>
             )}
 
-            {processorInfo?.OperationsType && (
+            {processorInfo?.operationsType && (
               <div>
                 <p className="text-sm text-gray-500">Operations Type</p>
                 <p className="text-gray-900 font-medium capitalize">
-                  {processorInfo.OperationsType}
+                  {processorInfo.operationsType}
                 </p>
               </div>
             )}

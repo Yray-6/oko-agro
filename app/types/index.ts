@@ -3,7 +3,8 @@
 
 // Common types
 export type FarmSizeUnit = 'hectare' | 'acre';
-export type UserRole = 'farmer' | 'processor' | 'admin';
+export type EstimatedAnnualProductionUnit = 'tonne' | 'kg' | 'tons';
+export type UserRole = 'farmer' | 'processor' | 'admin' | 'super_admin';
 
 // Crop type
 export interface Crop {
@@ -42,7 +43,7 @@ export interface User {
   operatingDaysPerWeek: string | null;
   storageCapacity: string | null;
   minimumOrderQuality: string | null;
-  OperationsType: string | null;
+  operationsType: string | null;
 
   userVerified: boolean;
   userVerificationOtp?: string | null; // Made optional since it's not in the data
@@ -100,6 +101,7 @@ export interface RegisterFarmerRequest extends BaseRegisterRequest {
   farmSize: string;
   farmSizeUnit: FarmSizeUnit;
   estimatedAnnualProduction: string;
+  estimatedAnnualProductionUnit: EstimatedAnnualProductionUnit;
   farmingExperience: string;
   internetAccess: string;
   howUserSellCrops: string;
@@ -114,13 +116,13 @@ export interface RegisterProcessorRequest extends BaseRegisterRequest {
   companyName: string;
   businessRegNumber: string;
   yearEstablished: string;
-  businessType: string;
+  businessType?: string;
   processsingCapacitySize: string;
   processsingCapacityUnit: string;
   operatingDaysPerWeek: string;
   storageCapacity: string;
   minimumOrderQuality: string;
-  OperationsType: string;
+  operationsType: string;
   qualityStandardIds: string[];
   certificationIds: string[];
   businessRegCertDoc: string; // base64 string
@@ -181,6 +183,7 @@ export interface ProductDetails extends BaseEntityProduct {
   isDeleted?: boolean;
   cropId?:string;
   status:string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
 
 
 }
@@ -233,7 +236,7 @@ export interface ProductOwner extends BaseEntityProduct{
   operatingDaysPerWeek: number | null;
   storageCapacity: number | null;
   minimumOrderQuality: number | null;
-  OperationsType: string | null;
+  operationsType: string | null;
 
   userVerified: boolean;
   isDeleted: boolean;
@@ -567,7 +570,7 @@ export interface BuyRequestUser {
   operatingDaysPerWeek?: string | null;
   storageCapacity?: string | null;
   minimumOrderQuality?: string | null;
-  OperationsType?: string| null;
+  operationsType?: string| null;
   
   // Common optional fields
   bankName?: string | null;
@@ -618,6 +621,11 @@ export interface BuyRequest {
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  orderState?: string; // Order state for accepted orders (e.g., 'awaiting_shipping', 'in_transit', 'delivered', 'completed')
+  orderStateTime?: string;
+  paymentAmount?: string;
+  paymentConfirmed?: boolean;
+  paymentConfirmedAt?: string;
 }
 
 // Create Buy Request Payload
@@ -633,7 +641,8 @@ export interface CreateBuyRequestRequest {
   preferredPaymentMethod: PaymentMethod;
   isGeneral: boolean;
   productId?: string; // Optional - if linking to specific product
-  sellerId?:string
+  sellerId?: string;
+  purchaseOrderDoc?: string; // Optional - base64 encoded purchase order document (required when isGeneral is false)
 }
 
 // Update Buy Request Payload
@@ -720,4 +729,110 @@ export enum BuyRequestStatus {
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
   CANCELLED = 'cancelled',
+}
+
+export enum OrderState {
+  AWAITING_SHIPPING = 'awaiting_shipping',
+  IN_TRANSIT = 'in_transit',
+  DELIVERED = 'delivered',
+  COMPLETED = 'completed',
+}
+
+// Ongoing Buy Requests Response
+export interface OngoingBuyRequestResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: BuyRequest[];
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+  };
+}
+
+// Update Order State Request
+export interface UpdateOrderStateRequest {
+  buyRequestId: string;
+  orderState: OrderState;
+}
+
+// Admin Management Types
+export interface CreateAdminRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+}
+
+export interface CreateAdminResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    id: string;
+  };
+}
+
+export interface UpdateUserStatusRequest {
+  userId: string;
+  isDisabled: boolean;
+}
+
+export interface UpdateAdminPasswordRequest {
+  userId: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// Admin Dashboard Types
+export interface AdminDashboardStats {
+  totalUsers: number;
+  totalTransactionValue: number;
+  completedOrders: number;
+  pendingListings: number;
+}
+
+export interface AdminDashboardResponse {
+  statusCode: number;
+  message: string;
+  data: AdminDashboardStats;
+}
+
+// Users List Types
+export interface UserListItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  farmAddress: string | null;
+  country: string;
+  state: string;
+  farmName: string | null;
+  companyName: string | null;
+  role: UserRole;
+  userVerified: boolean;
+  isDisabled: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  crops: Array<{
+    id: string;
+    name: string;
+  }>;
+  perfectMatch?: boolean;
+}
+
+export interface UsersListResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: UserListItem[];
+    totalRecord: number;
+    totalFarmerRecord?: number;
+    totalProcessorRecord?: number;
+    matchedRecord?: number;
+    pageNumber: number;
+    pageSize: number;
+  };
 }

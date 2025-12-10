@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { CheckCircle, XCircle } from "lucide-react";
+import { Download } from "lucide-react";
 import Image from "next/image";
 
 // Mock icons
@@ -14,19 +14,22 @@ const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
 export interface Order {
   id: string;
   buyRequestId?: string;
+  productId?: string;
   productName: string;
   quantity: string;
   price: string;
   certification: string;
-  status: "Pending" | "Active" | "Completed";
+  status: "Pending" | "Active" | "Completed" | "Rejected";
   createdDate: string;
   deliveryDate?: string;
   orderValue: string;
   paymentTerms: string;
   buyerName: string;
   buyerLocation: string;
+  deliveryLocation?: string;
   productImage: string;
   originalStatus?: string;
+  orderState?: string; // Order state for accepted orders
 }
 
 interface OrdersProps {
@@ -37,14 +40,12 @@ interface OrdersProps {
   onMessage?: (orderId: string) => void;
 }
 
-type StatusFilter = "All" | "Pending" | "Active" | "Completed";
+type StatusFilter = "All" | "Pending" | "Active" | "Completed" | "Rejected";
 
 const Orders: React.FC<OrdersProps> = ({
   orders,
   onAcceptOrder,
   onDeclineOrder,
-  onViewProfile,
-  onMessage,
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
 
@@ -53,6 +54,7 @@ const Orders: React.FC<OrdersProps> = ({
     "Pending Orders": "Pending",
     "Active Orders": "Active",
     "Completed Orders": "Completed",
+    "Rejected Orders": "Rejected",
   };
 
   const availableStatusDisplayNames = [
@@ -60,11 +62,24 @@ const Orders: React.FC<OrdersProps> = ({
     "Pending Orders",
     "Active Orders",
     "Completed Orders",
+    "Rejected Orders",
   ];
 
   const filteredOrders = (() => {
     if (activeFilter === "All") {
       return orders;
+    }
+    if (activeFilter === "Completed") {
+      // Include orders with orderState "completed" even if status is "Active"
+      return orders.filter((order) => 
+        order.status === "Completed" || order.orderState?.toLowerCase() === "completed"
+      );
+    }
+    if (activeFilter === "Active") {
+      // Exclude orders with orderState "completed" from Active filter
+      return orders.filter((order) => 
+        order.status === "Active" && order.orderState?.toLowerCase() !== "completed"
+      );
     }
     return orders.filter((order) => order.status === activeFilter);
   })();
@@ -81,25 +96,59 @@ const Orders: React.FC<OrdersProps> = ({
     }
   };
 
-  const StatusBadge: React.FC<{ status: Order["status"]; originalStatus?: string }> = ({ status, originalStatus }) => {
-    const getStatusStyles = () => {
-      switch (status) {
-        case "Pending":
-          return "bg-yellow-500 text-white";
-        case "Active":
-          return "bg-green-500 text-white";
-        case "Completed":
-          return "bg-blue-100 text-blue-800 border border-blue-200";
-        default:
-          return "bg-gray-100 text-gray-800 border border-gray-200";
+  const StatusBadge: React.FC<{ status: Order["status"]; originalStatus?: string; orderState?: string }> = ({ status, originalStatus, orderState }) => {
+    const getStatusStyles = (displayValue: string, currentStatus: "Pending" | "Active" | "Completed" | "Rejected") => {
+      const displayLower = displayValue.toLowerCase();
+      
+      // Check for rejected status first (highest priority) - check currentStatus first
+      if (currentStatus === "Rejected" || displayLower.includes('rejected') || originalStatus?.toLowerCase() === 'rejected') {
+        return "bg-red-500 text-white";
       }
+      
+      // For orderState values (only if not rejected)
+      if (displayLower.includes('awaiting_shipping') || displayLower.includes('awaiting shipping')) {
+        return "bg-blue-500 text-white";
+      }
+      if (displayLower.includes('in_transit') || displayLower.includes('in transit')) {
+        return "bg-purple-500 text-white";
+      }
+      if (displayLower.includes('delivered')) {
+        return "bg-green-600 text-white";
+      }
+      if (displayLower.includes('completed')) {
+        return "bg-green-700 text-white";
+      }
+      
+      // For status values
+      if (currentStatus === "Pending") {
+        return "bg-yellow-500 text-white";
+      }
+      if (currentStatus === "Active") {
+        return "bg-green-500 text-white";
+      }
+      if (currentStatus === "Completed") {
+        return "bg-blue-100 text-blue-800 border border-blue-200";
+      }
+      return "bg-gray-100 text-gray-800 border border-gray-200";
     };
 
-    const displayStatus = originalStatus || status;
+    // Display orderState if order is accepted/active and orderState exists
+    // If orderState is "completed", show "Completed"
+    // Otherwise display originalStatus or status
+    // For rejected orders, always show "Rejected"
+    const isRejected = status === "Rejected" || originalStatus?.toLowerCase() === 'rejected';
+    const isCompleted = orderState?.toLowerCase() === 'completed' || status === "Completed";
+    const displayStatus = isRejected
+      ? "Rejected"
+      : isCompleted
+      ? "Completed"
+      : (status === "Active" || originalStatus === "accepted") && orderState
+      ? orderState.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      : originalStatus?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || status;
 
     return (
       <span
-        className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusStyles()}`}
+        className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusStyles(displayStatus, status)}`}
       >
         {displayStatus}
       </span>
@@ -108,6 +157,137 @@ const Orders: React.FC<OrdersProps> = ({
 
   const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
     const isPending = order.status === "Pending";
+
+    const handleDownloadPurchaseOrder = () => {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const purchaseOrderHTML = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Purchase Order - ${order.id}</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.4; color: #333; background: white; padding: 40px; }
+              .po-container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+              .po-header { text-align: center; padding: 30px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+              .po-title { font-size: 32px; font-weight: 600; color: #1f2937; margin-bottom: 20px; }
+              .order-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
+              .order-number { font-size: 16px; color: #374151; display: flex; align-items: center; gap: 8px; }
+              .created-date { font-size: 14px; color: #6b7280; }
+              .po-content { padding: 40px; }
+              .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+              .section-title { font-size: 16px; font-weight: 500; color: #374151; margin-bottom: 16px; }
+              .product-info, .buyer-info { display: flex; gap: 16px; align-items: flex-start; }
+              .product-image, .buyer-image { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+              .buyer-image { border-radius: 50%; background: #d1d5db; display: flex; align-items: center; justify-content: center; font-weight: 500; color: #6b7280; }
+              .info-details h3 { font-size: 16px; font-weight: 500; color: #111827; margin-bottom: 8px; }
+              .info-details p { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
+              .order-summary { background: #f0f9ff; border-radius: 8px; padding: 24px; margin-bottom: 40px; }
+              .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+              .summary-item h4 { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+              .summary-item p { font-size: 16px; font-weight: 600; color: #111827; }
+              .order-value p { color: #059669 !important; font-size: 18px; }
+              .status-section { text-align: center; margin-bottom: 40px; }
+              .status-section h4 { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+              .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; background: #fef3c7; color: #92400e; }
+              .company-footer { text-align: center; padding: 30px; border-top: 1px solid #e5e7eb; background: #f9fafb; }
+              .company-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+              .logo-icon { width: 24px; height: 24px; background: #059669; border-radius: 4px; }
+              .company-name { font-size: 18px; font-weight: 600; color: #059669; }
+              .company-tagline { font-size: 14px; color: #059669; font-style: italic; }
+              @media print { body { padding: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="po-container">
+              <div class="po-header">
+                <h1 class="po-title">Purchase Order</h1>
+                <div class="order-info">
+                  <div class="order-number">
+                    <span>📄</span>
+                    Order: #${order.id}
+                  </div>
+                  <div class="created-date">Created ${order.createdDate}</div>
+                </div>
+              </div>
+
+              <div class="po-content">
+                <div class="section-grid">
+                  <div>
+                    <h3 class="section-title">Product Details</h3>
+                    <div class="product-info">
+                      <div style="width: 60px; height: 60px; background: #d1d5db; border-radius: 8px;"></div>
+                      <div class="info-details">
+                        <h3>${order.productName}</h3>
+                        <p>Quantity: ${order.quantity}</p>
+                        <p>Price: ${order.price}</p>
+                        <p>Certification: ${order.certification}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 class="section-title">Buyer Information</h3>
+                    <div class="buyer-info">
+                      <div class="buyer-image">
+                        ${order.buyerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div class="info-details">
+                        <h3>${order.buyerName}</h3>
+                        <p>${order.buyerLocation}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="order-summary">
+                  <div class="summary-grid">
+                    <div class="summary-item order-value">
+                      <h4>Order Value</h4>
+                      <p>${order.orderValue}</p>
+                    </div>
+                    <div class="summary-item">
+                      <h4>Delivery Location</h4>
+                      <p>${order.deliveryLocation || order.buyerLocation || "N/A"}</p>
+                    </div>
+                    <div class="summary-item">
+                      <h4>Delivery Date</h4>
+                      <p>${order.deliveryDate || "TBD"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="status-section">
+                  <h4>Order Status</h4>
+                  <span class="status-badge">
+                    ${order.originalStatus || order.status}
+                  </span>
+                </div>
+              </div>
+
+              <div class="company-footer">
+                <div class="company-logo">
+                  <div class="logo-icon"></div>
+                  <span class="company-name">Oko Agro</span>
+                </div>
+                <p class="company-tagline">Bridging the Gap Between Harvest and Industry</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(purchaseOrderHTML);
+      printWindow.document.close();
+      
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      };
+    };
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -121,7 +301,7 @@ const Orders: React.FC<OrdersProps> = ({
               </div>
             </div>
           </div>
-          <StatusBadge status={order.status} originalStatus={order.originalStatus} />
+          <StatusBadge status={order.status} originalStatus={order.originalStatus} orderState={order.orderState} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -195,8 +375,8 @@ const Orders: React.FC<OrdersProps> = ({
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600 mb-3">Payment Terms</p>
-            <p className="font-medium text-gray-900">{order.paymentTerms}</p>
+            <p className="text-sm text-gray-600 mb-3">Delivery Location</p>
+            <p className="font-medium text-gray-900">{order.deliveryLocation || order.buyerLocation || "N/A"}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600 mb-3">Delivery Date</p>
@@ -207,13 +387,14 @@ const Orders: React.FC<OrdersProps> = ({
         </div>
 
         {isPending && (onAcceptOrder || onDeclineOrder) && (
-          <div className="flex items-center space-x-3 mt-6 pt-6 border-t border-gray-100">
-            {onAcceptOrder && (
+          <div className="flex items-center justify-between space-x-3 mt-6 pt-6 border-t border-gray-100">
+           <div className="flex items-center space-x-3">
+           {onAcceptOrder && (
               <button
                 onClick={() => onAcceptOrder(order.id)}
                 className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
               >
-                <CheckCircle className="w-4 h-4" />
+               
                 Accept Order
               </button>
             )}
@@ -222,37 +403,31 @@ const Orders: React.FC<OrdersProps> = ({
                 onClick={() => onDeclineOrder(order.id)}
                 className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
               >
-                <XCircle className="w-4 h-4" />
+             
                 Reject Order
               </button>
             )}
+           </div>
+         
+             <button
+              onClick={handleDownloadPurchaseOrder}
+              className="px-6 py-2 flex items-center  gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Purchase Order
+            </button>
           </div>
         )}
 
-        {order.status === "Active" && (
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-mainGreen">
-              <CheckCircle className="w-5 h-5" />
-              <span className="font-medium">Order Accepted - Awaiting Payment</span>
-            </div>
-          </div>
-        )}
 
-        {order.status === "Completed" && (
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-blue-600">
-              <CheckCircle className="w-5 h-5" />
-              <span className="font-medium">Order Completed</span>
-            </div>
-          </div>
-        )}
+ 
       </div>
     );
   };
 
   const getDisplayNameForFilter = (filter: StatusFilter) => {
     const entry = Object.entries(statusDisplayMap).find(
-      ([_, value]) => value === filter
+      ([, value]) => value === filter
     );
     return entry ? entry[0] : filter;
   };

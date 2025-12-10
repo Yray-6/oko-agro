@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Don't block public paths like login or api auth routes
-  const publicPaths = ['/login', '/register', '/api/auth']
+  const publicPaths = ['/login', '/register', '/api/auth', '/oko-admin']
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     return NextResponse.next()
   }

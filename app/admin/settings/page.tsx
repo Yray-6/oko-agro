@@ -1,17 +1,28 @@
 "use client";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "@/app/components/Modal";
-
-interface AdminUser {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: "active" | "inactive";
-}
+import { useAdminStore } from "@/app/store/useAdminStore";
+import { useAuthStore } from "@/app/store/useAuthStore";
 
 export default function SettingsPage() {
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const {
+    createAdmin,
+    updateAdminPassword,
+    updateUserStatus,
+    deleteAdmin,
+    isCreatingAdmin,
+    isUpdatingAdminPassword,
+    isUpdatingUserStatus,
+    isDeletingAdmin,
+    adminManagementError,
+    admins,
+    isLoadingAdmins,
+    fetchAdmins,
+  } = useAdminStore();
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,37 +35,25 @@ export default function SettingsPage() {
   const [dateRange, setDateRange] = useState("Last 30 days");
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
+  
+  // Create admin form state
+  const [newAdminData, setNewAdminData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
+  });
+  const [createAdminErrors, setCreateAdminErrors] = useState<Record<string, string>>({});
 
-  const adminUsers: AdminUser[] = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@example.com",
-      role: "Admin",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      role: "Manager",
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "Michael Brown",
-      email: "m.brown@example.com",
-      role: "Admin",
-      status: "active",
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      email: "emily.d@example.com",
-      role: "Admin",
-      status: "inactive",
-    },
-  ];
+  // Fetch admins on component mount - only for super_admin
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchAdmins({ role: 'admin', pageNumber: 1, pageSize: 20 });
+    }
+  }, [fetchAdmins, isSuperAdmin]);
 
   const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
     setShowPassword((prev) => ({
@@ -63,9 +62,102 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleUpdatePassword = () => {
-    // Handle password update logic
-    console.log("Updating password...");
+  const handleUpdatePassword = async () => {
+    if (!user?.id) {
+      alert("User ID not found");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      alert("Password must be at least 8 characters");
+      return;
+    }
+
+    try {
+      await updateAdminPassword({
+        userId: user.id,
+        newPassword,
+        confirmPassword,
+      });
+      
+      // Reset form
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      alert("Password updated successfully");
+    } catch {
+      alert(adminManagementError || "Failed to update password");
+    }
+  };
+
+  const handleCreateAdmin = async () => {
+    // Validate form
+    const errors: Record<string, string> = {};
+    if (!newAdminData.firstName.trim()) errors.firstName = "First name is required";
+    if (!newAdminData.lastName.trim()) errors.lastName = "Last name is required";
+    if (!newAdminData.email.trim()) errors.email = "Email is required";
+    if (!newAdminData.phoneNumber.trim()) errors.phoneNumber = "Phone number is required";
+    if (!newAdminData.password.trim()) errors.password = "Password is required";
+    if (newAdminData.password.length < 8) errors.password = "Password must be at least 8 characters";
+
+    if (Object.keys(errors).length > 0) {
+      setCreateAdminErrors(errors);
+      return;
+    }
+
+    try {
+      await createAdmin(newAdminData);
+      setShowAddUserModal(false);
+      setShowSuccessModal(true);
+      // Reset form
+      setNewAdminData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: "",
+        password: "",
+      });
+      setCreateAdminErrors({});
+      // Admins list will be refreshed automatically by the store
+    } catch {
+      setCreateAdminErrors({ submit: adminManagementError || "Failed to create admin" });
+    }
+  };
+
+  const handleToggleUserStatus = async (adminId: string, currentStatus: boolean) => {
+    try {
+      await updateUserStatus({
+        userId: adminId,
+        isDisabled: !currentStatus,
+      });
+      // Refresh admins list
+      await fetchAdmins({ role: 'admin', pageNumber: 1, pageSize: 20 });
+    } catch {
+      alert(adminManagementError || "Failed to update user status");
+    }
+  };
+
+  const handleDeleteUser = (adminId: string, adminName: string) => {
+    setUserToDelete({ id: adminId, name: adminName });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      await deleteAdmin(userToDelete.id);
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      // Admins list will be refreshed automatically by the store
+    } catch {
+      alert(adminManagementError || "Failed to delete admin");
+    }
   };
 
   const handleExportReport = () => {
@@ -157,7 +249,7 @@ export default function SettingsPage() {
         </p>
 
         {/* Three Column Layout */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className={`grid gap-6 ${isSuperAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
           {/* Change Password Section */}
           <div className="col-span-1 bg-white border border-[#E5E1DC] rounded-[12px] p-6 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
             <div className="mb-6">
@@ -384,225 +476,251 @@ export default function SettingsPage() {
               {/* Update Password Button */}
               <button
                 onClick={handleUpdatePassword}
-                className="w-full h-[44px] bg-[#16A249] rounded-[10px] text-[14px] font-medium text-white"
+                disabled={isUpdatingAdminPassword}
+                className="w-full h-[44px] bg-[#16A249] rounded-[10px] text-[14px] font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   lineHeight: "1.429em",
                 }}
               >
-                Update Password
+                {isUpdatingAdminPassword ? "Updating..." : "Update Password"}
               </button>
+              {adminManagementError && (
+                <p className="text-[12px] text-red-500 mt-2">{adminManagementError}</p>
+              )}
             </div>
           </div>
 
-          {/* User Management Section */}
-          <div className="col-span-2 bg-white border border-[#E5E1DC] rounded-[12px] p-6 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-3">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"
-                      stroke="#2E251F"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z"
-                      stroke="#2E251F"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13"
-                      stroke="#2E251F"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55219C18.7122 5.25368 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75632 18.1676 9.45781C17.623 10.1593 16.8604 10.6597 16 10.88"
-                      stroke="#2E251F"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <h3
-                    className="text-[24px] font-normal text-[#2E251F]"
+          {/* User Management Section - Only visible to super_admin */}
+          {isSuperAdmin && (
+            <div className="col-span-2 bg-white border border-[#E5E1DC] rounded-[12px] p-6 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-3">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"
+                        stroke="#2E251F"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z"
+                        stroke="#2E251F"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13"
+                        stroke="#2E251F"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55219C18.7122 5.25368 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75632 18.1676 9.45781C17.623 10.1593 16.8604 10.6597 16 10.88"
+                        stroke="#2E251F"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <h3
+                      className="text-[24px] font-normal text-[#2E251F]"
+                      style={{
+                        lineHeight: "1em",
+                        letterSpacing: "-2.5%",
+                      }}
+                    >
+                      User Management
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setShowAddUserModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#16A249] rounded-[10px] text-[14px] font-normal text-white h-[40px]"
                     style={{
-                      lineHeight: "1em",
-                      letterSpacing: "-2.5%",
+                      lineHeight: "1.429em",
                     }}
                   >
-                    User Management
-                  </h3>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8 1.33V14.67"
+                        stroke="white"
+                        strokeWidth="1.33"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M1.33 8H14.67"
+                        stroke="white"
+                        strokeWidth="1.33"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Add New User
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#16A249] rounded-[10px] text-[14px] font-normal text-white h-[40px]"
+                <p
+                  className="text-[14px] font-normal text-[#7E7167]"
                   style={{
                     lineHeight: "1.429em",
                   }}
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M8 1.33V14.67"
-                      stroke="white"
-                      strokeWidth="1.33"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M1.33 8H14.67"
-                      stroke="white"
-                      strokeWidth="1.33"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  Add New User
-                </button>
+                  Add new users and manage their roles and permissions
+                </p>
               </div>
-              <p
-                className="text-[14px] font-normal text-[#7E7167]"
-                style={{
-                  lineHeight: "1.429em",
-                }}
-              >
-                Add new users and manage their roles and permissions
-              </p>
-            </div>
 
-            {/* Admin Users List */}
-            <div className="flex flex-col gap-4">
-              {adminUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex justify-between items-center p-4 border border-[#F2F0ED] rounded-[10px]"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Rank Badge */}
-                    <div className="w-[32px] h-[32px] rounded-full bg-[rgba(22,162,73,0.1)] flex items-center justify-center flex-shrink-0">
-                      <span
-                        className="text-[14px] font-normal text-[#16A249]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.id}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <p
-                        className="text-[16px] font-normal text-[#2E251F]"
-                        style={{
-                          lineHeight: "1.5em",
-                        }}
-                      >
-                        {user.name}
-                      </p>
-                      <p
-                        className="text-[14px] font-normal text-[#7E7167]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.email}
-                      </p>
-                    </div>
+              {/* Admin Users List */}
+              <div className="flex flex-col gap-4">
+                {isLoadingAdmins ? (
+                  <div className="flex justify-center items-center py-8">
+                    <p className="text-[14px] text-[#7E7167]">Loading admins...</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-end gap-1">
-                      <span
-                        className="text-[14px] font-normal text-[#2E251F]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.role}
-                      </span>
-                      <span
-                        className={`text-[14px] font-normal ${
-                          user.status === "active"
-                            ? "text-[#16A249]"
-                            : "text-[#7E7167]"
-                        }`}
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.status}
-                      </span>
-                    </div>
-                    <button className="p-2 hover:bg-gray-100 rounded-[8px] transition-colors">
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M8 3.33V12.67"
-                          stroke="#3C83F6"
-                          strokeWidth="1.33"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M3.33 8H12.67"
-                          stroke="#3C83F6"
-                          strokeWidth="1.33"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
-                    <button className="p-2 hover:bg-gray-100 rounded-[8px] transition-colors">
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M2 4H14"
-                          stroke="#EF4343"
-                          strokeWidth="1.33"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M6.67 2V6"
-                          stroke="#EF4343"
-                          strokeWidth="1.33"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M9.33 2V6"
-                          stroke="#EF4343"
-                          strokeWidth="1.33"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M3.33 6V13.33C3.33 14.0406 3.60938 14.721 4.14062 15.2512C4.67188 15.7815 5.35227 16.0609 6.06267 16.0609H9.93733C10.6477 16.0609 11.3281 15.7815 11.8594 15.2512C12.3906 14.721 12.67 14.0406 12.67 13.33V6"
-                          stroke="#EF4343"
-                          strokeWidth="1.33"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
+                ) : admins.length === 0 ? (
+                  <div className="flex justify-center items-center py-8">
+                    <p className="text-[14px] text-[#7E7167]">No admins found</p>
                   </div>
-                </div>
-              ))}
+                ) : (
+                  admins.map((admin, index) => (
+                    <div
+                      key={admin.id}
+                      className="flex justify-between items-center p-4 border border-[#F2F0ED] rounded-[10px]"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Rank Badge */}
+                        <div className="w-[32px] h-[32px] rounded-full bg-[rgba(22,162,73,0.1)] flex items-center justify-center flex-shrink-0">
+                          <span
+                            className="text-[14px] font-normal text-[#16A249]"
+                            style={{
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {index + 1}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p
+                            className="text-[16px] font-normal text-[#2E251F]"
+                            style={{
+                              lineHeight: "1.5em",
+                            }}
+                          >
+                            {admin.firstName} {admin.lastName}
+                          </p>
+                          <p
+                            className="text-[14px] font-normal text-[#7E7167]"
+                            style={{
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {admin.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className="text-[14px] font-normal text-[#2E251F]"
+                            style={{
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {admin.role}
+                          </span>
+                          <span
+                            className={`text-[14px] font-normal ${
+                              !admin.isDisabled
+                                ? "text-[#16A249]"
+                                : "text-[#7E7167]"
+                            }`}
+                            style={{
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {admin.isDisabled ? "inactive" : "active"}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleToggleUserStatus(admin.id, admin.isDisabled)}
+                          disabled={isUpdatingUserStatus}
+                          className="p-2 hover:bg-gray-100 rounded-[8px] transition-colors disabled:opacity-50"
+                          title={!admin.isDisabled ? "Disable user" : "Enable user"}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M8 3.33V12.67"
+                              stroke="#3C83F6"
+                              strokeWidth="1.33"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M3.33 8H12.67"
+                              stroke="#3C83F6"
+                              strokeWidth="1.33"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(admin.id, `${admin.firstName} ${admin.lastName}`)}
+                          disabled={isDeletingAdmin}
+                          className="p-2 hover:bg-gray-100 rounded-[8px] transition-colors disabled:opacity-50"
+                          title="Delete user"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M2 4H14"
+                              stroke="#EF4343"
+                              strokeWidth="1.33"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M6.67 2V6"
+                              stroke="#EF4343"
+                              strokeWidth="1.33"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M9.33 2V6"
+                              stroke="#EF4343"
+                              strokeWidth="1.33"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M3.33 6V13.33C3.33 14.0406 3.60938 14.721 4.14062 15.2512C4.67188 15.7815 5.35227 16.0609 6.06267 16.0609H9.93733C10.6477 16.0609 11.3281 15.7815 11.8594 15.2512C12.3906 14.721 12.67 14.0406 12.67 13.33V6"
+                              stroke="#EF4343"
+                              strokeWidth="1.33"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Export Reports Section */}
@@ -890,24 +1008,108 @@ export default function SettingsPage() {
               lineHeight: "1.5em",
             }}
           >
-            Add New User
+            Add New Admin User
           </h2>
-          {/* Add user form would go here */}
+          
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-[#2E251F]">First Name</label>
+              <input
+                type="text"
+                value={newAdminData.firstName}
+                onChange={(e) => setNewAdminData({ ...newAdminData, firstName: e.target.value })}
+                placeholder="Enter first name"
+                className="w-full h-[44px] px-[13px] bg-[#F3F3F5] border border-[#F2F0ED] rounded-[10px] outline-none text-[14px] text-[#717182]"
+              />
+              {createAdminErrors.firstName && (
+                <p className="text-[12px] text-red-500">{createAdminErrors.firstName}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-[#2E251F]">Last Name</label>
+              <input
+                type="text"
+                value={newAdminData.lastName}
+                onChange={(e) => setNewAdminData({ ...newAdminData, lastName: e.target.value })}
+                placeholder="Enter last name"
+                className="w-full h-[44px] px-[13px] bg-[#F3F3F5] border border-[#F2F0ED] rounded-[10px] outline-none text-[14px] text-[#717182]"
+              />
+              {createAdminErrors.lastName && (
+                <p className="text-[12px] text-red-500">{createAdminErrors.lastName}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-[#2E251F]">Email</label>
+              <input
+                type="email"
+                value={newAdminData.email}
+                onChange={(e) => setNewAdminData({ ...newAdminData, email: e.target.value })}
+                placeholder="Enter email"
+                className="w-full h-[44px] px-[13px] bg-[#F3F3F5] border border-[#F2F0ED] rounded-[10px] outline-none text-[14px] text-[#717182]"
+              />
+              {createAdminErrors.email && (
+                <p className="text-[12px] text-red-500">{createAdminErrors.email}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-[#2E251F]">Phone Number</label>
+              <input
+                type="tel"
+                value={newAdminData.phoneNumber}
+                onChange={(e) => setNewAdminData({ ...newAdminData, phoneNumber: e.target.value })}
+                placeholder="Enter phone number"
+                className="w-full h-[44px] px-[13px] bg-[#F3F3F5] border border-[#F2F0ED] rounded-[10px] outline-none text-[14px] text-[#717182]"
+              />
+              {createAdminErrors.phoneNumber && (
+                <p className="text-[12px] text-red-500">{createAdminErrors.phoneNumber}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-[#2E251F]">Password</label>
+              <input
+                type="password"
+                value={newAdminData.password}
+                onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
+                placeholder="Enter password (min 8 characters)"
+                className="w-full h-[44px] px-[13px] bg-[#F3F3F5] border border-[#F2F0ED] rounded-[10px] outline-none text-[14px] text-[#717182]"
+              />
+              {createAdminErrors.password && (
+                <p className="text-[12px] text-red-500">{createAdminErrors.password}</p>
+              )}
+            </div>
+
+            {createAdminErrors.submit && (
+              <p className="text-[12px] text-red-500">{createAdminErrors.submit}</p>
+            )}
+          </div>
+
           <div className="flex gap-3 justify-end mt-6">
             <button
-              onClick={() => setShowAddUserModal(false)}
+              onClick={() => {
+                setShowAddUserModal(false);
+                setNewAdminData({
+                  firstName: "",
+                  lastName: "",
+                  email: "",
+                  phoneNumber: "",
+                  password: "",
+                });
+                setCreateAdminErrors({});
+              }}
               className="px-6 py-2 border border-[#004829] rounded-[10px] text-[16px] font-medium text-[#004829]"
             >
               Cancel
             </button>
             <button
-              onClick={() => {
-                setShowAddUserModal(false);
-                setShowSuccessModal(true);
-              }}
-              className="px-6 py-2 bg-[#004829] rounded-[10px] text-[16px] font-medium text-white"
+              onClick={handleCreateAdmin}
+              disabled={isCreatingAdmin}
+              className="px-6 py-2 bg-[#004829] rounded-[10px] text-[16px] font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add User
+              {isCreatingAdmin ? "Creating..." : "Add User"}
             </button>
           </div>
         </div>
@@ -955,6 +1157,50 @@ export default function SettingsPage() {
               }}
             >
               Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+        }}
+        size="md"
+        showCloseButton={false}
+        className="rounded-[20px]"
+      >
+        <div className="p-6">
+          <h2
+            className="text-[24px] font-medium text-black mb-4"
+            style={{
+              lineHeight: "1.5em",
+            }}
+          >
+            Delete Admin User
+          </h2>
+          <p className="text-[14px] text-[#7E7167] mb-6">
+            Are you sure you want to delete {userToDelete?.name}? This action cannot be undone.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowDeleteModal(false);
+                setUserToDelete(null);
+              }}
+              className="px-6 py-2 border border-[#004829] rounded-[10px] text-[16px] font-medium text-[#004829]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDeleteUser}
+              disabled={isDeletingAdmin}
+              className="px-6 py-2 bg-red-600 rounded-[10px] text-[16px] font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeletingAdmin ? "Deleting..." : "Delete"}
             </button>
           </div>
         </div>

@@ -7,7 +7,7 @@ export interface Product {
   quantity: string;
   price: string;
   certification: string;
-  status: 'Active' | 'Pending Inspection' | 'Sold Out';
+  status: 'pending' | 'accepted' | 'awaiting_shipping' | 'in_transit' | 'delivered' | 'completed' | 'Active' | 'Pending Inspection' | 'Sold Out';
   listedDate: string;
   image: string;
   slug?: string;
@@ -26,21 +26,48 @@ interface StatusBadgeProps {
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const getStatusStyles = () => {
-    switch (status) {
-      case 'Active':
+    const normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'active':
+      case 'accepted':
         return 'bg-green-500 text-white';
-      case 'Pending Inspection':
+      case 'pending':
+      case 'pending inspection':
         return 'bg-yellow-500 text-white';
-      case 'Sold Out':
+      case 'awaiting_shipping':
+        return 'bg-blue-500 text-white';
+      case 'in_transit':
+        return 'bg-purple-500 text-white';
+      case 'delivered':
+        return 'bg-indigo-500 text-white';
+      case 'completed':
+      case 'sold out':
         return 'bg-gray-500 text-white';
       default:
         return 'bg-gray-400 text-white';
     }
   };
 
+  const getStatusDisplay = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'pending': 'Pending',
+      'accepted': 'Accepted',
+      'awaiting_shipping': 'Awaiting Shipping',
+      'in_transit': 'In Transit',
+      'delivered': 'Delivered',
+      'completed': 'Completed',
+      'active': 'Active',
+      'pending inspection': 'Pending Inspection',
+      'sold out': 'Sold Out',
+    };
+    
+    return statusMap[status.toLowerCase()] || status;
+  };
+
   return (
     <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusStyles()}`}>
-      {status}
+      {getStatusDisplay(status)}
     </span>
   );
 };

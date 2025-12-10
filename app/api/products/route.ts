@@ -1,10 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ /* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
+import https from 'https';
 import { ApiResponse } from '@/app/types';
 
 const baseUrl = process.env.BASE_URL || 'https://oko-agro-nestjs.onrender.com';
+
+// Create HTTPS agent with proper SSL configuration
+// This fixes SSL/TLS "bad record mac" errors that can occur due to connection reuse issues
+const httpsAgent = new https.Agent({
+  keepAlive: false, // Disable keep-alive to avoid SSL session reuse issues
+  maxSockets: Infinity,
+  maxFreeSockets: 256,
+  timeout: 30000,
+  // Reject unauthorized certificates for security
+  rejectUnauthorized: true,
+});
 
 // Configure axios instance
 const apiClient = axios.create({
@@ -13,6 +25,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000,
+  httpsAgent: httpsAgent,
 });
 
 // Add request interceptor for logging
@@ -68,10 +81,12 @@ const extractAuthToken = (request: NextRequest): string | null => {
 };
 
 // Define action types
-type ProductAction = 'create' | 'update';
+type ProductAction = 'create' | 'update' | 'approval';
 
 interface ProductApiRequest {
   action: ProductAction;
+  productId?: string;
+  approvalStatus?: 'approve' | 'reject';
   [key: string]: any;
 }
 
@@ -206,20 +221,25 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (action !== 'update') {
+    let endpoint = '';
+    
+    if (action === 'update') {
+      endpoint = '/products/update';
+      console.log(`🌐 [Products API ${requestId}] Updating product: ${data.productId}`);
+    } else if (action === 'approval') {
+      endpoint = '/products/approval';
+      console.log(`✅ [Products API ${requestId}] Approving/Rejecting product: ${data.productId}, status: ${data.approvalStatus}`);
+    } else {
       console.warn(`⚠️ [Products API ${requestId}] Invalid action for PATCH: ${action}`);
       return NextResponse.json(
         {
           statusCode: 400,
-          message: 'PATCH method only supports update action',
+          message: 'PATCH method only supports update or approval actions',
           error: 'Bad Request'
         } as ApiResponse,
         { status: 400 }
       );
     }
-
-    const endpoint = '/products/update';
-    console.log(`🌐 [Products API ${requestId}] Updating product: ${data.productId}`);
 
     
 
@@ -285,6 +305,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const productId = searchParams.get('productId');
     const search = searchParams.get('search');
+    const status = searchParams.get('status');
     const pageNumber = searchParams.get('pageNumber') || '1';
     const pageSize = searchParams.get('pageSize') || '20';
     
@@ -332,6 +353,22 @@ export async function GET(request: NextRequest) {
         console.log(`👤 [Products API ${requestId}] Fetching products for user: ${userId}`);
         break;
         
+      case 'approved-user-products':
+        if (!userId) {
+          console.warn(`⚠️ [Products API ${requestId}] Missing userId for approved-user-products action`);
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'userId is required for approved-user-products action',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        endpoint = `/products/approved/user/${userId}`;
+        console.log(`✅ [Products API ${requestId}] Fetching approved products for user: ${userId}`);
+        break;
+        
       case 'single-product':
         if (!productId) {
           console.warn(`⚠️ [Products API ${requestId}] Missing productId for single-product action`);
@@ -377,13 +414,30 @@ export async function GET(request: NextRequest) {
           pageSize
         });
         break;
+
+      case 'listings':
+        // Build query string for product listings (admin only)
+        const listingsQuery = new URLSearchParams();
+        if (search) listingsQuery.append('search', search);
+        if (status) listingsQuery.append('status', status);
+        listingsQuery.append('pageNumber', pageNumber);
+        listingsQuery.append('pageSize', pageSize);
+        
+        endpoint = `/products/listings?${listingsQuery.toString()}`;
+        console.log(`📋 [Products API ${requestId}] Fetching product listings with params:`, {
+          search,
+          status,
+          pageNumber,
+          pageSize
+        });
+        break;
         
       default:
         console.warn(`⚠️ [Products API ${requestId}] Invalid or missing action: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: user-products, single-product, search-farmers, search-processors',
+            message: 'Invalid action. Valid actions are: user-products, approved-user-products, single-product, search-farmers, search-processors, listings',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }
@@ -405,8 +459,8 @@ export async function GET(request: NextRequest) {
       itemCount: Array.isArray(response.data) ? response.data.length : 'N/A'
     });
 
-    // For search actions, the response is already in the correct format
-    if (action === 'search-farmers' || action === 'search-processors') {
+    // For search actions and listings, the response is already in the correct format
+    if (action === 'search-farmers' || action === 'search-processors' || action === 'listings') {
       return NextResponse.json(response.data as ApiResponse, {
         status: 200
       });

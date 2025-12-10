@@ -1,98 +1,159 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import { useAdminStore } from "../../store/useAdminStore";
+import AnimatedLoading from "../../Loading";
 
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState("All Users");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const tabs = ["All Users", "Farmers", "Processors"];
 
-  const allUsers = [
-    {
-      name: "Pristine Crops & Livestocks",
-      id: "002333",
-      location: "Lagos",
-      role: "Farmer",
-      roleColor: "#004829",
-      date: "22 September 2025",
-      address: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      status: "Active",
-      statusBg: "rgba(11, 169, 100, 0.2)",
-      statusColor: "#0BA964",
-    },
-    {
-      name: "Y-Ray Agro Farms",
-      id: "002334",
-      location: "Lagos",
-      role: "Processor",
-      roleColor: "#0B99A9",
-      date: "22 September 2025",
-      address: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      status: "Active",
-      statusBg: "rgba(11, 169, 100, 0.2)",
-      statusColor: "#0BA964",
-    },
-    {
-      name: "Eronini Feed Mill",
-      id: "002335",
-      location: "Lagos",
-      role: "Processor",
-      roleColor: "#0B99A9",
-      date: "22 September 2025",
-      address: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      status: "Active",
-      statusBg: "rgba(11, 169, 100, 0.2)",
-      statusColor: "#0BA964",
-    },
-    {
-      name: "Green Valley Farms",
-      id: "002336",
-      location: "Abuja",
-      role: "Farmer",
-      roleColor: "#004829",
-      date: "21 September 2025",
-      address: "Plot 45, Agricultural Zone, Abuja",
-      status: "Disabled",
-      statusBg: "rgba(238, 196, 30, 0.2)",
-      statusColor: "#EEC41E",
-    },
-    {
-      name: "Organic Harvest Co",
-      id: "002337",
-      location: "Ibadan",
-      role: "Farmer",
-      roleColor: "#004829",
-      date: "20 September 2025",
-      address: "Farm Road 12, Ibadan",
-      status: "Active",
-      statusBg: "rgba(11, 169, 100, 0.2)",
-      statusColor: "#0BA964",
-    },
-    {
-      name: "Premium Processors Ltd",
-      id: "002338",
-      location: "Port Harcourt",
-      role: "Processor",
-      roleColor: "#0B99A9",
-      date: "19 September 2025",
-      address: "Industrial Estate, Port Harcourt",
-      status: "Active",
-      statusBg: "rgba(11, 169, 100, 0.2)",
-      statusColor: "#0BA964",
-    },
-  ];
+  const {
+    allUsers,
+    farmers,
+    processors,
+    usersMeta,
+    farmersMeta,
+    processorsMeta,
+    isLoadingUsers,
+    isLoadingFarmers,
+    isLoadingProcessors,
+    fetchAllUsers,
+    fetchFarmers,
+    fetchProcessors,
+  } = useAdminStore();
 
-  // Filter users based on active tab
-  const filteredUsers = useMemo(() => {
+  // Fetch users based on active tab
+  useEffect(() => {
+    const params = {
+      search: searchQuery,
+      pageNumber: currentPage,
+      pageSize,
+    };
+
     if (activeTab === "All Users") {
-      return allUsers;
+      fetchAllUsers(params);
     } else if (activeTab === "Farmers") {
-      return allUsers.filter((user) => user.role === "Farmer");
+      fetchFarmers(params);
     } else if (activeTab === "Processors") {
-      return allUsers.filter((user) => user.role === "Processor");
+      fetchProcessors(params);
     }
-    return allUsers;
-  }, [activeTab]);
+  }, [activeTab, searchQuery, currentPage, fetchAllUsers, fetchFarmers, fetchProcessors]);
+
+  // Handle search with debounce
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+
+  // Handle tab change
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentPage(1); // Reset to first page on tab change
+  };
+
+  // Get current users and meta based on active tab
+  const currentUsers = useMemo(() => {
+    if (activeTab === "All Users") return allUsers;
+    if (activeTab === "Farmers") return farmers;
+    if (activeTab === "Processors") return processors;
+    return [];
+  }, [activeTab, allUsers, farmers, processors]);
+
+  const currentMeta = useMemo(() => {
+    if (activeTab === "All Users") return usersMeta;
+    if (activeTab === "Farmers") return farmersMeta;
+    if (activeTab === "Processors") return processorsMeta;
+    return null;
+  }, [activeTab, usersMeta, farmersMeta, processorsMeta]);
+
+  const isLoading = isLoadingUsers || isLoadingFarmers || isLoadingProcessors;
+
+  // Calculate total pages
+  const totalPages = currentMeta
+    ? Math.ceil(currentMeta.totalRecord / pageSize)
+    : 1;
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const total = totalPages;
+    const current = currentPage;
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (current <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(total);
+      } else if (current >= total - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = total - 3; i <= total; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = current - 1; i <= current + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(total);
+      }
+    }
+    return pages;
+  };
+
+  // Format user name
+  const getUserName = (user: typeof currentUsers[0]) => {
+    if (user.role === "farmer") {
+      return user.farmName || `${user.firstName} ${user.lastName}`;
+    } else if (user.role === "processor") {
+      return user.companyName || `${user.firstName} ${user.lastName}`;
+    }
+    return `${user.firstName} ${user.lastName}`;
+  };
+
+  // Format user ID (use first 8 chars of UUID)
+  const getUserId = (id: string) => {
+    return id.substring(0, 8).toUpperCase();
+  };
+
+  // Get role color
+  const getRoleColor = (role: string) => {
+    return role === "farmer" ? "#004829" : "#0B99A9";
+  };
+
+  // Get status
+  const getUserStatus = (user: typeof currentUsers[0]) => {
+    if (user.isDisabled) {
+      return { status: "Disabled", bg: "rgba(238, 196, 30, 0.2)", color: "#EEC41E" };
+    }
+    if (user.userVerified) {
+      return { status: "Active", bg: "rgba(11, 169, 100, 0.2)", color: "#0BA964" };
+    }
+    return { status: "Pending", bg: "rgba(238, 196, 30, 0.2)", color: "#EEC41E" };
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F8F8]">
@@ -198,7 +259,7 @@ export default function UserManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  176
+                  {usersMeta?.totalRecord || 0}
                 </p>
               </div>
               <Image
@@ -236,7 +297,7 @@ export default function UserManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  93
+                  {usersMeta?.totalFarmerRecord || 0}
                 </p>
               </div>
               <Image
@@ -275,7 +336,7 @@ export default function UserManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  83
+                  {usersMeta?.totalProcessorRecord || 0}
                 </p>
               </div>
               <Image
@@ -344,7 +405,7 @@ export default function UserManagement() {
               {tabs.map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => handleTabChange(tab)}
                   className={`pb-[11px] px-1 text-[14px] font-semibold transition-colors ${
                     activeTab === tab
                       ? "text-[#004829] border-b-2 border-[#004829]"
@@ -367,6 +428,8 @@ export default function UserManagement() {
               <input
                 type="text"
                 placeholder="Search users..."
+                value={searchQuery}
+                onChange={handleSearchChange}
                 className="w-full h-[40px] px-[41px] bg-[#FFFFFC] border border-[#F6F4F3] rounded-[10px] outline-none text-[14px] text-[#80726B]"
                 style={{
                   fontFamily: "Effra, sans-serif",
@@ -480,153 +543,175 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user, index) => (
-                  <tr key={index} className="border-b border-[#EBE7E5]">
-                    <td className="px-4 py-4">
-                      <div className="flex flex-col gap-1">
-                        <p
-                          className="text-[14px] font-medium text-black"
-                          style={{
-                            fontFamily: "Effra, sans-serif",
-                            lineHeight: "1.429em",
-                          }}
-                        >
-                          {user.name}
-                        </p>
-                        <p
-                          className="text-[14px] font-normal text-[#80726B]"
-                          style={{
-                            fontFamily: "Effra, sans-serif",
-                            lineHeight: "1.429em",
-                          }}
-                        >
-                          ID: {user.id}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div
-                        className="inline-flex items-center gap-[6.75px] px-[4.75px] py-[7.75px] rounded-[11.75px] border"
-                        style={{
-                          borderColor: user.roleColor,
-                          borderWidth: "1px",
-                        }}
-                      >
-                        <Image
-                          src={user.role === "Farmer" ? "/icons/leaf-01.svg" : "/icons/tractor.svg"}
-                          alt={user.role}
-                          width={14}
-                          height={14}
-                          className="object-contain"
-                        />
-                        <span
-                          className="text-[12px] font-normal"
-                          style={{
-                            fontFamily: "Urbanist, sans-serif",
-                            lineHeight: "1.959em",
-                            color: user.roleColor,
-                          }}
-                        >
-                          {user.role}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p
-                        className="text-[14px] font-normal text-black"
-                        style={{
-                          fontFamily: "Effra, sans-serif",
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.address}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p
-                        className="text-[14px] font-normal text-black"
-                        style={{
-                          fontFamily: "Effra, sans-serif",
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.date}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div
-                        className="inline-flex items-center gap-[6.75px] px-[4.75px] py-[7.75px] rounded-[11.75px]"
-                        style={{
-                          backgroundColor: user.statusBg,
-                          border: `1px solid ${user.statusColor}`,
-                        }}
-                      >
-                        <svg
-                          width="12"
-                          height="14"
-                          viewBox="0 0 12 14"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <circle
-                            cx="6"
-                            cy="7"
-                            r="4.5"
-                            fill={user.statusColor}
-                          />
-                        </svg>
-                        <span
-                          className="text-[12px] font-normal"
-                          style={{
-                            fontFamily: "Urbanist, sans-serif",
-                            lineHeight: "1.959em",
-                            color: user.statusColor,
-                          }}
-                        >
-                          {user.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <a
-                        href={`/admin/user-management/${user.id}`}
-                        className="p-1 hover:bg-gray-100 rounded inline-block"
-                      >
-                        <svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-                            stroke="#141B34"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="3"
-                            stroke="#141B34"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </a>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center">
+                      <AnimatedLoading />
                     </td>
                   </tr>
-                ))}
+                ) : currentUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-[#80726B]">
+                      No users found
+                    </td>
+                  </tr>
+                ) : (
+                  currentUsers.map((user) => {
+                    const userStatus = getUserStatus(user);
+                    const roleColor = getRoleColor(user.role);
+                    return (
+                      <tr key={user.id} className="border-b border-[#EBE7E5]">
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col gap-1">
+                            <p
+                              className="text-[14px] font-medium text-black"
+                              style={{
+                                fontFamily: "Effra, sans-serif",
+                                lineHeight: "1.429em",
+                              }}
+                            >
+                              {getUserName(user)}
+                            </p>
+                            <p
+                              className="text-[14px] font-normal text-[#80726B]"
+                              style={{
+                                fontFamily: "Effra, sans-serif",
+                                lineHeight: "1.429em",
+                              }}
+                            >
+                              ID: {getUserId(user.id)}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div
+                            className="inline-flex items-center gap-[6.75px] px-[4.75px] py-[7.75px] rounded-[11.75px] border"
+                            style={{
+                              borderColor: roleColor,
+                              borderWidth: "1px",
+                            }}
+                          >
+                            <Image
+                              src={user.role === "farmer" ? "/icons/leaf-01.svg" : "/icons/tractor.svg"}
+                              alt={user.role}
+                              width={14}
+                              height={14}
+                              className="object-contain"
+                            />
+                            <span
+                              className="text-[12px] font-normal capitalize"
+                              style={{
+                                fontFamily: "Urbanist, sans-serif",
+                                lineHeight: "1.959em",
+                                color: roleColor,
+                              }}
+                            >
+                              {user.role}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p
+                            className="text-[14px] font-normal text-black"
+                            style={{
+                              fontFamily: "Effra, sans-serif",
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {user.farmAddress || `${user.state}, ${user.country}`}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p
+                            className="text-[14px] font-normal text-black"
+                            style={{
+                              fontFamily: "Effra, sans-serif",
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {formatDate(user.createdAt)}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div
+                            className="inline-flex items-center gap-[6.75px] px-[4.75px] py-[7.75px] rounded-[11.75px]"
+                            style={{
+                              backgroundColor: userStatus.bg,
+                              border: `1px solid ${userStatus.color}`,
+                            }}
+                          >
+                            <svg
+                              width="12"
+                              height="14"
+                              viewBox="0 0 12 14"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <circle
+                                cx="6"
+                                cy="7"
+                                r="4.5"
+                                fill={userStatus.color}
+                              />
+                            </svg>
+                            <span
+                              className="text-[12px] font-normal"
+                              style={{
+                                fontFamily: "Urbanist, sans-serif",
+                                lineHeight: "1.959em",
+                                color: userStatus.color,
+                              }}
+                            >
+                              {userStatus.status}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <a
+                            href={`/admin/user-management/${user.id}`}
+                            className="p-1 hover:bg-gray-100 rounded inline-block"
+                          >
+                            <svg
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                                stroke="#141B34"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="3"
+                                stroke="#141B34"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Pagination */}
           <div className="flex items-center justify-between px-6 py-3 border-t border-[#EAECF0]">
-            <button className="flex items-center gap-2 px-[14px] py-2 bg-white border border-[#D0D5DD] rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] text-[14px] font-semibold text-[#344054]">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="flex items-center gap-2 px-[14px] py-2 bg-white border border-[#D0D5DD] rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] text-[14px] font-semibold text-[#344054] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <svg
                 width="20"
                 height="20"
@@ -645,20 +730,26 @@ export default function UserManagement() {
               Previous
             </button>
             <div className="flex gap-[2px]">
-              {[1, 2, 3, "...", 8, 9, 10].map((page, idx) => (
+              {getPageNumbers().map((page, idx) => (
                 <button
                   key={idx}
+                  onClick={() => typeof page === "number" && setCurrentPage(page)}
+                  disabled={typeof page === "string" || isLoading}
                   className={`w-10 h-10 rounded-lg flex items-center justify-center text-[14px] font-medium ${
-                    page === 1
+                    page === currentPage
                       ? "bg-[#F9FAFB] text-[#1D2939]"
                       : "bg-white text-[#475467]"
-                  }`}
+                  } ${typeof page === "string" ? "cursor-default" : "cursor-pointer"} disabled:opacity-50`}
                 >
                   {page}
                 </button>
               ))}
             </div>
-            <button className="flex items-center gap-2 px-[14px] py-2 bg-white border border-[#D0D5DD] rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] text-[14px] font-semibold text-[#344054]">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages || isLoading}
+              className="flex items-center gap-2 px-[14px] py-2 bg-white border border-[#D0D5DD] rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] text-[14px] font-semibold text-[#344054] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Next
               <svg
                 width="20"

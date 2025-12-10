@@ -4,6 +4,7 @@ import ProductCard, { Product } from "./ProductCard";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { formatPrice } from "@/app/helpers";
+import { ProductDetails } from "@/app/types";
 import Link from "next/link";
 
 const ProductCardContainer: React.FC = () => {
@@ -31,12 +32,26 @@ const ProductCardContainer: React.FC = () => {
 
 
   // Helper function to determine product status
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getProductStatus = (product: any): 'Active' | 'Pending Inspection' | 'Sold Out' => {
-    // Use the product's status field if available, otherwise default to Active
-    if (product.status === 'Pending Inspection' || product.status === 'Sold Out') {
-      return product.status;
+  const getProductStatus = (product: ProductDetails): 'Active' | 'Pending Inspection' | 'Sold Out' => {
+    // Map approvalStatus from API to display status
+    const approvalStatus = product.approvalStatus?.toLowerCase();
+    
+    if (approvalStatus === 'pending') {
+      return 'Pending Inspection';
     }
+    if (approvalStatus === 'approved') {
+      return 'Active';
+    }
+    if (approvalStatus === 'rejected') {
+      return 'Sold Out';
+    }
+    
+    // Fallback: check status field if approvalStatus is not available
+    if (product.status === 'Pending Inspection' || product.status === 'Sold Out') {
+      return product.status as 'Active' | 'Pending Inspection' | 'Sold Out';
+    }
+    
+    // Default to Active if no status is found
     return 'Active';
   };
 

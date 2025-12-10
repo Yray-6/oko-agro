@@ -39,11 +39,27 @@ export default function Page() {
   }, [user?.id, fetchUserProducts]);
 
   // Helper function to determine product status
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getProductStatus = (product: ProductDetails): 'Active' | 'Pending Inspection' | 'Sold Out' | 'Suspended' => {
-    // You can implement your own status logic here based on your business rules
-    // For now, returning a default status since the ProductDetails doesn't seem to have a status field
-    return 'Active'; // or check other fields to determine status
+    // Map approvalStatus from API to display status
+    const approvalStatus = product.approvalStatus?.toLowerCase();
+    
+    if (approvalStatus === 'pending') {
+      return 'Pending Inspection';
+    }
+    if (approvalStatus === 'approved') {
+      return 'Active';
+    }
+    if (approvalStatus === 'rejected') {
+      return 'Sold Out';
+    }
+    
+    // Fallback: check status field if approvalStatus is not available
+    if (product.status === 'Pending Inspection' || product.status === 'Sold Out' || product.status === 'Suspended') {
+      return product.status as 'Active' | 'Pending Inspection' | 'Sold Out' | 'Suspended';
+    }
+    
+    // Default to Active if no status is found
+    return 'Active';
   };
 
   // Helper function to format quantity display

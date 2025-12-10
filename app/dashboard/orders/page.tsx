@@ -1,6 +1,5 @@
 "use client";
 import Orders from "@/app/components/dashboard/Orders";
-import { Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import rice from "@/app/assets/images/rice.png";
 import cassava from "@/app/assets/images/yam.png";
@@ -12,11 +11,12 @@ import OrderCard from "@/app/components/dashboard/OrderCard";
 import Tick from "@/app/assets/icons/Tick";
 import Truck from "@/app/assets/icons/Truck";
 import Package from "@/app/assets/icons/Package";
-import Link from "next/link";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import { BuyRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
+import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
+import { XCircle } from "lucide-react";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -30,23 +30,41 @@ const getProductImage = (cropName: string): string => {
 
 // Helper function to convert BuyRequest to Order format for seller
 const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
-  const statusMap: { [key: string]: "Pending" | "Active" | "Completed" } = {
+  const statusMap: { [key: string]: "Pending" | "Active" | "Completed" | "Rejected" } = {
     pending: "Pending",
     accepted: "Active",
     active: "Active",
     completed: "Completed",
-    rejected: "Completed",
+    rejected: "Rejected",
     cancelled: "Completed"
   };
+
+  // Priority: orderState "completed" > status mapping
+  // If status is rejected, always set to Rejected
+  let orderStatus: "Pending" | "Active" | "Completed" | "Rejected";
+  if (buyRequest.status.toLowerCase() === "rejected") {
+    orderStatus = "Rejected";
+  } else if (buyRequest.orderState?.toLowerCase() === "completed") {
+    orderStatus = "Completed";
+  } else {
+    orderStatus = statusMap[buyRequest.status.toLowerCase()] || "Pending";
+  }
+
+  // When order is accepted, set orderState to "in_transit" if not already set
+  let orderState = buyRequest.orderState;
+  if (buyRequest.status.toLowerCase() === "accepted" && !orderState) {
+    orderState = "in_transit";
+  }
 
   return {
     id: buyRequest.requestNumber.toString(),
     buyRequestId: buyRequest.id, // Store the actual ID for API calls
+    productId: buyRequest.product?.id || undefined, // Store productId if available
     productName: buyRequest.cropType.name,
     quantity: `${buyRequest.productQuantity}${buyRequest.productQuantityUnit}`,
     price: `₦${buyRequest.pricePerUnitOffer}/${buyRequest.productQuantityUnit}`,
     certification: buyRequest.qualityStandardType.name,
-    status: statusMap[buyRequest.status.toLowerCase()] || "Pending",
+    status: orderStatus,
     createdDate: new Date(buyRequest.createdAt).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
@@ -61,8 +79,10 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     paymentTerms: buyRequest.preferredPaymentMethod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     buyerName: buyRequest.buyer.companyName || `${buyRequest.buyer.firstName} ${buyRequest.buyer.lastName}`,
     buyerLocation: buyRequest.deliveryLocation || `${buyRequest.buyer.state}, ${buyRequest.buyer.country}`,
+    deliveryLocation: buyRequest.deliveryLocation,
     productImage: getProductImage(buyRequest.cropType.name),
     originalStatus: buyRequest.status,
+    orderState: orderState, // Store orderState for accepted orders (set to in_transit if accepted)
   };
 };
 
@@ -82,7 +102,21 @@ export default function Page() {
     totalValue: 0,
     completed: 0,
     active: 0,
-    pending: 0
+    pending: 0,
+    rejected: 0
+  });
+  
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    type: 'accept' | 'reject' | null;
+    orderId: string | null;
+    orderProductId?: string;
+  }>({
+    isOpen: false,
+    type: null,
+    orderId: null,
+    orderProductId: undefined,
   });
 
   // Fetch buy requests on component mount
@@ -104,18 +138,32 @@ export default function Page() {
         return sum + (parseFloat(req.pricePerUnitOffer) * parseFloat(req.productQuantity));
       }, 0);
 
+      // Count completed orders: check orderState first, then status (exclude rejected)
       const completed = nonGeneralRequests.filter(req => {
+        // Priority: orderState "completed" takes precedence over status
+        if (req.orderState?.toLowerCase() === 'completed') {
+          return true;
+        }
         const statusLower = req.status.toLowerCase();
-        return statusLower === 'completed' || statusLower === 'rejected' || statusLower === 'cancelled';
+        return statusLower === 'completed' || statusLower === 'cancelled';
       }).length;
 
+      // Count active orders: must not be completed and status is accepted/active (exclude rejected)
       const active = nonGeneralRequests.filter(req => {
+        // Exclude if orderState is completed or status is rejected
+        if (req.orderState?.toLowerCase() === 'completed') {
+          return false;
+        }
         const statusLower = req.status.toLowerCase();
-        return statusLower === 'accepted' || statusLower === 'active';
+        return (statusLower === 'accepted' || statusLower === 'active');
       }).length;
 
       const pending = nonGeneralRequests.filter(req => 
         req.status.toLowerCase() === 'pending'
+      ).length;
+
+      const rejected = nonGeneralRequests.filter(req => 
+        req.status.toLowerCase() === 'rejected'
       ).length;
 
       setStats({
@@ -123,7 +171,8 @@ export default function Page() {
         totalValue,
         completed,
         active,
-        pending
+        pending,
+        rejected
       });
     } else {
       setStats({
@@ -131,51 +180,86 @@ export default function Page() {
         totalValue: 0,
         completed: 0,
         active: 0,
-        pending: 0
+        pending: 0,
+        rejected: 0
       });
     }
   }, [myRequests]);
 
-  // Accept order handler - Changes status to 'accepted' and moves to Active tab
-  const handleAcceptOrder = async (orderId: string) => {
-    try {
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        showToast('Accepting order...', 'info');
-        await updateBuyRequestStatus({
-          buyRequestId: order.buyRequestId,
-          status: 'accepted',
-        });
-        showToast('Order accepted successfully! It has been moved to Active orders.', 'success');
-        // Refresh the list
-        await fetchMyRequests();
-      }
-    } catch (error) {
-      console.error("Error accepting order:", error);
-      showToast('Failed to accept order. Please try again.', 'error');
+  // Open confirmation modal for accept
+  const handleAcceptOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setConfirmationModal({
+        isOpen: true,
+        type: 'accept',
+        orderId: orderId,
+        orderProductId: order.productId,
+      });
     }
   };
 
-  // Decline order handler - Changes status to 'rejected' and removes from list
-  const handleDeclineOrder = async (orderId: string) => {
-    if (window.confirm("Are you sure you want to reject this order? This action cannot be undone.")) {
-      try {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
-          showToast('Rejecting order...', 'info');
-          await updateBuyRequestStatus({
-            buyRequestId: order.buyRequestId,
-            status: 'rejected',
-          });
-          showToast('Order rejected successfully.', 'success');
-          // Refresh the list
-          await fetchMyRequests();
-        }
-      } catch (error) {
-        console.error("Error declining order:", error);
-        showToast('Failed to reject order. Please try again.', 'error');
-      }
+  // Open confirmation modal for reject
+  const handleDeclineOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setConfirmationModal({
+        isOpen: true,
+        type: 'reject',
+        orderId: orderId,
+        orderProductId: order.productId,
+      });
     }
+  };
+
+  // Confirm action handler
+  const handleConfirmAction = async () => {
+    if (!confirmationModal.orderId) return;
+
+    const order = orders.find(o => o.id === confirmationModal.orderId);
+    if (!order) return;
+
+    try {
+      const payload: {
+        buyRequestId: string;
+        status: string;
+        productId?: string;
+      } = {
+        buyRequestId: order.buyRequestId!,
+        status: confirmationModal.type === 'accept' ? 'accepted' : 'rejected',
+      };
+
+      // Only include productId if it exists
+      if (confirmationModal.orderProductId) {
+        payload.productId = confirmationModal.orderProductId;
+      }
+
+      if (confirmationModal.type === 'accept') {
+        showToast('Accepting order...', 'info');
+      } else {
+        showToast('Rejecting order...', 'info');
+      }
+
+      await updateBuyRequestStatus(payload);
+
+      if (confirmationModal.type === 'accept') {
+        showToast('Order accepted successfully! It has been moved to Active orders.', 'success');
+      } else {
+        showToast('Order rejected successfully.', 'success');
+      }
+      
+      // Close modal and refresh the list
+      setConfirmationModal({ isOpen: false, type: null, orderId: null });
+      await fetchMyRequests();
+    } catch (error) {
+      console.error(`Error ${confirmationModal.type === 'accept' ? 'accepting' : 'rejecting'} order:`, error);
+      showToast(`Failed to ${confirmationModal.type === 'accept' ? 'accept' : 'reject'} order. Please try again.`, 'error');
+    }
+  };
+
+  // Close confirmation modal
+  const handleCloseConfirmation = () => {
+    setConfirmationModal({ isOpen: false, type: null, orderId: null });
   };
 
   const handleViewProfile = (orderId: string) => {
@@ -214,10 +298,7 @@ export default function Page() {
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-9">
           {isUpdating ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mainGreen mx-auto"></div>
-              <p className="mt-4 text-gray-600">Processing order update...</p>
-            </div>
+            <AnimatedLoading/>
           ) : (
             <Orders
               orders={orders}
@@ -258,8 +339,40 @@ export default function Page() {
             iconColor="#FFDD55" 
             bgColor="bg-yellow/10" 
           />
+          <OrderCard 
+            text="Rejected Orders" 
+            count={stats.rejected} 
+            icon={XCircle} 
+            iconColor="#EF4444" 
+            bgColor="bg-red-50" 
+          />
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={handleCloseConfirmation}
+          onConfirm={handleConfirmAction}
+          title={
+            confirmationModal.type === 'accept'
+              ? 'Accept Order'
+              : 'Reject Order'
+          }
+          message={
+            confirmationModal.type === 'accept'
+              ? 'Are you sure you want to accept this order? The order will be moved to Active orders once accepted.'
+              : 'Are you sure you want to reject this order? This action cannot be undone.'
+          }
+          confirmText={
+            confirmationModal.type === 'accept' ? 'Accept Order' : 'Reject Order'
+          }
+          cancelText="Cancel"
+          type={confirmationModal.type === 'accept' ? 'success' : 'danger'}
+          isLoading={isUpdating}
+        />
+      )}
     </div>
   );
 }

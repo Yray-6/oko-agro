@@ -104,6 +104,7 @@ interface ProductState {
 
 interface ProductActions {
   fetchUserProducts: (userId: string) => Promise<void>;
+  fetchApprovedUserProducts: (userId: string) => Promise<void>;
   fetchProduct: (productId: string) => Promise<void>;
   createProduct: (data: CreateProductRequest) => Promise<ProductDetails>;
   updateProduct: (data: UpdateProductRequest) => Promise<ProductDetails>;
@@ -347,6 +348,44 @@ export const useProductStore = create<ProductStore>()(
     } catch (error) {
       console.error('❌ [Product Store] Fetch error:', error);
       const errorMessage = handleApiError(error, 'Failed to fetch products');
+      
+      set({
+        fetchError: errorMessage,
+        isFetching: false,
+        products: [],
+      });
+      throw error;
+    }
+  },
+
+  // Fetch approved user products
+  fetchApprovedUserProducts: async (userId: string) => {
+    const { setFetching, setFetchError } = get();
+    setFetching(true);
+    setFetchError(null);
+    
+    console.log('📥 [Product Store] Fetching approved products for user:', userId);
+    
+    try {
+      const response = await apiClient.get<ApiResponse<UserProducts>>(
+        `/products?action=approved-user-products&userId=${userId}`
+      );
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        const products = response.data.data.data;
+        console.log('✅ [Product Store] Approved products fetched:', products.length);
+        
+        set({
+          products: products,
+          isFetching: false,
+          fetchError: null,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch approved products');
+      }
+    } catch (error) {
+      console.error('❌ [Product Store] Fetch approved products error:', error);
+      const errorMessage = handleApiError(error, 'Failed to fetch approved products');
       
       set({
         fetchError: errorMessage,

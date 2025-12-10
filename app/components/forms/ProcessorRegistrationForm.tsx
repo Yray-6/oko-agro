@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useState, useEffect } from "react";
-import { Formik, Form, Field } from "formik";
+import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { useRouter } from "next/navigation";
 import Leaf from "@/app/assets/icons/Leaf";
@@ -14,11 +14,12 @@ import {
   FileField,
   countryOptions,
   stateOptions,
+  countryStatesMap,
   cropsOptions,
   bankOptions,
   businessTypes,
 } from "./FormFields";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import Tractor from "@/app/assets/icons/Tractor";
 import UserIcon from "@/app/assets/icons/UserIcon";
 import { useAuthStore } from "@/app/store/useAuthStore";
@@ -132,7 +133,7 @@ const stepValidationSchemas = [
   // Step 2: Company Details
   Yup.object({
     companyName: Yup.string().required("Company name is required"),
-    businessType: Yup.string().required("Business type is required"),
+    businessType: Yup.string().optional(),
     processingCapacity: Yup.string().required("Processing capacity is required"),
     capacityUnit: Yup.string().required("Capacity unit is required"),
     operatingDaysPerWeek: Yup.string().required("Operating days is required"),
@@ -239,7 +240,12 @@ const ProcessorRegistrationForm: React.FC = () => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:image/jpeg;base64, prefix and return just the base64 string
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
       reader.onerror = (error) => reject(error);
     });
   };
@@ -311,11 +317,27 @@ const ProcessorRegistrationForm: React.FC = () => {
         return;
       }
 
+      // Validate file sizes before conversion
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (values.businessLicense.size > maxSize) {
+        alert(`Business License file is too large (${(values.businessLicense.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 10MB. Please compress the file and try again.`);
+        return;
+      }
+      if (values.taxIdCertDoc.size > maxSize) {
+        alert(`Tax ID Certificate file is too large (${(values.taxIdCertDoc.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 10MB. Please compress the file and try again.`);
+        return;
+      }
+
       // Convert files to base64
       console.log("🔄 Converting files to base64...");
       
       const businessRegCertDoc = await fileToBase64(values.businessLicense);
       const taxIdCertDoc = await fileToBase64(values.taxIdCertDoc);
+      
+      // Verify base64 strings (JPEG files start with /9j/ in base64)
+      console.log("✅ Base64 strings generated:");
+      console.log("- Business Reg Cert (first 10 chars):", businessRegCertDoc.substring(0, 10));
+      console.log("- Tax ID Cert (first 10 chars):", taxIdCertDoc.substring(0, 10));
 
       // Prepare the registration data according to the unified API format
       const registrationData: RegisterUserRequest = {
@@ -335,13 +357,13 @@ const ProcessorRegistrationForm: React.FC = () => {
         companyName: values.companyName,
         businessRegNumber: values.businessRegistrationNumber,
         yearEstablished: values.yearEstablished,
-        businessType: values.businessType,
+        ...(values.businessType && { businessType: values.businessType }),
         processsingCapacitySize: values.processingCapacity, // Note: keeping original field name
         processsingCapacityUnit: values.capacityUnit,
         operatingDaysPerWeek: values.operatingDaysPerWeek,
         storageCapacity: values.storageCapacity,
         minimumOrderQuality: values.minimumOrderQuantity,
-        OperationsType: values.operationsType, // Note: keeping original casing
+        operationsType: values.operationsType,
         qualityStandardIds: values.qualityStandards,
         certificationIds: values.certifications,
         
@@ -533,20 +555,43 @@ const ProcessorRegistrationForm: React.FC = () => {
                   />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <SelectField
-                      name="country"
-                      label="Country"
-                      placeholder="Select country"
-                      options={countryOptions}
-                      required
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Country <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Field
+                          name="country"
+                          as="select"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent appearance-none pr-10"
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            setFieldValue("country", e.target.value);
+                            setFieldValue("state", ""); // Reset state when country changes
+                          }}
+                        >
+                          <option value="" className="text-[#A8A8A8]">
+                            Select country
+                          </option>
+                          {countryOptions.map((option) => (
+                            <option key={option.value} value={option.value} className="py-1">
+                              {option.label}
+                            </option>
+                          ))}
+                        </Field>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                      <ErrorMessage name="country" component="div" className="text-red-500 text-xs mt-1" />
+                    </div>
 
                     <SelectField
                       name="state"
                       label="State"
-                      placeholder="Select state"
-                      options={stateOptions}
+                      placeholder={values.country ? "Select state" : "Select country first"}
+                      options={values.country && countryStatesMap[values.country] ? countryStatesMap[values.country] : []}
                       required
+                      disabled={!values.country}
                     />
                   </div>
                 </div>

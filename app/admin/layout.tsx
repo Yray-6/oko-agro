@@ -1,7 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import Logo from "../assets/icons/Logo";
+import { useAuthStore } from "../store/useAuthStore";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -11,6 +13,25 @@ interface NavItem {
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const router = useRouter();
+  const { user, isAuthenticated, tokens, hasHydrated, logout } = useAuthStore();
+
+  // Check if user is admin or super_admin
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
+  // Redirect to login if not authenticated or not an admin
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    if (!isAuthenticated || !tokens?.accessToken || !isAdmin) {
+      router.push('/oko-admin');
+    }
+  }, [hasHydrated, isAuthenticated, tokens, isAdmin, router]);
+
+  // Show nothing while checking authentication
+  if (!hasHydrated || !isAuthenticated || !isAdmin) {
+    return null;
+  }
 
   const navItems: NavItem[] = [
     {
@@ -137,9 +158,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {/* Log Out */}
         <div className="absolute bottom-0 left-0 right-0 px-3 pb-8">
-          <a
-            href="/admin/logout"
-            className="flex items-center px-0 py-0 text-[#CD0003] rounded-lg hover:bg-red-50 transition-colors duration-200 h-[50px]"
+          <button
+            onClick={() => {
+              logout();
+              router.push('/oko-admin');
+            }}
+            className="flex items-center px-0 py-0 text-[#CD0003] rounded-lg hover:bg-red-50 transition-colors duration-200 h-[50px] w-full"
           >
             <Image
               src="/icons/logout-01.svg"
@@ -162,7 +186,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             >
               Log Out
             </span>
-          </a>
+          </button>
         </div>
       </div>
 

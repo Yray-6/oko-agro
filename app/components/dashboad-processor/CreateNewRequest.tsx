@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, Upload, FileText } from 'lucide-react';
 import { 
   TextField, 
   SelectField, 
@@ -22,6 +22,7 @@ interface CreateRequestFormValues {
   deliveryLocation: string;
   preferredPaymentMethod: string;
   description: string;
+  purchaseOrderDoc: File | null;
 }
 
 const initialValues: CreateRequestFormValues = {
@@ -34,6 +35,7 @@ const initialValues: CreateRequestFormValues = {
   deliveryLocation: '',
   preferredPaymentMethod: '',
   description: '',
+  purchaseOrderDoc: null,
 };
 
 const paymentMethodOptions = [
@@ -43,7 +45,9 @@ const paymentMethodOptions = [
   { value: 'cash', label: 'Cash' },
 ];
 
-const validationSchema = Yup.object({
+// Validation schema with conditional validation for purchaseOrderDoc
+// purchaseOrderDoc is only required when creating a specific request (sellerId or productId provided)
+const createValidationSchema = (isSpecificRequest: boolean) => Yup.object({
   cropType: Yup.string().required('Crop type is required'),
   qualityStandard: Yup.string().required('Quality standard is required'),
   requestQuantity: Yup.string().required('Request quantity is required'),
@@ -53,6 +57,14 @@ const validationSchema = Yup.object({
   deliveryLocation: Yup.string().required('Delivery location is required'),
   preferredPaymentMethod: Yup.string().required('Preferred payment method is required'),
   description: Yup.string().required('Description is required'),
+  purchaseOrderDoc: isSpecificRequest
+    ? Yup.mixed()
+        .required('Purchase order document is required for specific requests')
+        .test('fileSize', 'File size must be less than 10MB', (value) => {
+          if (!value) return false;
+          return (value as File).size <= 10 * 1024 * 1024;
+        })
+    : Yup.mixed().nullable(),
 });
 
 
@@ -83,6 +95,39 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
   const { crops, fetchCrops, qualityStandards, fetchQualityStandards } = useDataStore();
   
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix and return just the base64 string
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle file upload
+  const handleFileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setFieldValue: (field: string, value: any) => void,
+    fieldName: string
+  ) => {
+    const files = event.currentTarget.files;
+    if (!files) return;
+
+    const file = files[0];
+    if (file && file.size <= 10 * 1024 * 1024) {
+      setFieldValue(fieldName, file);
+    } else {
+      alert('File size must be less than 10MB');
+    }
+  };
 
   // Fetch crops and quality standards on mount
   useEffect(() => {
@@ -161,6 +206,9 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
     label: quality.name
   }));
 
+  // Determine if this is a specific request (from farmer-details page)
+  const isSpecificRequest = !!(productId || sellerId);
+
   // Get initial values - handles both create and edit modes
   const getInitialValues = (): CreateRequestFormValues => {
     // If editing, populate from buyRequest
@@ -175,6 +223,7 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
         deliveryLocation: buyRequest.deliveryLocation,
         preferredPaymentMethod: buyRequest.preferredPaymentMethod,
         description: buyRequest.description,
+        purchaseOrderDoc: null,
       };
     }
     
@@ -215,12 +264,20 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
       
       onSuccess(true); // true indicates it's an edit
     } else {
-      // Create new request - include cropId and isGeneral
-      const isGeneralRequest = !productId && !sellerId;
+      // Create new request
+      // All requests are general (isGeneral: true) by default
+      // Only specific requests (from farmer-details page) are not general
+      const isGeneral = !isSpecificRequest;
+      
+      // Convert purchase order file to base64 if provided (only for specific requests)
+      let purchaseOrderDocBase64: string | undefined;
+      if (!isGeneral && values.purchaseOrderDoc) {
+        purchaseOrderDocBase64 = await fileToBase64(values.purchaseOrderDoc);
+      }
 
       await createBuyRequest({
         description: values.description,
-        cropId: values.cropType, // Only for create
+        cropId: values.cropType,
         qualityStandardId: values.qualityStandard,
         productQuantity: String(values.requestQuantity),
         productQuantityUnit: values.unit,
@@ -229,9 +286,10 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
         deliveryLocation: values.deliveryLocation,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         preferredPaymentMethod: values.preferredPaymentMethod as any,
-        isGeneral: isGeneralRequest, // Only for create
+        isGeneral: isGeneral,
         ...(productId && { productId }),
         ...(sellerId && { sellerId }),
+        ...(purchaseOrderDocBase64 && { purchaseOrderDoc: purchaseOrderDocBase64 }),
       });
       
       onSuccess(false); // false indicates it's a create
@@ -280,9 +338,14 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
                 <h2 className="text-xl font-semibold text-black">
                   {isEditMode ? 'Edit Buy Request' : 'Create New Request'}
                 </h2>
-                {productId && sellerId && !isEditMode && (
+                {isSpecificRequest && !isEditMode && (
                   <p className="text-sm text-gray-500 mt-1">
-                    Creating specific request for selected product
+                    Creating specific request for selected farmer/product
+                  </p>
+                )}
+                {!isSpecificRequest && !isEditMode && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Creating general request visible to all farmers
                   </p>
                 )}
                 {isEditMode && (
@@ -303,7 +366,7 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
             <div className="flex-1 overflow-y-auto py-6 px-12">
               <Formik
                 initialValues={getInitialValues()}
-                validationSchema={validationSchema}
+                validationSchema={createValidationSchema(isSpecificRequest)}
                 onSubmit={handleSubmit}
                 enableReinitialize={true}
               >
@@ -416,6 +479,73 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
                             required
                           />
                         </div>
+
+                        {/* Request Type Info */}
+                        {!isEditMode && (
+                          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Request Type
+                                </label>
+                                <p className="text-xs text-gray-500">
+                                  {isSpecificRequest 
+                                    ? 'This is a specific request for the selected farmer/product. Purchase order document is required.'
+                                    : 'This is a general request that will be visible to all farmers'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Purchase Order Upload - Only show for specific requests (from farmer-details page) */}
+                        {isSpecificRequest && !isEditMode && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Purchase Order Document <span className="text-red-500">*</span>
+                            </label>
+                            <p className="text-xs text-gray-500 mb-3">
+                              Upload the purchase order document for this specific request (PDF, DOC, DOCX - Max 10MB)
+                            </p>
+                            <input
+                              type="file"
+                              id="purchaseOrderDoc"
+                              accept=".pdf,.doc,.docx"
+                              className="hidden"
+                              onChange={(e) => handleFileUpload(e, setFieldValue, 'purchaseOrderDoc')}
+                            />
+                            <div
+                              onClick={() => document.getElementById('purchaseOrderDoc')?.click()}
+                              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-mainGreen hover:bg-gray-50 transition-colors min-h-[150px] flex flex-col items-center justify-center"
+                            >
+                              {values.purchaseOrderDoc ? (
+                                <>
+                                  <FileText className="w-8 h-8 text-mainGreen mb-2" />
+                                  <p className="text-mainGreen font-medium mb-1">
+                                    {values.purchaseOrderDoc.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Click to change file
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                  <p className="text-mainGreen font-medium mb-1">
+                                    Upload Purchase Order
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    PDF, DOC, or DOCX (Max 10MB)
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                            {errors.purchaseOrderDoc && touched.purchaseOrderDoc && (
+                              <p className="text-red-500 text-xs mt-1">{errors.purchaseOrderDoc}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 

@@ -22,7 +22,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds timeout
+  timeout: 180000, // 180 seconds (3 minutes) to match server timeout for large file uploads
 });
 
 // Define forgot password request interface
@@ -174,12 +174,26 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
         
         try {
+          console.log('📤 Starting registration request...');
+          
+          // Log the payload being sent (sanitize sensitive data)
+          const sanitizedPayload = {
+            action: 'register',
+            ...data,
+            password: '[HIDDEN]',
+            confirmPassword: '[HIDDEN]',
+            userPhoto: 'userPhoto' in data && data.userPhoto ? `[Base64 - ${data.userPhoto.length} chars]` : undefined,
+            farmPhoto: 'farmPhoto' in data && data.farmPhoto ? `[Base64 - ${data.farmPhoto.length} chars]` : undefined,
+          };
+          console.log('📤 Register payload being sent to API route:', JSON.stringify(sanitizedPayload, null, 2));
+          
           const response = await apiClient.post<ApiResponse<RegisterUserResponse>>('', {
             action: 'register',
             ...data
           });
 
           if (response.data.statusCode === 200 && response.data.data?.id) {
+            console.log('✅ Registration successful, user ID:', response.data.data.id);
             set({ 
               registrationUserId: response.data.data.id,
               isLoading: false,
@@ -189,10 +203,29 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error(response.data.message || 'Registration failed');
           }
         } catch (error) {
-          console.error('Registration error:', error);
-          const errorMessage = error instanceof AxiosError 
-            ? error.response?.data?.message || error.message 
-            : 'Registration failed';
+          console.error('❌ Registration error:', error);
+          
+          let errorMessage = 'Registration failed. Please try again.';
+          
+          if (error instanceof AxiosError) {
+            // Use the error message from the server (which now has user-friendly messages)
+            errorMessage = error.response?.data?.message || error.message;
+            
+            // Provide additional context for specific errors
+            if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+              errorMessage = 'Registration timed out. This may happen with large file uploads. Please try again or reduce file sizes (max 10MB per file).';
+            } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+              errorMessage = 'Network error. Please check your internet connection and try again.';
+            } else if (error.response?.status === 413) {
+              errorMessage = 'File size too large. Please reduce file sizes (max 10MB per file) and try again.';
+            } else if (error.response?.status === 400) {
+              errorMessage = error.response?.data?.message || 'Invalid registration data. Please check all fields and try again.';
+            } else if (error.response?.status === 409) {
+              errorMessage = 'An account with this email already exists. Please use a different email or try logging in.';
+            } else if (error.response?.status === 500) {
+              errorMessage = 'Server error during registration. Please try again later.';
+            }
+          }
           
           set({ 
             error: errorMessage,
@@ -469,10 +502,16 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // Skip token refresh for registration, login, and other auth actions that don't require tokens
+    const requestData = originalRequest.data ? JSON.parse(originalRequest.data) : {};
+    const isAuthAction = ['register', 'login', 'verify-otp', 'resend-otp', 'forgot-password', 'reset-password'].includes(requestData.action);
+    
     // Check if error is 401 and we haven't already tried to refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Only attempt refresh for authenticated requests (not auth actions like register/login)
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthAction) {
       originalRequest._retry = true;
       
+      console.log('[Auth Store] Attempting token refresh due to 401 error');
       const store = useAuthStore.getState();
       const refreshSuccess = await store.refreshToken();
       

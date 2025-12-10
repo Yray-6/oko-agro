@@ -20,16 +20,18 @@ export interface Order {
   quantity: string;
   price: string;
   certification: string;
-  status: "Pending" | "Active" | "Completed" | "MyRequest";
+  status: "Pending" | "Active" | "Completed" | "MyRequest" | "Rejected";
   createdDate: string;
   deliveryDate?: string;
   orderValue: string;
   paymentTerms: string;
   buyerName: string;
   buyerLocation: string;
+  deliveryLocation?: string;
   productImage: string;
   isGeneral?: boolean;
   originalStatus?: string;
+  orderState?: string; // Order state for accepted orders
 }
 
 interface InvoiceData {
@@ -172,8 +174,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     <p>${invoiceData.orderValue}</p>
                   </div>
                   <div class="summary-item">
-                    <h4>Payment Terms</h4>
-                    <p>${invoiceData.paymentTerms}</p>
+                    <h4>Delivery Location</h4>
+                    <p>${invoiceData.farmerLocation}</p>
                   </div>
                   <div class="summary-item">
                     <h4>Delivery Date</h4>
@@ -350,9 +352,9 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Payment Terms</p>
+                    <p className="text-sm text-gray-600 mb-2">Delivery Location</p>
                     <p className="font-medium text-gray-900">
-                      {invoiceData.paymentTerms}
+                      {invoiceData.farmerLocation}
                     </p>
                   </div>
                   <div>
@@ -401,7 +403,7 @@ interface OrdersProps {
   onEditRequest?: (orderId: string) => void;
 }
 
-type StatusFilter = "All" | "MyRequests" | "Pending" | "Active" | "Completed";
+type StatusFilter = "All" | "MyRequests" | "Pending" | "Active" | "Completed" | "Rejected";
 
 const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   orders,
@@ -453,6 +455,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     "Pending Orders": "Pending",
     "Active Orders": "Active",
     "Completed Orders": "Completed",
+    "Rejected Orders": "Rejected",
   };
 
   const availableStatusDisplayNames = [
@@ -461,6 +464,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     "Pending Orders",
     "Active Orders",
     "Completed Orders",
+    "Rejected Orders",
   ];
 
   const filteredOrders = (() => {
@@ -474,6 +478,17 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     
     return orders.filter((order) => {
       if (order.isGeneral) return false;
+      if (activeFilter === "Rejected") {
+        return order.status === "Rejected" || order.originalStatus?.toLowerCase() === 'rejected';
+      }
+      if (activeFilter === "Completed") {
+        // Include orders with orderState "completed" even if status is "Active"
+        return order.status === "Completed" || order.orderState?.toLowerCase() === "completed";
+      }
+      if (activeFilter === "Active") {
+        // Exclude orders with orderState "completed" from Active filter
+        return order.status === "Active" && order.orderState?.toLowerCase() !== "completed";
+      }
       return order.status === activeFilter;
     });
   })();
@@ -490,29 +505,65 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     }
   };
 
-  const StatusBadge: React.FC<{ status: Order["status"]; originalStatus?: string }> = ({ status, originalStatus }) => {
-    const getStatusStyles = () => {
-      if (status === "MyRequest") {
+  const StatusBadge: React.FC<{ status: Order["status"]; originalStatus?: string; orderState?: string }> = ({ status, originalStatus, orderState }) => {
+    const getStatusStyles = (displayValue: string, currentStatus: "Pending" | "Active" | "Completed" | "MyRequest" | "Rejected") => {
+      const displayLower = displayValue.toLowerCase();
+      
+      // Check for rejected status first (highest priority)
+      if (currentStatus === "Rejected" || displayLower.includes('rejected') || originalStatus?.toLowerCase() === 'rejected') {
+        return "bg-red-500 text-white";
+      }
+      
+      if (currentStatus === "MyRequest") {
         return "bg-blue-100 text-blue-800 border border-blue-200";
       }
       
-      switch (status) {
-        case "Pending":
-          return "bg-yellow-500 text-white";
-        case "Active":
-          return "bg-green-500 text-white";
-        case "Completed":
-          return "bg-blue-100 text-blue-800 border border-blue-200";
-        default:
-          return "bg-gray-100 text-gray-800 border border-gray-200";
+      // For orderState values (only if not rejected)
+      if (displayLower.includes('awaiting_shipping') || displayLower.includes('awaiting shipping')) {
+        return "bg-blue-500 text-white";
       }
+      if (displayLower.includes('in_transit') || displayLower.includes('in transit')) {
+        return "bg-purple-500 text-white";
+      }
+      if (displayLower.includes('delivered')) {
+        return "bg-green-600 text-white";
+      }
+      if (displayLower.includes('completed')) {
+        return "bg-green-700 text-white";
+      }
+      
+      // For status values
+      if (currentStatus === "Pending") {
+        return "bg-yellow-500 text-white";
+      }
+      if (currentStatus === "Active") {
+        return "bg-green-500 text-white";
+      }
+      if (currentStatus === "Completed") {
+        return "bg-blue-100 text-blue-800 border border-blue-200";
+      }
+      return "bg-gray-100 text-gray-800 border border-gray-200";
     };
 
-    const displayStatus = status === "MyRequest" ? "General Request" : (originalStatus || status);
+    // Display orderState if order is accepted/active and orderState exists
+    // If orderState is "completed", show "Completed"
+    // Otherwise display originalStatus or status
+    // For rejected orders, always show "Rejected"
+    const isRejected = status === "Rejected" || originalStatus?.toLowerCase() === 'rejected';
+    const isCompleted = orderState?.toLowerCase() === 'completed' || status === "Completed";
+    const displayStatus = isRejected
+      ? "Rejected"
+      : status === "MyRequest"
+      ? "General Request"
+      : isCompleted
+      ? "Completed"
+      : (status === "Active" || originalStatus === "accepted") && orderState
+      ? orderState.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      : originalStatus?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || status;
 
     return (
       <span
-        className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusStyles()}`}
+        className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusStyles(displayStatus, status)}`}
       >
         {displayStatus}
       </span>
@@ -538,7 +589,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               </div>
             </div>
           </div>
-          <StatusBadge status={order.status} originalStatus={order.originalStatus} />
+          <StatusBadge status={order.status} originalStatus={order.originalStatus} orderState={order.orderState} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -596,8 +647,8 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600 mb-3">Payment Terms</p>
-            <p className="font-medium text-gray-900">{order.paymentTerms}</p>
+            <p className="text-sm text-gray-600 mb-3">Delivery Location</p>
+            <p className="font-medium text-gray-900">{order.deliveryLocation || order.buyerLocation || "N/A"}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600 mb-3">Delivery Date</p>
@@ -609,15 +660,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
 
         <div className="flex items-center flex-wrap gap-3 mt-6 pt-6 border-t border-gray-100">
           {/* Make Payment Button - Only for Active orders (processor side) */}
-          {canMakePayment && (
-            <button
-              onClick={() => onMakePayment(order.id)}
-              className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
-            >
-              <CreditCard className="w-4 h-4" />
-              Make Payment
-            </button>
-          )}
+      
 
                 {canEdit && order?.isGeneral && onEditRequest && (
             <button
@@ -639,14 +682,14 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
           )}
 
           {/* View Invoice Button - For non-pending orders */}
-          {canViewInvoice && (
+          {/* {canViewInvoice && (
             <button 
               onClick={() => handleViewInvoice(order.id)}
               className="px-6 py-2 flex items-center gap-2 border-mainGreen text-mainGreen border rounded-md hover:bg-green-50 transition-colors font-medium"
             >
               <ViewOrders color="#004829" size={20} /> View Invoice
             </button>
-          )}
+          )} */}
         </div>
       </div>
     );

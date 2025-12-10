@@ -2,9 +2,21 @@
 // app/api/events/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
+import https from 'https';
 import { ApiResponse } from '@/app/types';
 
 const baseUrl = process.env.BASE_URL || 'https://oko-agro-nestjs.onrender.com';
+
+// Create HTTPS agent with proper SSL configuration
+// This fixes SSL/TLS "bad record mac" errors that can occur due to connection reuse issues
+const httpsAgent = new https.Agent({
+  keepAlive: false, // Disable keep-alive to avoid SSL session reuse issues
+  maxSockets: Infinity,
+  maxFreeSockets: 256,
+  timeout: 30000,
+  // Reject unauthorized certificates for security
+  rejectUnauthorized: true,
+});
 
 // Configure axios instance
 const apiClient = axios.create({
@@ -13,6 +25,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000,
+  httpsAgent: httpsAgent,
 });
 
 // Add request interceptor for logging

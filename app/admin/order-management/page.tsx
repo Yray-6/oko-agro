@@ -1,7 +1,10 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Modal from "@/app/components/Modal";
+import { useAdminStore } from "@/app/store/useAdminStore";
+import { BuyRequest, OrderState } from "@/app/types";
+import AnimatedLoading from "@/app/Loading";
 
 interface Order {
   id: string;
@@ -36,184 +39,126 @@ export default function OrderManagement() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
-  const tabs = ["All Orders", "Ongoing Orders", "Pending Orders", "Delivered", "Completed"];
+  const tabs = ["All Orders", "Awaiting Shipping", "In Transit", "Delivered", "Completed"];
 
-  // All orders data
-  const [allOrders, setAllOrders] = useState<Order[]>([
-    {
-      id: "OA20398474",
-      farmer: {
-        name: "Pristine Crops & Livestocks",
-        id: "002333",
-        location: "Lagos",
-      },
-      processor: {
-        name: "Eronini Feed Mill",
-        id: "002333",
-        location: "Lagos",
-      },
-      order: {
-        product: "Long Grain Rice",
-        value: "₦350,000",
-        quantity: "500kg",
-        certification: "Grade A",
-      },
-      deliveryLocation: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      deliveryFrom: "14/15 Prince Alaba Abiodun Oniru Rd, Lagos",
-      status: "Awaiting Shipping",
-      statusColor: "#EEC41E",
-      deliveryDate: "DD: 22-09-2025",
-      orderDate: "28 Sept 2025",
-      paymentTerms: "On Delivery",
-    },
-    {
-      id: "OA20398475",
-      farmer: {
-        name: "Pristine Crops & Livestocks",
-        id: "002333",
-        location: "Lagos",
-      },
-      processor: {
-        name: "Eronini Feed Mill",
-        id: "002333",
-        location: "Lagos",
-      },
-      order: {
-        product: "Long Grain Rice",
-        value: "₦350,000",
-        quantity: "500kg",
-        certification: "Grade A",
-      },
-      deliveryLocation: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      deliveryFrom: "14/15 Prince Alaba Abiodun Oniru Rd, Lagos",
-      status: "Completed",
-      statusColor: "#0BA964",
-      deliveryDate: "DD: 22-09-2025",
-      orderDate: "28 Sept 2025",
-      paymentTerms: "On Delivery",
-    },
-    {
-      id: "OA20398476",
-      farmer: {
-        name: "Pristine Crops & Livestocks",
-        id: "002333",
-        location: "Lagos",
-      },
-      processor: {
-        name: "Eronini Feed Mill",
-        id: "002333",
-        location: "Lagos",
-      },
-      order: {
-        product: "Long Grain Rice",
-        value: "₦350,000",
-        quantity: "500kg",
-        certification: "Grade A",
-      },
-      deliveryLocation: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      deliveryFrom: "14/15 Prince Alaba Abiodun Oniru Rd, Lagos",
-      status: "In Transit",
-      statusColor: "#1E89EE",
-      deliveryDate: "DD: 22-09-2025",
-      orderDate: "28 Sept 2025",
-      paymentTerms: "On Delivery",
-    },
-    {
-      id: "OA20398477",
-      farmer: {
-        name: "Pristine Crops & Livestocks",
-        id: "002333",
-        location: "Lagos",
-      },
-      processor: {
-        name: "Eronini Feed Mill",
-        id: "002333",
-        location: "Lagos",
-      },
-      order: {
-        product: "Long Grain Rice",
-        value: "₦350,000",
-        quantity: "500kg",
-        certification: "Grade A",
-      },
-      deliveryLocation: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-      deliveryFrom: "14/15 Prince Alaba Abiodun Oniru Rd, Lagos",
-      status: "Delivered",
-      statusColor: "#0BA964",
-      deliveryDate: "DD: 22-09-2025",
-      orderDate: "28 Sept 2025",
-      paymentTerms: "On Delivery",
-    },
-    {
-      id: "OA20398478",
-      farmer: {
-        name: "Green Valley Farms",
-        id: "002336",
-        location: "Abuja",
-      },
-      processor: {
-        name: "Premium Processors Ltd",
-        id: "002338",
-        location: "Port Harcourt",
-      },
-      order: {
-        product: "Maize",
-        value: "₦450,000",
-        quantity: "700kg",
-        certification: "Grade A",
-      },
-      deliveryLocation: "Plot 45, Agricultural Zone, Abuja",
-      deliveryFrom: "Farm Road 12, Ibadan",
-      status: "Pending",
-      statusColor: "#EEC41E",
-      deliveryDate: "DD: 25-09-2025",
-      orderDate: "30 Sept 2025",
-      paymentTerms: "On Delivery",
-    },
-    {
-      id: "OA20398479",
-      farmer: {
-        name: "Organic Harvest Co",
-        id: "002337",
-        location: "Ibadan",
-      },
-      processor: {
-        name: "Augustus Processing Company",
-        id: "002339",
-        location: "Lagos",
-      },
-      order: {
-        product: "Yam",
-        value: "₦280,000",
-        quantity: "400kg",
-        certification: "Grade B",
-      },
-      deliveryLocation: "Industrial Estate, Port Harcourt",
-      deliveryFrom: "14/15 Prince Alaba Abiodun Oniru Rd, Lagos",
-      status: "Pending",
-      statusColor: "#EEC41E",
-      deliveryDate: "DD: 26-09-2025",
-      orderDate: "1 Oct 2025",
-      paymentTerms: "On Delivery",
-    },
-  ]);
+  const {
+    ongoingBuyRequests,
+    isLoadingOngoingBuyRequests,
+    isUpdatingOrderState,
+    fetchOngoingBuyRequests,
+    updateOrderState,
+  } = useAdminStore();
 
-  // Filter orders based on active tab
+  // Map BuyRequest to Order format
+  const mapBuyRequestToOrder = (buyRequest: BuyRequest): Order => {
+    const orderState = buyRequest.status || "awaiting_shipping";
+    const statusMap: Record<string, string> = {
+      "awaiting_shipping": "Awaiting Shipping",
+      "in_transit": "In Transit",
+      "delivered": "Delivered",
+      "completed": "Completed",
+    };
+    const displayStatus = statusMap[orderState] || orderState;
+
+    return {
+      id: buyRequest.id,
+      farmer: {
+        name: buyRequest.seller?.farmName || `${buyRequest.seller?.firstName || ""} ${buyRequest.seller?.lastName || ""}`.trim() || "Unknown",
+        id: buyRequest.seller?.id?.substring(0, 8).toUpperCase() || "N/A",
+        location: buyRequest.seller?.state || "Unknown",
+      },
+      processor: {
+        name: buyRequest.buyer?.companyName || `${buyRequest.buyer?.firstName || ""} ${buyRequest.buyer?.lastName || ""}`.trim() || "Unknown",
+        id: buyRequest.buyer?.id?.substring(0, 8).toUpperCase() || "N/A",
+        location: buyRequest.buyer?.state || "Unknown",
+      },
+      order: {
+        product: buyRequest.cropType?.name || buyRequest.product?.name || "Unknown",
+        value: `₦${(parseFloat(buyRequest.pricePerUnitOffer || "0") * parseFloat(buyRequest.productQuantity || "0")).toLocaleString()}`,
+        quantity: `${buyRequest.productQuantity} ${buyRequest.productQuantityUnit}`,
+        certification: buyRequest.qualityStandardType?.name || "N/A",
+      },
+      deliveryLocation: buyRequest.deliveryLocation || "N/A",
+      deliveryFrom: buyRequest.seller?.farmAddress || undefined,
+      status: displayStatus,
+      statusColor: getStatusColor(displayStatus),
+      deliveryDate: buyRequest.estimatedDeliveryDate ? new Date(buyRequest.estimatedDeliveryDate).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+      }) : "TBD",
+      orderDate: new Date(buyRequest.createdAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      paymentTerms: buyRequest.preferredPaymentMethod || "On Delivery",
+    };
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case "Awaiting Shipping":
+        return "#EEC41E";
+      case "In Transit":
+        return "#1E89EE";
+      case "Delivered":
+        return "#0BA964";
+      case "Completed":
+        return "#0BA964";
+      default:
+        return "#EEC41E";
+    }
+  };
+
+  // Convert order state display name to API format
+  const statusToOrderState = (status: string): OrderState => {
+    const statusMap: Record<string, OrderState> = {
+      "Awaiting Shipping": OrderState.AWAITING_SHIPPING,
+      "In Transit": OrderState.IN_TRANSIT,
+      "Delivered": OrderState.DELIVERED,
+      "Completed": OrderState.COMPLETED,
+    };
+    return statusMap[status] || OrderState.AWAITING_SHIPPING;
+  };
+
+  // Convert tab name to API state filter
+  const tabToStateFilter = (tab: string): string => {
+    const tabMap: Record<string, string> = {
+      "All Orders": "",
+      "Awaiting Shipping": "awaiting_shipping",
+      "In Transit": "in_transit",
+      "Delivered": "delivered",
+      "Completed": "completed",
+    };
+    return tabMap[tab] || "";
+  };
+
+  // Fetch orders when component mounts or filters change
+  useEffect(() => {
+    const stateFilter = activeTab === "All Orders" ? statusFilter : tabToStateFilter(activeTab);
+    fetchOngoingBuyRequests({
+      search: searchQuery,
+      state: stateFilter,
+      pageNumber: 1,
+      pageSize: 20,
+    });
+  }, [activeTab, searchQuery, statusFilter, fetchOngoingBuyRequests]);
+
+  // Convert ongoing buy requests to orders
+  const allOrders = ongoingBuyRequests.map(mapBuyRequestToOrder);
+
+  // Filter orders based on active tab (for additional client-side filtering if needed)
   const getFilteredOrders = () => {
     if (activeTab === "All Orders") {
-      // Show all orders
       return allOrders;
-    } else if (activeTab === "Ongoing Orders") {
-      // Show ongoing orders: Awaiting Shipping, In Transit, Delivered
-      return allOrders.filter(
-        (order) =>
-          order.status === "Awaiting Shipping" ||
-          order.status === "In Transit" ||
-          order.status === "Delivered"
-      );
-    } else if (activeTab === "Pending Orders") {
-      return allOrders.filter((order) => order.status === "Pending");
+    } else if (activeTab === "Awaiting Shipping") {
+      return allOrders.filter((order) => order.status === "Awaiting Shipping");
+    } else if (activeTab === "In Transit") {
+      return allOrders.filter((order) => order.status === "In Transit");
     } else if (activeTab === "Delivered") {
       return allOrders.filter((order) => order.status === "Delivered");
     } else if (activeTab === "Completed") {
@@ -230,18 +175,31 @@ export default function OrderManagement() {
     setShowOrderModal(true);
   };
 
-  const handleUpdateStatus = () => {
+  const handleUpdateStatus = async () => {
     if (selectedOrder && selectedStatus) {
-      // Update the order status in the orders array
-      setAllOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === selectedOrder.id
-            ? { ...order, status: selectedStatus }
-            : order
-        )
-      );
-      setShowOrderModal(false);
-      setShowSuccessModal(true);
+      try {
+        // Find the buy request ID from the selected order
+        const buyRequest = ongoingBuyRequests.find(br => br.id === selectedOrder.id);
+        if (buyRequest) {
+          const orderState = statusToOrderState(selectedStatus);
+          await updateOrderState(buyRequest.id, orderState);
+          
+          // Refresh orders after update
+          const stateFilter = activeTab === "All Orders" ? statusFilter : tabToStateFilter(activeTab);
+          await fetchOngoingBuyRequests({
+            search: searchQuery,
+            state: stateFilter,
+            pageNumber: 1,
+            pageSize: 20,
+          });
+          
+          setShowOrderModal(false);
+          setShowSuccessModal(true);
+        }
+      } catch (error) {
+        console.error("Error updating order status:", error);
+        // Keep modal open on error - could add error toast here
+      }
     }
   };
 
@@ -267,7 +225,6 @@ export default function OrderManagement() {
   };
 
   const statusOptions = [
-    "Pending",
     "Awaiting Shipping",
     "In Transit",
     "Delivered",
@@ -305,6 +262,8 @@ export default function OrderManagement() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 outline-none text-[16px] font-normal text-[#A2A2A2]"
             />
           </div>
@@ -376,7 +335,10 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  ₦ 13,250,000
+                  {isLoadingOngoingBuyRequests ? '...' : `₦ ${allOrders.reduce((sum, order) => {
+                    const value = parseFloat(order.order.value.replace(/[₦,]/g, '')) || 0;
+                    return sum + value;
+                  }, 0).toLocaleString()}`}
                 </p>
               </div>
               <Image
@@ -414,7 +376,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  432
+                  {isLoadingOngoingBuyRequests ? '...' : allOrders.length}
                 </p>
               </div>
               <Image
@@ -452,7 +414,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  420
+                  {isLoadingOngoingBuyRequests ? '...' : allOrders.filter(order => order.status === "Completed").length}
                 </p>
               </div>
               <Image
@@ -490,7 +452,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  12
+                  {isLoadingOngoingBuyRequests ? '...' : allOrders.filter(order => order.status === "Awaiting Shipping").length}
                 </p>
               </div>
               <Image
@@ -539,7 +501,9 @@ export default function OrderManagement() {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search orders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-[40px] px-[41px] bg-[#FFFFFC] border border-[#F6F4F3] rounded-[10px] outline-none text-[14px] text-[#80726B]"
                 style={{
                   fontFamily: "Effra, sans-serif",
@@ -562,13 +526,19 @@ export default function OrderManagement() {
                 height={16}
               />
               <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-transparent outline-none text-[14px] text-[#0D3F11]"
                 style={{
                   fontFamily: "Effra, sans-serif",
                   lineHeight: "1.429em",
                 }}
               >
-                <option>All Status</option>
+                <option value="">All Status</option>
+                <option value="awaiting_shipping">Awaiting Shipping</option>
+                <option value="in_transit">In Transit</option>
+                <option value="delivered">Delivered</option>
+                <option value="completed">Completed</option>
               </select>
             </div>
             {/* Export Data Button */}
@@ -652,7 +622,20 @@ export default function OrderManagement() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order, index) => (
+                {isLoadingOngoingBuyRequests ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center">
+                      <AnimatedLoading />
+                    </td>
+                  </tr>
+                ) : orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-[#80726B]">
+                      No orders found
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((order, index) => (
                   <tr key={index} className="border-b border-[#EBE7E5]">
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
@@ -927,7 +910,8 @@ export default function OrderManagement() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1509,9 +1493,9 @@ export default function OrderManagement() {
                 </button>
                 <button
                   onClick={handleUpdateStatus}
-                  disabled={selectedStatus === selectedOrder.status}
+                  disabled={selectedStatus === selectedOrder.status || isUpdatingOrderState}
                   className={`px-4 py-[9.5px] rounded-[6px] text-[14px] font-semibold text-white flex items-center gap-2 ${
-                    selectedStatus === selectedOrder.status
+                    selectedStatus === selectedOrder.status || isUpdatingOrderState
                       ? "bg-[#004829] opacity-50 cursor-not-allowed"
                       : "bg-[#004829] hover:bg-[#003d20] transition-colors"
                   }`}
@@ -1519,7 +1503,7 @@ export default function OrderManagement() {
                     lineHeight: "1.429em",
                   }}
                 >
-                  Update Status
+                  {isUpdatingOrderState ? "Updating..." : "Update Status"}
                 </button>
               </div>
             </div>

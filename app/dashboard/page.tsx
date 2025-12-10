@@ -93,11 +93,7 @@ export default function Page() {
           icon={Star}
         />
       </div>
-      <div className="grid grid-cols-12 gap-4 mb-4">
-        <div className="col-span-12">
-          <ChartCard title="User Distribution" />
-        </div>
-      </div>
+   
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-9">
           <div className="rounded-lg border border-gray-200 p-2">

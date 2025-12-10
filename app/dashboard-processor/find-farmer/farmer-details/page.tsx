@@ -24,7 +24,7 @@ export default function FarmerDetailsPage() {
   const searchParams = useSearchParams();
   const farmerId = searchParams.get("farmerId");
 
-  const { products, isFetching, fetchError, fetchUserProducts } = useProductStore();
+  const { products, isFetching, fetchError, fetchApprovedUserProducts } = useProductStore();
   const { events, isFetching: isFetchingEvents, fetchUserEvents } = useEventStore();
 
   const productOwner = products[0]?.owner;
@@ -48,12 +48,12 @@ export default function FarmerDetailsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch farmer's products
+  // Fetch farmer's approved products
   useEffect(() => {
     if (farmerId) {
-      fetchUserProducts(farmerId);
+      fetchApprovedUserProducts(farmerId);
     }
-  }, [farmerId, fetchUserProducts]);
+  }, [farmerId, fetchApprovedUserProducts]);
 
   // Fetch farmer's events
   useEffect(() => {

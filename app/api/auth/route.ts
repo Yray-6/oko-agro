@@ -1,6 +1,7 @@
 // app/api/auth/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
+import https from 'https';
 import {
   AuthApiRequest,
   ApiResponse,
@@ -17,13 +18,27 @@ import {
 
 const baseUrl = process.env.BASE_URL || 'https://oko-agro-nestjs.onrender.com'
 
-// Configure axios instance
+// Create HTTPS agent with proper SSL configuration
+// This fixes SSL/TLS "bad record mac" errors that can occur due to connection reuse issues
+const httpsAgent = new https.Agent({
+  keepAlive: false, // Disable keep-alive to avoid SSL session reuse issues
+  maxSockets: Infinity,
+  maxFreeSockets: 256,
+  timeout: 180000, // Match the longer timeout for file uploads
+  // Reject unauthorized certificates for security
+  rejectUnauthorized: true,
+});
+
+// Configure axios instance with longer timeout for registration (file uploads)
 const apiClient = axios.create({
   baseURL: baseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds timeout
+  timeout: 180000, // 180 seconds (3 minutes) for large file uploads during registration
+  // Add retry configuration for better reliability
+  validateStatus: (status) => status < 500, // Don't throw on 4xx errors
+  httpsAgent: httpsAgent,
 });
 
 // Define refresh token request interface
@@ -58,9 +73,13 @@ type ExtendedAuthApiRequest = AuthApiRequest | {
 };
 
 export async function POST(request: NextRequest) {
+  let action: string | undefined;
+  
   try {
     const body: ExtendedAuthApiRequest = await request.json();
-    const { action, ...data } = body;
+    action = body.action;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { action: _action, ...data } = body;
 
     let endpoint = '';
     let requestData: RegisterUserRequest | LoginUserRequest | VerifyOtpRequest | ResendOtpRequest | RefreshTokenRequest | ForgotPasswordRequest | ResetPasswordRequest;
@@ -114,10 +133,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Make the API call to the backend using axios
+    console.log(`[Auth API] Processing ${action} request to ${endpoint}`);
+    
+    // Log the payload being sent to backend (sanitize sensitive data)
+    if (action === 'register') {
+      const registerData = requestData as RegisterUserRequest;
+      const sanitizedData = {
+        ...registerData,
+        password: '[HIDDEN]',
+        confirmPassword: '[HIDDEN]',
+        userPhoto: 'userPhoto' in registerData && registerData.userPhoto ? `[Base64 - ${registerData.userPhoto.length} chars]` : undefined,
+        farmPhoto: 'farmPhoto' in registerData && registerData.farmPhoto ? `[Base64 - ${registerData.farmPhoto.length} chars]` : undefined,
+      };
+      console.log('[Auth API] Register payload being sent to backend:', JSON.stringify(sanitizedData, null, 2));
+    }
+    
     const response = await apiClient.post(endpoint, requestData);
 
     // For refresh token response, ensure we return the correct format
     if (action === 'refresh') {
+      console.log('[Auth API] Handling refresh token response');
       return NextResponse.json(
         {
           statusCode: 200,
@@ -145,12 +180,41 @@ export async function POST(request: NextRequest) {
       status: response.status,
     });
   } catch (error) {
-    console.error('Auth API Error:', error);
+    console.error(`[Auth API] Error for action "${action}":`, error);
         
     // Handle axios errors
     if (error instanceof AxiosError) {
       const statusCode = error.response?.status || 500;
-      const errorMessage = error.response?.data?.message || error.message || 'Request failed';
+      
+      // Log specific error details for debugging
+      if (action === 'register') {
+        console.error('[Auth API] Registration failed:', {
+          status: statusCode,
+          code: error.code,
+          message: error.message,
+          responseData: error.response?.data
+        });
+      }
+      
+      // Provide user-friendly error messages based on error type
+      let errorMessage = error.response?.data?.message || error.message || 'Request failed';
+      
+      // Handle specific error types
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        errorMessage = action === 'register' 
+          ? 'Registration request timed out. This may happen with large file uploads. Please try again or reduce file sizes.'
+          : 'Request timed out. Please try again.';
+      } else if (error.code === 'ERR_SSL_SSL/TLS_ALERT_BAD_RECORD_MAC' || error.message.includes('SSL')) {
+        errorMessage = 'Connection error. Please check your internet connection and try again.';
+      } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+        errorMessage = 'Unable to connect to the server. Please try again later.';
+      } else if (error.response?.status === 413) {
+        errorMessage = 'File size too large. Please reduce file sizes and try again.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || 'Invalid request. Please check your input and try again.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
             
       return NextResponse.json(
         {
@@ -166,7 +230,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         statusCode: 500,
-        message: 'Internal server error',
+        message: 'Internal server error. Please try again.',
         error: 'Internal Server Error'
       } as ApiResponse,
       { status: 500 }

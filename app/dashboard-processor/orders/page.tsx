@@ -1,5 +1,5 @@
 "use client";
-import { Plus } from "lucide-react";
+import { Plus, XCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import rice from "@/app/assets/images/rice.png";
 import cassava from "@/app/assets/images/yam.png";
@@ -32,21 +32,33 @@ const getProductImage = (cropName: string): string => {
 // Helper function to convert BuyRequest to Order format
 const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
   // Determine the tab category based on isGeneral and status
-  let status: "Pending" | "Active" | "Completed" | "MyRequest";
+  let status: "Pending" | "Active" | "Completed" | "MyRequest" | "Rejected";
   
   if (buyRequest.isGeneral) {
     status = "MyRequest";
   } else {
     const statusLower = buyRequest.status.toLowerCase();
-    if (statusLower === 'pending') {
+    // Priority: orderState "completed" > status mapping
+    // If orderState is completed, move to Completed regardless of status
+    if (buyRequest.orderState?.toLowerCase() === "completed") {
+      status = "Completed";
+    } else if (statusLower === 'rejected') {
+      status = "Rejected";
+    } else if (statusLower === 'pending') {
       status = "Pending";
     } else if (statusLower === 'accepted' || statusLower === 'active') {
       status = "Active";
-    } else if (statusLower === 'completed' || statusLower === 'rejected' || statusLower === 'cancelled') {
+    } else if (statusLower === 'completed' || statusLower === 'cancelled') {
       status = "Completed";
     } else {
       status = "Pending";
     }
+  }
+
+  // When order is accepted, set orderState to "in_transit" if not already set
+  let orderState = buyRequest.orderState;
+  if (buyRequest.status.toLowerCase() === "accepted" && !orderState) {
+    orderState = "in_transit";
   }
 
   return {
@@ -56,7 +68,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     quantity: `${buyRequest.productQuantity}${buyRequest.productQuantityUnit}`,
     price: `₦${buyRequest.pricePerUnitOffer}/${buyRequest.productQuantityUnit}`,
     certification: buyRequest.qualityStandardType.name,
-    status: status as "Pending" | "Active" | "Completed",
+    status: status as "Pending" | "Active" | "Completed" | "Rejected",
     createdDate: new Date(buyRequest.createdAt).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
@@ -73,9 +85,11 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
       ? `${buyRequest.seller.firstName} ${buyRequest.seller.lastName}` 
       : buyRequest.buyer.companyName || `${buyRequest.buyer.firstName} ${buyRequest.buyer.lastName}`,
     buyerLocation: buyRequest.deliveryLocation || `${buyRequest.buyer.state}, ${buyRequest.buyer.country}`,
+    deliveryLocation: buyRequest.deliveryLocation,
     productImage: getProductImage(buyRequest.cropType.name),
     isGeneral: buyRequest.isGeneral,
-    originalStatus: buyRequest.status
+    originalStatus: buyRequest.status,
+    orderState: orderState, // Store orderState for accepted orders (set to in_transit if accepted)
   };
 };
 
@@ -97,7 +111,8 @@ export default function Page() {
     totalValue: 0,
     completed: 0,
     active: 0,
-    pending: 0
+    pending: 0,
+    rejected: 0
   });
 
   // Modal states
@@ -124,18 +139,33 @@ export default function Page() {
         return sum + (parseFloat(req.pricePerUnitOffer) * parseFloat(req.productQuantity));
       }, 0);
 
-      const completed = myRequests.filter(req => 
-        req.status.toLowerCase() === 'completed' || 
-        req.status.toLowerCase() === 'rejected'
-      ).length;
+      // Count completed orders (exclude rejected)
+      // Include orders with orderState "completed" even if status is "Active"
+      const completed = myRequests.filter(req => {
+        // Priority: orderState "completed" takes precedence
+        if (req.orderState?.toLowerCase() === 'completed') {
+          return true;
+        }
+        const statusLower = req.status.toLowerCase();
+        return statusLower === 'completed' || statusLower === 'cancelled';
+      }).length;
 
-      const active = myRequests.filter(req => 
-        req.status.toLowerCase() === 'accepted' || 
-        req.status.toLowerCase() === 'active'
-      ).length;
+      // Count active orders: must not be completed and status is accepted/active (exclude rejected)
+      const active = myRequests.filter(req => {
+        // Exclude if orderState is completed or status is rejected
+        if (req.orderState?.toLowerCase() === 'completed') {
+          return false;
+        }
+        const statusLower = req.status.toLowerCase();
+        return (statusLower === 'accepted' || statusLower === 'active');
+      }).length;
 
       const pending = myRequests.filter(req => 
         req.status.toLowerCase() === 'pending'
+      ).length;
+
+      const rejected = myRequests.filter(req => 
+        req.status.toLowerCase() === 'rejected'
       ).length;
 
       setStats({
@@ -143,7 +173,8 @@ export default function Page() {
         totalValue,
         completed,
         active,
-        pending
+        pending,
+        rejected
       });
     }
   }, [myRequests]);
@@ -327,6 +358,13 @@ export default function Page() {
             icon={Package}
             iconColor="#FFDD55"
             bgColor="bg-yellow/10"
+          />
+          <OrderCard
+            text="Rejected Orders"
+            count={stats.rejected}
+            icon={XCircle}
+            iconColor="#EF4444"
+            bgColor="bg-red-50"
           />
         </div>
       </div>

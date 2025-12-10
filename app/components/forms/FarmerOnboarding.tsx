@@ -14,6 +14,7 @@ import {
   FileField,
   countryOptions,
   stateOptions,
+  countryStatesMap,
   unitOptions,
   farmingExperienceOptions,
   internetAccessOptions,
@@ -21,13 +22,20 @@ import {
   bankOptions,
   unitOptionsLand,
 } from "./FormFields";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import UserIcon from "@/app/assets/icons/UserIcon";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { useDataStore } from "@/app/store/useDataStore";
 import { Crop, RegisterUserRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 import Modal from "../Modal";
+
+// Production unit options
+const productionUnitOptions = [
+  { value: "tonne", label: "Tonne" },
+  { value: "kg", label: "Kilogram (kg)" },
+  { value: "tons", label: "Tons" },
+];
 import Image from "next/image";
 
 // TypeScript interfaces
@@ -47,6 +55,7 @@ interface FormValues {
   farmSize: string;
   unit: string;
   estimatedAnnualProduction: string;
+  estimatedAnnualProductionUnit: string;
 
   // Step 3: Experience Assessment
   farmingExperience: string;
@@ -79,6 +88,7 @@ const initialValues: FormValues = {
   farmSize: "",
   unit: "",
   estimatedAnnualProduction: "",
+  estimatedAnnualProductionUnit: "",
   farmingExperience: "",
   internetAccess: "",
   currentSellingMethod: "",
@@ -138,6 +148,7 @@ const stepValidationSchemas = [
         const decimalPlaces = (value.split('.')[1] || '').length;
         return decimalPlaces <= 2;
       }),
+    estimatedAnnualProductionUnit: Yup.string().required("Production unit is required"),
   }),
 
   // Step 3: Experience Assessment
@@ -216,6 +227,7 @@ const fullValidationSchema = Yup.object({
       const decimalPlaces = (value.split('.')[1] || '').length;
       return decimalPlaces <= 2;
     }),
+  estimatedAnnualProductionUnit: Yup.string().required("Production unit is required"),
 
   // Step 3: Experience Assessment
   farmingExperience: Yup.string().required(
@@ -300,7 +312,12 @@ const FarmerRegistrationForm: React.FC = () => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:image/jpeg;base64, prefix and return just the base64 string
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
       reader.onerror = (error) => reject(error);
     });
   };
@@ -362,6 +379,7 @@ const FarmerRegistrationForm: React.FC = () => {
         "farmSize",
         "unit",
         "estimatedAnnualProduction",
+        "estimatedAnnualProductionUnit",
       ],
       2: ["farmingExperience", "internetAccess", "currentSellingMethod"],
       3: ["farmPhoto", "farmerPhoto"],
@@ -412,6 +430,19 @@ const handleSubmit = async (
       return;
     }
 
+    // Validate file sizes before conversion
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (values.farmPhoto.size > maxSize) {
+      alert(`Farm photo is too large (${(values.farmPhoto.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 10MB. Please compress the image and try again.`);
+      setSubmitting(false);
+      return;
+    }
+    if (values.farmerPhoto.size > maxSize) {
+      alert(`Farmer photo is too large (${(values.farmerPhoto.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 10MB. Please compress the image and try again.`);
+      setSubmitting(false);
+      return;
+    }
+
     // Convert files to base64
     console.log("🔄 Converting files to base64...");
     const userPhoto = await fileToBase64(values.farmerPhoto);
@@ -419,6 +450,32 @@ const handleSubmit = async (
     console.log("✅ Files converted to base64");
     console.log("- User photo length:", userPhoto.length);
     console.log("- Farm photo length:", farmPhoto.length);
+    // Verify base64 strings (JPEG files start with /9j/ in base64, PNG files start with iVBORw0KG)
+    console.log("- User photo (first 10 chars):", userPhoto.substring(0, 10));
+    console.log("- Farm photo (first 10 chars):", farmPhoto.substring(0, 10));
+    
+    // Validate base64 strings are complete (not truncated)
+    if (!userPhoto || userPhoto.length < 100) {
+      console.error("❌ User photo base64 string appears to be incomplete or too short");
+      alert("Error: User photo encoding failed. Please try uploading the image again.");
+      setSubmitting(false);
+      return;
+    }
+    if (!farmPhoto || farmPhoto.length < 100) {
+      console.error("❌ Farm photo base64 string appears to be incomplete or too short");
+      alert("Error: Farm photo encoding failed. Please try uploading the image again.");
+      setSubmitting(false);
+      return;
+    }
+    
+    // Validate base64 strings end properly (should end with = or == for padding)
+    const validBase64Ending = /[A-Za-z0-9+/]{1,2}={0,2}$/;
+    if (!validBase64Ending.test(userPhoto.slice(-2))) {
+      console.warn("⚠️ User photo base64 string may be incomplete (unusual ending)");
+    }
+    if (!validBase64Ending.test(farmPhoto.slice(-2))) {
+      console.warn("⚠️ Farm photo base64 string may be incomplete (unusual ending)");
+    }
 
     // Prepare the registration data according to the API format
     // IMPORTANT: Convert numeric fields to strings here
@@ -435,6 +492,7 @@ const handleSubmit = async (
       farmSizeUnit: values.unit as "hectare" | "acre",
       cropIds: values.cropsGrown, // These are now crop IDs from the API
       estimatedAnnualProduction: String(values.estimatedAnnualProduction), // Convert to string
+      estimatedAnnualProductionUnit: values.estimatedAnnualProductionUnit as "tonne" | "kg" | "tons",
       farmingExperience: values.farmingExperience,
       internetAccess: values.internetAccess,
       howUserSellCrops: values.currentSellingMethod,
@@ -670,20 +728,43 @@ const handleSubmit = async (
                   />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <SelectField
-                      name="country"
-                      label="Country"
-                      placeholder="Select country"
-                      options={countryOptions}
-                      required
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-1">
+                        Country <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Field
+                          name="country"
+                          as="select"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent appearance-none pr-10"
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            setFieldValue("country", e.target.value);
+                            setFieldValue("state", ""); // Reset state when country changes
+                          }}
+                        >
+                          <option value="" className="text-[#A8A8A8]">
+                            Select country
+                          </option>
+                          {countryOptions.map((option) => (
+                            <option key={option.value} value={option.value} className="py-1">
+                              {option.label}
+                            </option>
+                          ))}
+                        </Field>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                      <ErrorMessage name="country" component="div" className="text-red-500 text-xs mt-1" />
+                    </div>
 
                     <SelectField
                       name="state"
                       label="State"
-                      placeholder="Select state"
-                      options={stateOptions}
+                      placeholder={values.country ? "Select state" : "Select country first"}
+                      options={values.country && countryStatesMap[values.country] ? countryStatesMap[values.country] : []}
                       required
+                      disabled={!values.country}
                     />
                   </div>
                 </div>
@@ -834,7 +915,7 @@ const handleSubmit = async (
                     />
                   </div>
 
-                  <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <TextField
                       name="estimatedAnnualProduction"
                       label="Estimated Annual Production"
@@ -842,11 +923,17 @@ const handleSubmit = async (
                       type="number"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      This helps processors understand your supply capacity (in
-                      tons)
-                    </p>
+                    <SelectField
+                      name="estimatedAnnualProductionUnit"
+                      label="Production Unit"
+                      placeholder="Select Unit"
+                      options={productionUnitOptions}
+                      required
+                    />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    This helps processors understand your supply capacity
+                  </p>
                 </div>
               )}
 
