@@ -987,8 +987,7 @@ export default function AdminDashboard() {
                   ) : orders.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-8 text-center text-[#80726B]">
-                        No ongoing orders found
-                      </td>
+                        No ongoing orders found- click on filters to see orders</td>
                     </tr>
                   ) : (
                     orders.map((order) => (
