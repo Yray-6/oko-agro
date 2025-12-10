@@ -107,17 +107,17 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       href: "/dashboard/products",
     },
     { icon: <Orders size={20} />, label: "Orders", href: "/dashboard/orders" },
-    {
-      icon: <TransactionHistory size={20} />,
-      label: "Transaction History",
-      href: "/dashboard/transactions",
-    },
+    // {
+    //   icon: <TransactionHistory size={20} />,
+    //   label: "Transaction History",
+    //   href: "/dashboard/transactions",
+    // },
     {
       icon: <Calendar size={20} />,
       label: "Calendar",
       href: "/dashboard/calendar",
     },
-    { icon: <Message size={20} />, label: "Messages", href: "/messages" },
+    // { icon: <Message size={20} />, label: "Messages", href: "/messages" },
     {
       icon: <Settings size={20} />,
       label: "Settings",

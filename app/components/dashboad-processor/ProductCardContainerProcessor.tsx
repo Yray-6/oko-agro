@@ -30,19 +30,29 @@ const ProductCardContainerProcessor: React.FC = () => {
       return '/assets/images/default-crop.png'; // fallback image
     };
 
-    // Map status - pass through the actual status from API
-    const getStatusDisplay = (status: string): string => {
-      // Return the status as-is if it's one of the valid statuses
-      const validStatuses = ['pending', 'accepted', 'awaiting_shipping', 'in_transit', 'delivered', 'completed'];
+    // Map status - prioritize orderState "completed" over status
+    // If orderState is "completed", set status to "completed"
+    // If status is "rejected", set status to "rejected"
+    const getStatusDisplay = (status: string, orderState?: string): string => {
       const normalizedStatus = status.toLowerCase();
       
+      // Priority: orderState "completed" > rejected status > other statuses
+      if (orderState?.toLowerCase() === 'completed') {
+        return 'completed';
+      }
+      
+      if (normalizedStatus === 'rejected') {
+        return 'rejected';
+      }
+      
+      // Return the status as-is if it's one of the valid statuses
+      const validStatuses = ['pending', 'accepted', 'awaiting_shipping', 'in_transit', 'delivered', 'completed'];
       if (validStatuses.includes(normalizedStatus)) {
         return normalizedStatus;
       }
       
       // Fallback for legacy statuses
       const statusMap: Record<string, string> = {
-        'rejected': 'completed',
         'cancelled': 'completed',
       };
       
@@ -55,7 +65,7 @@ const ProductCardContainerProcessor: React.FC = () => {
       quantity: `${request.productQuantity} ${request.productQuantityUnit}`,
       price: `₦${parseFloat(request.pricePerUnitOffer || '0').toLocaleString()}/${request.productQuantityUnit}`,
       certification: request.qualityStandardType?.name || 'N/A',
-      status: getStatusDisplay(request.status) as Product['status'],
+      status: getStatusDisplay(request.status, request.orderState) as Product['status'],
       listedDate: new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',
@@ -66,6 +76,8 @@ const ProductCardContainerProcessor: React.FC = () => {
       requestNumber: request.requestNumber,
       deliveryLocation: request.deliveryLocation,
       description: request.description,
+      originalStatus: request.status,
+      orderState: request.orderState,
     };
   };
 

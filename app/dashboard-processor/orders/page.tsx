@@ -90,6 +90,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     isGeneral: buyRequest.isGeneral,
     originalStatus: buyRequest.status,
     orderState: orderState, // Store orderState for accepted orders (set to in_transit if accepted)
+    purchaseOrderDoc: buyRequest.purchaseOrderDoc || undefined,
   };
 };
 

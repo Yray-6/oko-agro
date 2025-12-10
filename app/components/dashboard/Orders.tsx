@@ -30,6 +30,17 @@ export interface Order {
   productImage: string;
   originalStatus?: string;
   orderState?: string; // Order state for accepted orders
+  purchaseOrderDoc?: {
+    id: string;
+    name: string;
+    url: string;
+    publicId: string;
+    description: string;
+    mimeType: string;
+    size: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 }
 
 interface OrdersProps {
@@ -386,38 +397,51 @@ const Orders: React.FC<OrdersProps> = ({
           </div>
         </div>
 
-        {isPending && (onAcceptOrder || onDeclineOrder) && (
-          <div className="flex items-center justify-between space-x-3 mt-6 pt-6 border-t border-gray-100">
-           <div className="flex items-center space-x-3">
-           {onAcceptOrder && (
-              <button
-                onClick={() => onAcceptOrder(order.id)}
-                className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
-              >
-               
-                Accept Order
-              </button>
+        <div className="flex items-center justify-between space-x-3 mt-6 pt-6 border-t border-gray-100">
+          <div className="flex items-center space-x-3">
+            {isPending && (onAcceptOrder || onDeclineOrder) && (
+              <>
+                {onAcceptOrder && (
+                  <button
+                    onClick={() => onAcceptOrder(order.id)}
+                    className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
+                  >
+                    Accept Order
+                  </button>
+                )}
+                {onDeclineOrder && (
+                  <button
+                    onClick={() => onDeclineOrder(order.id)}
+                    className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
+                  >
+                    Reject Order
+                  </button>
+                )}
+              </>
             )}
-            {onDeclineOrder && (
-              <button
-                onClick={() => onDeclineOrder(order.id)}
-                className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
-              >
-             
-                Reject Order
-              </button>
-            )}
-           </div>
-         
-             <button
-              onClick={handleDownloadPurchaseOrder}
-              className="px-6 py-2 flex items-center  gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+          </div>
+          
+          {order.purchaseOrderDoc?.url ? (
+            <a
+              href={order.purchaseOrderDoc.url}
+              download={order.purchaseOrderDoc.name}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
             >
               <Download className="w-4 h-4" />
-              Purchase Order
+              Download Purchase Order
+            </a>
+          ) : (
+            <button
+              onClick={handleDownloadPurchaseOrder}
+              className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+            >
+              <Download className="w-4 h-4" />
+              View Purchase Order
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
 
  

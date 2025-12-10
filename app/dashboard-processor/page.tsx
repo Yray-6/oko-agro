@@ -35,7 +35,15 @@ export default function Page() {
   }, [user?.id, fetchMyRequests]);
 
   // Calculate active requests count
-  const activeRequestsCount = myRequests.filter(req => req.status === 'pending').length;
+  // Active requests are those with status 'accepted' or 'active', excluding those with orderState 'completed'
+  const activeRequestsCount = myRequests.filter(req => {
+    // Exclude if orderState is completed or status is rejected
+    if (req.orderState?.toLowerCase() === 'completed') {
+      return false;
+    }
+    const statusLower = req.status.toLowerCase();
+    return (statusLower === 'accepted' || statusLower === 'active');
+  }).length;
 
   // Calculate total expense (sum of all request prices)
   const totalExpense = myRequests.reduce((acc, req) => {

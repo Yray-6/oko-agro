@@ -626,6 +626,7 @@ export interface BuyRequest {
   paymentAmount?: string;
   paymentConfirmed?: boolean;
   paymentConfirmedAt?: string;
+  purchaseOrderDoc?: UserFile | null; // Purchase order document
 }
 
 // Create Buy Request Payload

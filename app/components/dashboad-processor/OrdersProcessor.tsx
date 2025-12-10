@@ -32,6 +32,17 @@ export interface Order {
   isGeneral?: boolean;
   originalStatus?: string;
   orderState?: string; // Order state for accepted orders
+  purchaseOrderDoc?: {
+    id: string;
+    name: string;
+    url: string;
+    publicId: string;
+    description: string;
+    mimeType: string;
+    size: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 }
 
 interface InvoiceData {
@@ -690,6 +701,20 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               <ViewOrders color="#004829" size={20} /> View Invoice
             </button>
           )} */}
+
+          {/* Purchase Order Download Button - Show if purchaseOrderDoc exists */}
+          {order.purchaseOrderDoc?.url && (
+            <a
+              href={order.purchaseOrderDoc.url}
+              download={order.purchaseOrderDoc.name}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Download Purchase Order
+            </a>
+          )}
         </div>
       </div>
     );

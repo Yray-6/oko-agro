@@ -7,13 +7,15 @@ export interface Product {
   quantity: string;
   price: string;
   certification: string;
-  status: 'pending' | 'accepted' | 'awaiting_shipping' | 'in_transit' | 'delivered' | 'completed' | 'Active' | 'Pending Inspection' | 'Sold Out';
+  status: 'pending' | 'accepted' | 'awaiting_shipping' | 'in_transit' | 'delivered' | 'completed' | 'Active' | 'Pending Inspection' | 'Sold Out' | 'rejected';
   listedDate: string;
   image: string;
   slug?: string;
   requestNumber?: number | string;
   deliveryLocation?: string;
   description?: string;
+  originalStatus?: string;
+  orderState?: string;
 }
 
 interface ProductCardProps {
@@ -22,12 +24,35 @@ interface ProductCardProps {
 
 interface StatusBadgeProps {
   status: Product['status'];
+  originalStatus?: string;
+  orderState?: string;
 }
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const getStatusStyles = () => {
-    const normalizedStatus = status.toLowerCase();
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status, originalStatus, orderState }) => {
+  const getStatusStyles = (displayValue: string, currentStatus: Product['status']) => {
+    const displayLower = displayValue.toLowerCase();
     
+    // Check for rejected status first (highest priority)
+    if (currentStatus === 'rejected' || displayLower.includes('rejected') || originalStatus?.toLowerCase() === 'rejected') {
+      return 'bg-red-500 text-white';
+    }
+    
+    // For orderState values (only if not rejected)
+    if (displayLower.includes('awaiting_shipping') || displayLower.includes('awaiting shipping')) {
+      return 'bg-blue-500 text-white';
+    }
+    if (displayLower.includes('in_transit') || displayLower.includes('in transit')) {
+      return 'bg-purple-500 text-white';
+    }
+    if (displayLower.includes('delivered')) {
+      return 'bg-green-600 text-white';
+    }
+    if (displayLower.includes('completed')) {
+      return 'bg-green-700 text-white';
+    }
+    
+    // For status values
+    const normalizedStatus = currentStatus.toLowerCase();
     switch (normalizedStatus) {
       case 'active':
       case 'accepted':
@@ -35,21 +60,34 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       case 'pending':
       case 'pending inspection':
         return 'bg-yellow-500 text-white';
-      case 'awaiting_shipping':
-        return 'bg-blue-500 text-white';
-      case 'in_transit':
-        return 'bg-purple-500 text-white';
-      case 'delivered':
-        return 'bg-indigo-500 text-white';
       case 'completed':
       case 'sold out':
-        return 'bg-gray-500 text-white';
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'rejected':
+        return 'bg-red-500 text-white';
       default:
         return 'bg-gray-400 text-white';
     }
   };
 
-  const getStatusDisplay = (status: string): string => {
+  const getStatusDisplay = (): string => {
+    // If orderState is "completed", show "Completed"
+    const isCompleted = orderState?.toLowerCase() === 'completed' || status === 'completed';
+    const isRejected = status === 'rejected' || originalStatus?.toLowerCase() === 'rejected';
+    
+    if (isRejected) {
+      return 'Rejected';
+    }
+    
+    if (isCompleted) {
+      return 'Completed';
+    }
+    
+    // Display orderState if order is accepted/active and orderState exists
+    if ((status === 'accepted' || originalStatus === 'accepted') && orderState) {
+      return orderState.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
     const statusMap: Record<string, string> = {
       'pending': 'Pending',
       'accepted': 'Accepted',
@@ -60,14 +98,17 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       'active': 'Active',
       'pending inspection': 'Pending Inspection',
       'sold out': 'Sold Out',
+      'rejected': 'Rejected',
     };
     
-    return statusMap[status.toLowerCase()] || status;
+    return statusMap[originalStatus?.toLowerCase() || status.toLowerCase()] || status;
   };
 
+  const displayStatus = getStatusDisplay();
+
   return (
-    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusStyles()}`}>
-      {getStatusDisplay(status)}
+    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusStyles(displayStatus, status)}`}>
+      {displayStatus}
     </span>
   );
 };
@@ -127,7 +168,7 @@ const ProductCardProcessor: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </div>
       <div className="flex flex-col items-end justify-between ml-4 flex-shrink-0">
-        <StatusBadge status={product.status} />
+        <StatusBadge status={product.status} originalStatus={product.originalStatus} orderState={product.orderState} />
       </div>
     </div>
   );
