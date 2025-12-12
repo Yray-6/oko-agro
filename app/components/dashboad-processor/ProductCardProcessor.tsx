@@ -114,7 +114,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, originalStatus, order
 };
 
 const ProductCardProcessor: React.FC<ProductCardProps> = ({ product }) => {
-  const productUrl = `/dashboard-processor/requests/${product.slug || product.id}`;
+  const productUrl = `/dashboard-processor/orders`;
 
   return (
     <div className="flex items-start justify-between p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">

@@ -33,6 +33,7 @@ interface Order {
   deliveryDate: string;
   orderDate?: string;
   paymentTerms?: string;
+  orderState?: string;
 }
 
 export default function AdminDashboard() {
@@ -63,7 +64,18 @@ export default function AdminDashboard() {
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
-    setSelectedStatus(order.status);
+    // Use orderState if available, otherwise use status
+    // Map orderState to display format
+    const orderStateMap: Record<string, string> = {
+      "awaiting_shipping": "Awaiting Shipping",
+      "in_transit": "In Transit",
+      "delivered": "Delivered",
+      "completed": "Completed",
+    };
+    const initialStatus = order.orderState 
+      ? orderStateMap[order.orderState.toLowerCase()] || order.status
+      : order.status;
+    setSelectedStatus(initialStatus);
     setShowOrderModal(true);
   };
 
@@ -90,14 +102,18 @@ export default function AdminDashboard() {
 
   // Map BuyRequest to Order format
   const mapBuyRequestToOrder = (buyRequest: BuyRequest): Order => {
-    const orderState = buyRequest.status || "Awaiting Shipping";
+    // Priority: use orderState if available, otherwise use status
+    const orderStateValue = buyRequest.orderState || buyRequest.status || "awaiting_shipping";
     const statusMap: Record<string, string> = {
       "awaiting_shipping": "Awaiting Shipping",
       "in_transit": "In Transit",
       "delivered": "Delivered",
       "completed": "Completed",
+      "pending": "Pending",
+      "accepted": "Awaiting Shipping",
+      "active": "In Transit",
     };
-    const displayStatus = statusMap[orderState] || orderState;
+    const displayStatus = statusMap[orderStateValue.toLowerCase()] || orderStateValue;
 
     return {
       id: buyRequest.id,
@@ -132,6 +148,7 @@ export default function AdminDashboard() {
         year: "numeric",
       }),
       paymentTerms: buyRequest.preferredPaymentMethod || "On Delivery",
+      orderState: buyRequest.orderState || undefined,
     };
   };
 
@@ -1237,7 +1254,7 @@ export default function AdminDashboard() {
         {selectedOrder && (
           <div className="p-[25px]">
             {/* Header */}
-            <div className="flex justify-between items-center mb-4 relative">
+            <div className="flex justify-between items-center mb-4 relative pr-12">
               <div className="flex items-center gap-2">
                 <Image
                   src="/icons/invoice-04.svg"
@@ -1255,7 +1272,7 @@ export default function AdminDashboard() {
                   Order Details - #{selectedOrder.id}
                 </h2>
               </div>
-              {/* Status Badge */}
+              {/* Status Badge - positioned to not conflict with close button */}
               <div
                 className={`inline-flex items-center gap-[6.75px] px-[11.75px] py-[11.75px] rounded-[11.75px] ${getStatusBadgeStyle(
                   selectedOrder.status
@@ -1403,15 +1420,37 @@ export default function AdminDashboard() {
               <div className="flex gap-[9px]">
                 {/* Product Information */}
                 <div className="flex-1 bg-white border border-[rgba(229,231,235,0.5)] rounded-[8px] p-[17px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] relative">
-                  <div className="w-[51px] h-[57px] rounded-[7px] overflow-hidden mb-4">
-                    <Image
-                      src="/assets/images/rice.png"
-                      alt={selectedOrder.order.product}
-                      width={51}
-                      height={57}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  {/* Product Image - with fallback */}
+                  {selectedOrder.order.product && (
+                    <div className="w-[51px] h-[57px] rounded-[7px] overflow-hidden mb-4 bg-gray-100 flex items-center justify-center">
+                      {(() => {
+                        const productName = selectedOrder.order.product.toLowerCase();
+                        let imageSrc = "/assets/images/rice.png"; // default
+                        if (productName.includes("cassava") || productName.includes("yam")) {
+                          imageSrc = "/assets/images/yam.png";
+                        } else if (productName.includes("maize") || productName.includes("corn")) {
+                          imageSrc = "/assets/images/maize.png";
+                        } else if (productName.includes("potato")) {
+                          imageSrc = "/assets/images/potato.png";
+                        } else if (productName.includes("rice")) {
+                          imageSrc = "/assets/images/rice.png";
+                        }
+                        return (
+                          <Image
+                            src={imageSrc}
+                            alt={selectedOrder.order.product}
+                            width={51}
+                            height={57}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Hide image on error
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        );
+                      })()}
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1">
                     <p
                       className="text-[12px] font-normal text-black"

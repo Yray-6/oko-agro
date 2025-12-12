@@ -33,8 +33,8 @@ import Modal from "../Modal";
 // Production unit options
 const productionUnitOptions = [
   { value: "tonne", label: "Tonne" },
-  { value: "kg", label: "Kilogram (kg)" },
-  { value: "tons", label: "Tons" },
+  { value: "kilogram", label: "Kilogram (kg)" },
+ 
 ];
 import Image from "next/image";
 

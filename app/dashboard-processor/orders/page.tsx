@@ -16,6 +16,7 @@ import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import { BuyRequest } from "@/app/types";
 import CreateNewRequestModal from "@/app/components/dashboad-processor/CreateNewRequest";
 import { SuccessModal } from "@/app/components/dashboard/ProductModal";
+import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
 
@@ -120,6 +121,15 @@ export default function Page() {
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [editingBuyRequest, setEditingBuyRequest] = useState<BuyRequest | null>(null);
+  const [cancelConfirmationModal, setCancelConfirmationModal] = useState<{
+    isOpen: boolean;
+    orderId: string | null;
+    buyRequestId: string | null;
+  }>({
+    isOpen: false,
+    orderId: null,
+    buyRequestId: null,
+  });
 
   // Fetch buy requests on component mount
   useEffect(() => {
@@ -202,18 +212,36 @@ export default function Page() {
   };
 
 
-  // Cancel/Delete request handler
-  const handleDeclineOrder = async (orderId: string) => {
-    if (window.confirm("Are you sure you want to cancel this request?")) {
-      try {
-        const buyRequest = myRequests.find(req => req.requestNumber.toString() === orderId);
-        if (buyRequest) {
-          await deleteBuyRequest(buyRequest.id);
-        }
-      } catch (error) {
-        console.error("Error deleting request:", error);
-      }
+  // Cancel/Delete request handler - open confirmation modal
+  const handleDeclineOrder = (orderId: string) => {
+    const buyRequest = myRequests.find(req => req.requestNumber.toString() === orderId);
+    if (buyRequest) {
+      setCancelConfirmationModal({
+        isOpen: true,
+        orderId: orderId,
+        buyRequestId: buyRequest.id,
+      });
     }
+  };
+
+  // Confirm cancel action
+  const handleConfirmCancel = async () => {
+    if (!cancelConfirmationModal.buyRequestId) return;
+
+    try {
+      await deleteBuyRequest(cancelConfirmationModal.buyRequestId);
+      showToast('Request cancelled successfully!', 'success');
+      setCancelConfirmationModal({ isOpen: false, orderId: null, buyRequestId: null });
+      await fetchMyRequests();
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      showToast('Failed to cancel request. Please try again.', 'error');
+    }
+  };
+
+  // Close cancel confirmation modal
+  const handleCloseCancelModal = () => {
+    setCancelConfirmationModal({ isOpen: false, orderId: null, buyRequestId: null });
   };
 
   // Make payment handler - for Active orders (DUMMY IMPLEMENTATION)
@@ -283,6 +311,7 @@ export default function Page() {
   const closeAllModals = () => {
     setShowCreateRequestModal(false);
     setShowSuccessModal(false);
+    setCancelConfirmationModal({ isOpen: false, orderId: null, buyRequestId: null });
   };
 
   if (isFetching) {
@@ -379,12 +408,25 @@ export default function Page() {
       />
 
       {/* Success Modal */}
-    <SuccessModal
+      <SuccessModal
         isOpen={showSuccessModal}
         onClose={closeAllModals}
         title="Success!"
         message={editingBuyRequest ? "Buy request updated successfully!" : "Buy request created successfully!"}
         buttonText="Continue"
+      />
+
+      {/* Cancel Request Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={cancelConfirmationModal.isOpen}
+        onClose={handleCloseCancelModal}
+        onConfirm={handleConfirmCancel}
+        title="Cancel Request"
+        message="Are you sure you want to cancel this request? This action cannot be undone."
+        confirmText="Cancel Request"
+        cancelText="Keep Request"
+        type="danger"
+        isLoading={isDeleting}
       />
     </div>
   );

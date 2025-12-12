@@ -192,7 +192,8 @@ export const useAuthStore = create<AuthStore>()(
             ...data
           });
 
-          if (response.data.statusCode === 200 && response.data.data?.id) {
+          // Accept both 200 and 201 status codes (201 is standard for creation)
+          if ((response.data.statusCode === 200 || response.data.statusCode === 201) && response.data.data?.id) {
             console.log('✅ Registration successful, user ID:', response.data.data.id);
             set({ 
               registrationUserId: response.data.data.id,
