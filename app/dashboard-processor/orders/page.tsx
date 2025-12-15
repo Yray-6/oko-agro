@@ -13,7 +13,7 @@ import Truck from "@/app/assets/icons/Truck";
 import Package from "@/app/assets/icons/Package";
 import OrdersProcessorWithInvoice from "@/app/components/dashboad-processor/OrdersProcessor";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
-import { BuyRequest } from "@/app/types";
+import { BuyRequest, OrderState } from "@/app/types";
 import CreateNewRequestModal from "@/app/components/dashboad-processor/CreateNewRequest";
 import { SuccessModal } from "@/app/components/dashboard/ProductModal";
 import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
@@ -103,6 +103,7 @@ export default function Page() {
     deleteBuyRequest,
     isDeleting,
     updateBuyRequest,
+    updateOrderState,
     isUpdating
   } = useBuyRequestStore();
 
@@ -297,6 +298,22 @@ export default function Page() {
     // e.g., open chat modal or navigate to messages
   };
 
+  // Handle update order state
+  const handleUpdateOrderState = async (orderId: string, buyRequestId: string, newState: string) => {
+    try {
+      showToast('Updating order state...', 'info');
+      await updateOrderState({
+        buyRequestId,
+        orderState: newState as OrderState,
+      });
+      showToast('Order state updated successfully!', 'success');
+      await fetchMyRequests();
+    } catch (error) {
+      console.error('Error updating order state:', error);
+      showToast('Failed to update order state. Please try again.', 'error');
+    }
+  };
+
   const handleNewRequestClick = () => {
     setEditingBuyRequest(null);
     setShowCreateRequestModal(true);
@@ -356,6 +373,7 @@ export default function Page() {
               onViewProfile={handleViewProfile}
               onMessage={handleMessage}
               onMakePayment={handleMakePayment}
+              onUpdateOrderState={handleUpdateOrderState}
             />
           )}
         </div>

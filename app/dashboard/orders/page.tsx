@@ -12,7 +12,7 @@ import Tick from "@/app/assets/icons/Tick";
 import Truck from "@/app/assets/icons/Truck";
 import Package from "@/app/assets/icons/Package";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
-import { BuyRequest } from "@/app/types";
+import { BuyRequest, OrderState } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
 import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
@@ -50,10 +50,10 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     orderStatus = statusMap[buyRequest.status.toLowerCase()] || "Pending";
   }
 
-  // When order is accepted, set orderState to "in_transit" if not already set
+  // When order is accepted, set orderState to "awaiting_shipping" if not already set
   let orderState = buyRequest.orderState;
   if (buyRequest.status.toLowerCase() === "accepted" && !orderState) {
-    orderState = "in_transit";
+    orderState = "awaiting_shipping";
   }
 
   return {
@@ -92,6 +92,7 @@ export default function Page() {
     myRequests, 
     fetchMyRequests, 
     updateBuyRequestStatus,
+    updateOrderState,
     isFetching,
     isUpdating
   } = useBuyRequestStore();
@@ -279,6 +280,22 @@ export default function Page() {
     // e.g., open chat modal or navigate to messages
   };
 
+  // Handle update order state
+  const handleUpdateOrderState = async (orderId: string, buyRequestId: string, newState: string) => {
+    try {
+      showToast('Updating order state...', 'info');
+      await updateOrderState({
+        buyRequestId,
+        orderState: newState as OrderState,
+      });
+      showToast('Order state updated successfully!', 'success');
+      await fetchMyRequests();
+    } catch (error) {
+      console.error('Error updating order state:', error);
+      showToast('Failed to update order state. Please try again.', 'error');
+    }
+  };
+
   if (isFetching) {
     return (
       <AnimatedLoading />
@@ -307,6 +324,7 @@ export default function Page() {
               onDeclineOrder={handleDeclineOrder}
               onViewProfile={handleViewProfile}
               onMessage={handleMessage}
+              onUpdateOrderState={handleUpdateOrderState}
             />
           )}
         </div>

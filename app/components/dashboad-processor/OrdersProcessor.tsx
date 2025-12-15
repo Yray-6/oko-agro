@@ -412,6 +412,7 @@ interface OrdersProps {
   onMessage?: (orderId: string) => void;
   onMakePayment?: (orderId: string) => void;
   onEditRequest?: (orderId: string) => void;
+  onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
 }
 
 type StatusFilter = "All" | "MyRequests" | "Pending" | "Active" | "Completed" | "Rejected";
@@ -421,7 +422,8 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   onAcceptOrder,
   onDeclineOrder,
   onMakePayment,
-  onEditRequest
+  onEditRequest,
+  onUpdateOrderState
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
@@ -587,6 +589,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     const canEdit = order.status === "Pending" || isMyRequest;
     const canViewInvoice = !isMyRequest && order.status !== "Pending";
     const canMakePayment = isActive && !isMyRequest && onMakePayment;
+    const isInTransit = order.orderState?.toLowerCase() === 'in_transit';
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -689,6 +692,16 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               className="px-6 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
             >
               Cancel Request
+            </button>
+          )}
+
+          {/* Mark as Delivered Button - For processors when order is in transit */}
+          {isInTransit && onUpdateOrderState && order.buyRequestId && (
+            <button
+              onClick={() => onUpdateOrderState(order.id, order.buyRequestId!, 'delivered')}
+              className="px-6 py-2 flex items-center gap-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+            >
+              Mark as Delivered
             </button>
           )}
 

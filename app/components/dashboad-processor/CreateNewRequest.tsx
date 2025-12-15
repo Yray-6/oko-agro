@@ -40,10 +40,29 @@ const initialValues: CreateRequestFormValues = {
 
 const paymentMethodOptions = [
   { value: 'pay_on_delivery', label: 'Pay on Delivery' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'mobile_money', label: 'Mobile Money' },
-  { value: 'cash', label: 'Cash' },
+  { value: '5_day_post_delivery', label: '5 Day Post Delivery' },
+  { value: '15_day_post_delivery', label: '15 Day Post Delivery' },
+  { value: '30_day_post_delivery', label: '30 Day Post Delivery' },
+  { value: 'cash_and_carry', label: 'Cash and Carry' },
 ];
+
+// Map all payment methods to 'pay_on_delivery' for backend compatibility
+// TODO: Update this when backend enums are updated
+const mapPaymentMethodToBackend = (paymentMethod: string): string => {
+  const paymentMethodsToMap = [
+    'pay_on_delivery',
+    '5_day_post_delivery',
+    '15_day_post_delivery',
+    '30_day_post_delivery',
+    'cash_and_carry'
+  ];
+  
+  if (paymentMethodsToMap.includes(paymentMethod)) {
+    return 'pay_on_delivery';
+  }
+  
+  return paymentMethod; // Return as-is for other methods (bank_transfer, mobile_money, cash)
+};
 
 // Validation schema with conditional validation for purchaseOrderDoc
 // purchaseOrderDoc is only required when creating a specific request (sellerId or productId provided)
@@ -258,7 +277,7 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
         estimatedDeliveryDate: values.estimatedDeliveryDate,
         deliveryLocation: values.deliveryLocation,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        preferredPaymentMethod: values.preferredPaymentMethod as any,
+        preferredPaymentMethod: mapPaymentMethodToBackend(values.preferredPaymentMethod) as any,
         ...(buyRequest.product?.id && { productId: buyRequest.product.id }),
       });
       
@@ -285,7 +304,7 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
         estimatedDeliveryDate: values.estimatedDeliveryDate,
         deliveryLocation: values.deliveryLocation,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        preferredPaymentMethod: values.preferredPaymentMethod as any,
+        preferredPaymentMethod: mapPaymentMethodToBackend(values.preferredPaymentMethod) as any,
         isGeneral: isGeneral,
         ...(productId && { productId }),
         ...(sellerId && { sellerId }),

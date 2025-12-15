@@ -49,6 +49,7 @@ interface OrdersProps {
   onDeclineOrder?: (orderId: string) => void;
   onViewProfile?: (orderId: string) => void;
   onMessage?: (orderId: string) => void;
+  onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
 }
 
 type StatusFilter = "All" | "Pending" | "Active" | "Completed" | "Rejected";
@@ -57,6 +58,7 @@ const Orders: React.FC<OrdersProps> = ({
   orders,
   onAcceptOrder,
   onDeclineOrder,
+  onUpdateOrderState,
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
 
@@ -168,6 +170,7 @@ const Orders: React.FC<OrdersProps> = ({
 
   const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
     const isPending = order.status === "Pending";
+    const isAwaitingShipping = order.orderState?.toLowerCase() === 'awaiting_shipping';
 
     const handleDownloadPurchaseOrder = () => {
       const printWindow = window.open('', '_blank');
@@ -418,6 +421,14 @@ const Orders: React.FC<OrdersProps> = ({
                   </button>
                 )}
               </>
+            )}
+            {isAwaitingShipping && onUpdateOrderState && order.buyRequestId && (
+              <button
+                onClick={() => onUpdateOrderState(order.id, order.buyRequestId!, 'in_transit')}
+                className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
+              >
+                Ship Order
+              </button>
             )}
           </div>
           

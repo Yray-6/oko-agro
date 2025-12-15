@@ -15,6 +15,8 @@ import {
   GeneralBuyRequestsListResponse,
   ApiResponse,
   UserBuyRequestsListResponse,
+  UpdateOrderStateRequest,
+  OrderState,
 } from '@/app/types';
 import { showToast } from '../hooks/useToast';
 import apiClient from '../utils/apiClient';
@@ -91,6 +93,7 @@ interface BuyRequestActions {
   createBuyRequest: (data: CreateBuyRequestRequest) => Promise<BuyRequest>;
   updateBuyRequest: (data: UpdateBuyRequestRequest) => Promise<BuyRequest>;
   updateBuyRequestStatus: (data: UpdateBuyRequestStatusRequest) => Promise<BuyRequest>;
+  updateOrderState: (data: UpdateOrderStateRequest) => Promise<BuyRequest>;
   deleteBuyRequest: (buyRequestId: string) => Promise<void>;
   
   // Fetch operations
@@ -334,6 +337,62 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     } catch (error) {
       console.error('❌ [Buy Request Store] Update status error:', error);
       const errorMessage = handleApiError(error, 'Failed to update buy request status');
+      
+      set({
+        updateError: errorMessage,
+        isUpdating: false,
+      });
+      throw error;
+    }
+  },
+
+  // Update order state (farmers and processors)
+  updateOrderState: async (data: UpdateOrderStateRequest) => {
+    const { setUpdating, setUpdateError } = get();
+    setUpdating(true);
+    setUpdateError(null);
+    
+    console.log('📤 [Buy Request Store] Updating order state:', data.buyRequestId, data.orderState);
+    
+    try {
+      const requestData = {
+        action: 'update-order-state',
+        buyRequestId: data.buyRequestId,
+        orderState: data.orderState,
+      };
+
+      const response = await apiClient.put<BuyRequestResponse>('/requests', requestData);
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        const updatedRequest = response.data.data;
+        console.log('✅ [Buy Request Store] Order state updated:', updatedRequest.orderState);
+        
+        showToast('Order state updated successfully!', 'success');
+        
+        set((state) => ({
+          buyRequests: state.buyRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          myRequests: state.myRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          generalRequests: state.generalRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          currentRequest: state.currentRequest?.id === updatedRequest.id 
+            ? updatedRequest 
+            : state.currentRequest,
+          isUpdating: false,
+          updateError: null,
+        }));
+        
+        return updatedRequest;
+      } else {
+        throw new Error(response.data.message || 'Failed to update order state');
+      }
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Update order state error:', error);
+      const errorMessage = handleApiError(error, 'Failed to update order state');
       
       set({
         updateError: errorMessage,
