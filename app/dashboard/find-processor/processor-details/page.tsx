@@ -8,12 +8,10 @@ import {
   ArrowLeft,
   Loader2,
   Phone,
-  Mail,
   Building2,
   Calendar,
   Package,
   MessageSquare,
-  DollarSign,
   TruckIcon,
   Tag,
   BoxIcon,
@@ -22,8 +20,9 @@ import { useProductStore } from "@/app/store/useProductStore";
 import { useEventStore } from "@/app/store/useEventStore";
 import { useBuyRequestStore } from "@/app/store/useRequestStore"; 
 import CalendarViewProcessor from "@/app/components/dashboad-processor/CalendarViewProcessor";
+import ContactProcessorModal from "@/app/components/dashboard/ContactProcessorModal";
 import rice from "@/app/assets/images/rice.png";
-import { UserProfile } from "@/app/types";
+import { UserProfile, BuyRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 
 export default function ProcessorDetailsPage() {
@@ -36,6 +35,15 @@ export default function ProcessorDetailsPage() {
 
   const [processorDetails, setProcessorDetails] = useState<UserProfile | null>(null);
   const [isLoadingProcessor, setIsLoadingProcessor] = useState(true);
+  
+  // Contact modal state
+  const [contactModal, setContactModal] = useState<{
+    isOpen: boolean;
+    selectedRequest: BuyRequest | null;
+  }>({
+    isOpen: false,
+    selectedRequest: null,
+  });
 
   // Fetch processor details from the processors list in store
   useEffect(() => {
@@ -75,13 +83,29 @@ export default function ProcessorDetailsPage() {
   };
 
   const handleContact = () => {
-    // Implement contact functionality (e.g., open chat, show contact modal)
-    console.log("Contact processor:", processorId);
+    // If there are available requests, open contact modal for the first one
+    if (availableRequests.length > 0) {
+      setContactModal({
+        isOpen: true,
+        selectedRequest: availableRequests[0],
+      });
+    } else {
+      console.log("Contact processor:", processorId);
+    }
   };
 
-  const handleSendMessage = (requestId: string) => {
-    // Navigate to messaging page or open chat modal
-    router.push(`/dashboard/messages?requestId=${requestId}&processorId=${processorId}`);
+  const handleContactRequest = (request: BuyRequest) => {
+    setContactModal({
+      isOpen: true,
+      selectedRequest: request,
+    });
+  };
+
+  const handleCloseContactModal = () => {
+    setContactModal({
+      isOpen: false,
+      selectedRequest: null,
+    });
   };
 
   if (isLoadingProcessor) {
@@ -305,7 +329,7 @@ export default function ProcessorDetailsPage() {
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {request.cropType.name}
+                            {request.cropType?.name || 'Unknown Product'}
                           </h3>
                           <p className="text-sm text-gray-500">
                             Request #{request.requestNumber}
@@ -402,7 +426,7 @@ export default function ProcessorDetailsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500 uppercase">Quality Standard:</span>
                           <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                            {request.qualityStandardType.name}
+                            {request.qualityStandardType?.name || 'N/A'}
                           </span>
                         </div>
                       </div>
@@ -410,11 +434,14 @@ export default function ProcessorDetailsPage() {
 
                     {/* Action Button */}
                     <button
-                      onClick={() => handleSendMessage(request.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleContactRequest(request);
+                      }}
                       className="w-full py-3 bg-mainGreen text-white rounded-lg font-medium hover:bg-green-800 transition-colors flex items-center justify-center gap-2"
                     >
                       <MessageSquare className="w-5 h-5" />
-                      Send Message
+                      Contact Seller
                     </button>
                   </div>
                 </div>
@@ -444,6 +471,17 @@ export default function ProcessorDetailsPage() {
         </div>
       </div>
       {(isFetchingRequests || isFetchingEvents) && <AnimatedLoading/>}
+
+      {/* Contact Processor Modal */}
+      {contactModal.selectedRequest && processorId && (
+        <ContactProcessorModal
+          isOpen={contactModal.isOpen}
+          onClose={handleCloseContactModal}
+          buyRequest={contactModal.selectedRequest}
+          processorId={processorId}
+          processorName={processorInfo?.companyName || `${processorDetails?.firstName || ''} ${processorDetails?.lastName || ''}`.trim() || 'Processor'}
+        />
+      )}
     </div>
   );
 }

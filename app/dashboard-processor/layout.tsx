@@ -104,6 +104,11 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     },
   
     { icon: <Orders size={20} />, label: "Orders", href: "/dashboard-processor/orders" },
+    {
+      icon: <Notification size={20} />,
+      label: "Notifications",
+      href: "/dashboard-processor/notifications",
+    },
     // {
     //   icon: <TransactionHistory size={20} />,
     //   label: "Transaction History",

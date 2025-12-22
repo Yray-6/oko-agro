@@ -65,10 +65,10 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
   return {
     id: buyRequest.requestNumber.toString(),
     buyRequestId: buyRequest.id, // Store the actual ID for API calls
-    productName: buyRequest.cropType.name,
+    productName: buyRequest.cropType?.name || 'Unknown Product',
     quantity: `${buyRequest.productQuantity}${buyRequest.productQuantityUnit}`,
     price: `₦${buyRequest.pricePerUnitOffer}/${buyRequest.productQuantityUnit}`,
-    certification: buyRequest.qualityStandardType.name,
+    certification: buyRequest.qualityStandardType?.name || 'N/A',
     status: status as "Pending" | "Active" | "Completed" | "Rejected",
     createdDate: new Date(buyRequest.createdAt).toLocaleDateString('en-US', { 
       month: 'short', 
@@ -87,7 +87,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
       : buyRequest.buyer.companyName || `${buyRequest.buyer.firstName} ${buyRequest.buyer.lastName}`,
     buyerLocation: buyRequest.deliveryLocation || `${buyRequest.buyer.state}, ${buyRequest.buyer.country}`,
     deliveryLocation: buyRequest.deliveryLocation,
-    productImage: getProductImage(buyRequest.cropType.name),
+    productImage: getProductImage(buyRequest.cropType?.name || 'rice'),
     isGeneral: buyRequest.isGeneral,
     originalStatus: buyRequest.status,
     orderState: orderState, // Store orderState for accepted orders (set to in_transit if accepted)

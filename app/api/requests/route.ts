@@ -81,7 +81,7 @@ const extractAuthToken = (request: NextRequest): string | null => {
 };
 
 // Define action types
-type BuyRequestAction = 'create';
+type BuyRequestAction = 'create' | 'upload-purchase-order';
 
 interface BuyRequestApiRequest {
   action: BuyRequestAction;
@@ -98,21 +98,25 @@ export async function POST(request: NextRequest) {
     const body: BuyRequestApiRequest = await request.json();
     const { action, ...data } = body;
     
-    // Ensure isGeneral defaults to true if not provided
-    if (data.isGeneral === undefined) {
-      data.isGeneral = true;
-    }
-    
-    // Only include purchaseOrderDoc when isGeneral is false (specific request)
-    // Remove purchaseOrderDoc if isGeneral is true
-    if (data.isGeneral === true && data.purchaseOrderDoc !== undefined) {
-      delete data.purchaseOrderDoc;
+    // Only apply isGeneral logic for 'create' action
+    if (action === 'create') {
+      // Ensure isGeneral defaults to true if not provided
+      if (data.isGeneral === undefined) {
+        data.isGeneral = true;
+      }
+      
+      // Only include purchaseOrderDoc when isGeneral is false (specific request)
+      // Remove purchaseOrderDoc if isGeneral is true
+      if (data.isGeneral === true && data.purchaseOrderDoc !== undefined) {
+        delete data.purchaseOrderDoc;
+      }
     }
     
     console.log(`📊 [Buy Requests API ${requestId}] Request Details:`, {
       action,
       isGeneral: data.isGeneral,
       hasPurchaseOrderDoc: !!data.purchaseOrderDoc,
+      purchaseOrderDocLength: data.purchaseOrderDoc?.length || 0,
       hasProductId: !!data.productId,
       hasSellerId: !!data.sellerId,
       bodyKeys: Object.keys(data)
@@ -132,20 +136,80 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (action !== 'create') {
-      console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid action for POST: ${action}`);
-      return NextResponse.json(
-        {
-          statusCode: 400,
-          message: 'POST method only supports create action',
-          error: 'Bad Request'
-        } as ApiResponse,
-        { status: 400 }
-      );
-    }
+    let endpoint = '';
+    
+    switch (action) {
+      case 'create':
+        endpoint = '/buy-requests/create';
+        console.log(`🌐 [Buy Requests API ${requestId}] Creating buy request...`);
+        break;
+        
+      case 'upload-purchase-order':
+        endpoint = '/buy-requests/upload-purchase-order';
+        
+        // Validate required fields
+        if (!data.buyRequestId) {
+          console.warn(`⚠️ [Buy Requests API ${requestId}] Missing buyRequestId for upload-purchase-order`);
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'buyRequestId is required',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        
+        if (!data.purchaseOrderDoc) {
+          console.warn(`⚠️ [Buy Requests API ${requestId}] Missing purchaseOrderDoc for upload-purchase-order`);
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'purchaseOrderDoc is required',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        
+        // Only send buyRequestId and purchaseOrderDoc, remove any other fields
+        const uploadPayload = {
+          buyRequestId: data.buyRequestId,
+          purchaseOrderDoc: data.purchaseOrderDoc,
+        };
+        console.log(`🌐 [Buy Requests API ${requestId}] Uploading purchase order...`, {
+          buyRequestId: uploadPayload.buyRequestId,
+          hasPurchaseOrderDoc: !!uploadPayload.purchaseOrderDoc,
+          docLength: uploadPayload.purchaseOrderDoc?.length || 0,
+          docPreview: uploadPayload.purchaseOrderDoc?.substring(0, 50) + '...',
+        });
+        
+        const uploadResponse = await apiClient.post(endpoint, uploadPayload, {
+          headers: {
+            'Authorization': authHeader
+          }
+        });
 
-    const endpoint = '/buy-requests/create';
-    console.log(`🌐 [Buy Requests API ${requestId}] Creating buy request...`);
+        console.log(`✅ [Buy Requests API ${requestId}] Upload successful:`, {
+          status: uploadResponse.status,
+          hasData: !!uploadResponse.data
+        });
+
+        return NextResponse.json(uploadResponse.data as ApiResponse, {
+          status: uploadResponse.status,
+        });
+        
+      default:
+        console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid action for POST: ${action}`);
+        return NextResponse.json(
+          {
+            statusCode: 400,
+            message: 'POST method only supports create and upload-purchase-order actions',
+            error: 'Bad Request'
+          } as ApiResponse,
+          { status: 400 }
+        );
+    }
 
     const response = await apiClient.post(endpoint, data, {
       headers: {
@@ -206,7 +270,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     console.log(`📥 [Buy Requests API ${requestId}] Parsing request body...`);
-    const body: { action: 'update' | 'update-status' | 'update-order-state'; [key: string]: any } = await request.json();
+    const body: { action: 'update' | 'update-status' | 'update-order-state' | 'direct'; [key: string]: any } = await request.json();
     const { action, ...data } = body;
     
     console.log(`📊 [Buy Requests API ${requestId}] Request Details:`, {
@@ -246,19 +310,52 @@ export async function PUT(request: NextRequest) {
         endpoint = '/buy-requests/update-order-state';
         console.log(`🌐 [Buy Requests API ${requestId}] Updating order state (admin & buyer only)`);
         break;
+
+      case 'direct':
+        if (!data.buyRequestId) {
+          console.warn(`⚠️ [Buy Requests API ${requestId}] Missing buyRequestId for direct action`);
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'buyRequestId is required for direct action',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        endpoint = `/buy-requests/direct/${data.buyRequestId}`;
+        // Remove buyRequestId from payload - it's in the URL, only send sellerId
+        const directPayload = { sellerId: data.sellerId };
+        console.log(`🌐 [Buy Requests API ${requestId}] Directing buy request to seller: ${directPayload.sellerId}`);
+        
+        const response = await apiClient.put(endpoint, directPayload, {
+          headers: {
+            'Authorization': authHeader
+          }
+        });
+
+        console.log(`✅ [Buy Requests API ${requestId}] Direct successful:`, {
+          status: response.status,
+          hasData: !!response.data
+        });
+
+        return NextResponse.json(response.data as ApiResponse, {
+          status: response.status,
+        });
         
       default:
         console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid action for PUT: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'PUT method only supports update, update-status, and update-order-state actions',
+            message: 'PUT method only supports update, update-status, update-order-state, and direct actions',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }
         );
     }
 
+    // For other actions, send the full data payload
     const response = await apiClient.put(endpoint, data, {
       headers: {
         'Authorization': authHeader

@@ -837,3 +837,94 @@ export interface UsersListResponse {
     pageSize: number;
   };
 }
+
+// ============================================
+// NOTIFICATION TYPES
+// ============================================
+
+export type NotificationType = 'buy_request' | 'order_status' | 'contact_message';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  relatedEntityType?: 'buy_request' | 'order';
+  relatedEntityId?: string;
+  senderId?: string;
+  senderName?: string;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationsListResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: Notification[];
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+    unreadCount: number;
+  };
+}
+
+export interface MarkNotificationReadResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    id: string;
+    isRead: boolean;
+  };
+}
+
+export interface MarkAllNotificationsReadResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    markedCount: number;
+  };
+}
+
+export interface SendContactMessageRequest {
+  buyRequestId: string;
+  processorId: string;
+  message?: string;
+}
+
+export interface SendContactMessageResponse {
+  statusCode: number;
+  message: string;
+  data: Notification;
+}
+
+export interface FetchNotificationsParams {
+  pageNumber?: number;
+  pageSize?: number;
+  type?: NotificationType;
+  isRead?: boolean;
+}
+
+// Direct Buy Request Types
+export interface DirectBuyRequestRequest {
+  buyRequestId: string;
+  sellerId: string;
+}
+
+export interface DirectBuyRequestResponse {
+  statusCode: number;
+  message: string;
+  data: BuyRequest;
+}
+
+export interface UploadPurchaseOrderRequest {
+  buyRequestId: string;
+  purchaseOrderDoc: string; // base64 encoded
+}
+
+export interface UploadPurchaseOrderResponse {
+  statusCode: number;
+  message: string;
+  data: BuyRequest;
+}

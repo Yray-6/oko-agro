@@ -17,6 +17,8 @@ import {
   UserBuyRequestsListResponse,
   UpdateOrderStateRequest,
   OrderState,
+  DirectBuyRequestRequest,
+  UploadPurchaseOrderRequest,
 } from '@/app/types';
 import { showToast } from '../hooks/useToast';
 import apiClient from '../utils/apiClient';
@@ -96,6 +98,10 @@ interface BuyRequestActions {
   updateOrderState: (data: UpdateOrderStateRequest) => Promise<BuyRequest>;
   deleteBuyRequest: (buyRequestId: string) => Promise<void>;
   
+  // Direct buy request and purchase order
+  directBuyRequest: (data: DirectBuyRequestRequest) => Promise<BuyRequest>;
+  uploadPurchaseOrder: (data: UploadPurchaseOrderRequest) => Promise<BuyRequest>;
+  
   // Fetch operations
   fetchGeneralRequests: () => Promise<void>;
   fetchMyRequests: () => Promise<void>;
@@ -104,7 +110,7 @@ interface BuyRequestActions {
   // State management
   setCurrentRequest: (request: BuyRequest | null) => void;
   clearCurrentRequest: () => void;
-   fetchUserRequests: (userId: string) => Promise<void>;
+  fetchUserRequests: (userId: string) => Promise<void>;
   
   // Loading states
   setLoading: (loading: boolean) => void;
@@ -369,22 +375,40 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
         
         showToast('Order state updated successfully!', 'success');
         
-        set((state) => ({
-          buyRequests: state.buyRequests.map(r => 
-            r.id === updatedRequest.id ? updatedRequest : r
-          ),
-          myRequests: state.myRequests.map(r => 
-            r.id === updatedRequest.id ? updatedRequest : r
-          ),
-          generalRequests: state.generalRequests.map(r => 
-            r.id === updatedRequest.id ? updatedRequest : r
-          ),
-          currentRequest: state.currentRequest?.id === updatedRequest.id 
-            ? updatedRequest 
-            : state.currentRequest,
-          isUpdating: false,
-          updateError: null,
-        }));
+        set((state) => {
+          // Helper function to merge updated request with existing one to preserve nested objects
+          const mergeRequest = (existing: BuyRequest | undefined, updated: BuyRequest): BuyRequest => {
+            if (!existing) return updated;
+            // Merge to preserve nested objects that might not be in the update response
+            return {
+              ...existing,
+              ...updated,
+              // Preserve nested objects if they're missing in the update
+              cropType: updated.cropType || existing.cropType,
+              qualityStandardType: updated.qualityStandardType || existing.qualityStandardType,
+              buyer: updated.buyer || existing.buyer,
+              seller: updated.seller || existing.seller,
+              product: updated.product || existing.product,
+            };
+          };
+          
+          return {
+            buyRequests: state.buyRequests.map(r => 
+              r.id === updatedRequest.id ? mergeRequest(r, updatedRequest) : r
+            ),
+            myRequests: state.myRequests.map(r => 
+              r.id === updatedRequest.id ? mergeRequest(r, updatedRequest) : r
+            ),
+            generalRequests: state.generalRequests.map(r => 
+              r.id === updatedRequest.id ? mergeRequest(r, updatedRequest) : r
+            ),
+            currentRequest: state.currentRequest?.id === updatedRequest.id 
+              ? mergeRequest(state.currentRequest, updatedRequest)
+              : state.currentRequest,
+            isUpdating: false,
+            updateError: null,
+          };
+        });
         
         return updatedRequest;
       } else {
@@ -490,8 +514,25 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
-        const request = response.data.data;
-        console.log('✅ [Buy Request Store] Buy request fetched:', request.requestNumber);
+        // Handle nested response structure from API route
+        let requestData: BuyRequest | { data: BuyRequest } | unknown = response.data.data;
+        
+        // If the data itself has a nested data structure (API route wraps it)
+        if (requestData && typeof requestData === 'object' && 'data' in requestData && requestData.data) {
+          console.log('📦 [Buy Request Store] Unwrapping nested data structure');
+          requestData = (requestData as { data: BuyRequest }).data;
+        }
+        
+        const request = requestData as BuyRequest;
+        
+        console.log('✅ [Buy Request Store] Buy request fetched:', {
+          requestId: request.id,
+          requestNumber: request.requestNumber,
+          description: request.description,
+          hasCropType: !!request.cropType,
+          hasQualityStandard: !!request.qualityStandardType,
+          keys: Object.keys(request),
+        });
         
         set({
           currentRequest: request,
@@ -588,6 +629,119 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
       set({
         deleteError: errorMessage,
         isDeleting: false,
+      });
+      throw error;
+    }
+  },
+
+  // Direct buy request to a specific seller (processors only)
+  directBuyRequest: async (data: DirectBuyRequestRequest) => {
+    const { setUpdating, setUpdateError } = get();
+    setUpdating(true);
+    setUpdateError(null);
+    
+    console.log('📤 [Buy Request Store] Directing buy request to seller:', data.buyRequestId, data.sellerId);
+    
+    try {
+      const response = await apiClient.put<BuyRequestResponse>(
+        '/requests',
+        {
+          action: 'direct',
+          buyRequestId: data.buyRequestId,
+          sellerId: data.sellerId,
+        }
+      );
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        const updatedRequest = response.data.data;
+        console.log('✅ [Buy Request Store] Buy request directed to seller:', updatedRequest.seller?.id);
+        
+        showToast('Order directed to seller successfully! Go to my orders active orders to track.', 'success');
+        
+        set((state) => ({
+          buyRequests: state.buyRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          myRequests: state.myRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          generalRequests: state.generalRequests.filter(r => r.id !== updatedRequest.id),
+          currentRequest: state.currentRequest?.id === updatedRequest.id 
+            ? updatedRequest 
+            : state.currentRequest,
+          isUpdating: false,
+          updateError: null,
+        }));
+        
+        return updatedRequest;
+      } else {
+        throw new Error(response.data.message || 'Failed to direct buy request');
+      }
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Direct buy request error:', error);
+      const errorMessage = handleApiError(error, 'Failed to direct buy request');
+      
+      set({
+        updateError: errorMessage,
+        isUpdating: false,
+      });
+      throw error;
+    }
+  },
+
+  // Upload purchase order document (processors only)
+  uploadPurchaseOrder: async (data: UploadPurchaseOrderRequest) => {
+    const { setUpdating, setUpdateError } = get();
+    setUpdating(true);
+    setUpdateError(null);
+    
+    console.log('📤 [Buy Request Store] Uploading purchase order for:', {
+      buyRequestId: data.buyRequestId,
+      hasPurchaseOrderDoc: !!data.purchaseOrderDoc,
+      purchaseOrderDocLength: data.purchaseOrderDoc?.length || 0,
+    });
+    
+    try {
+      const response = await apiClient.post<BuyRequestResponse>(
+        '/requests',
+        {
+          action: 'upload-purchase-order',
+          buyRequestId: data.buyRequestId,
+          purchaseOrderDoc: data.purchaseOrderDoc,
+        }
+      );
+      
+      if ((response.data.statusCode === 200 || response.data.statusCode === 201) && response.data.data) {
+        const updatedRequest = response.data.data;
+        console.log('✅ [Buy Request Store] Purchase order uploaded:', updatedRequest.id);
+        
+        showToast('Purchase order uploaded successfully!', 'success');
+        
+        set((state) => ({
+          buyRequests: state.buyRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          myRequests: state.myRequests.map(r => 
+            r.id === updatedRequest.id ? updatedRequest : r
+          ),
+          currentRequest: state.currentRequest?.id === updatedRequest.id 
+            ? updatedRequest 
+            : state.currentRequest,
+          isUpdating: false,
+          updateError: null,
+        }));
+        
+        return updatedRequest;
+      } else {
+        throw new Error(response.data.message || 'Failed to upload purchase order');
+      }
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Upload purchase order error:', error);
+      const errorMessage = handleApiError(error, 'Failed to upload purchase order');
+      
+      set({
+        updateError: errorMessage,
+        isUpdating: false,
       });
       throw error;
     }
