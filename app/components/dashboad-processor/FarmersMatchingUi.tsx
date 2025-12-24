@@ -162,10 +162,10 @@ const FarmerCard: React.FC<{
                     <Eye className="w-4 h-4" />
                     <span className="text-sm font-medium">View Farmer</span>
                   </button>
-                  <button className="flex items-center gap-1 px-4 py-2 bg-mainGreen text-white rounded-lg hover:bg-green-800 transition-colors">
+                  {/* <button className="flex items-center gap-1 px-4 py-2 bg-mainGreen text-white rounded-lg hover:bg-green-800 transition-colors">
                     <MessageCircle className="w-4 h-4" />
                     <span className="text-sm font-medium">Contact</span>
-                  </button>
+                  </button> */}
                 </div>
               )}
             </div>

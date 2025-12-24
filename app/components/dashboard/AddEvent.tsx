@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useEventStore, CreateEventRequest } from '@/app/store/useEventStore';
+import { useDataStore } from '@/app/store/useDataStore';
 
 interface EventFormValues {
   title: string;
   category: 'quality-inspection' | 'delivery' | 'crop-harvest' | '';
   date: string;
   notes: string;
+  cropId: string;
+  cropQuantity: string;
+  cropQuantityUnit: string;
 }
 
 interface AddEventModalProps {
@@ -25,13 +29,24 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     title: '',
     category: '',
     date: '',
-    notes: ''
+    notes: '',
+    cropId: '',
+    cropQuantity: '',
+    cropQuantityUnit: ''
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof EventFormValues, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof EventFormValues, boolean>>>({});
 
   const { createEvent, isCreating } = useEventStore();
+  const { crops, fetchCrops, cropsLoading } = useDataStore();
+
+  // Fetch crops when modal opens
+  useEffect(() => {
+    if (isOpen && crops.length === 0) {
+      fetchCrops().catch(console.error);
+    }
+  }, [isOpen, crops.length, fetchCrops]);
 
   const categories = [
     { value: 'quality-inspection', label: 'Quality Inspection' },
@@ -63,12 +78,25 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         title: '',
         category: '',
         date: '',
-        notes: ''
+        notes: '',
+        cropId: '',
+        cropQuantity: '',
+        cropQuantityUnit: ''
       });
       setErrors({});
       setTouched({});
     }
   }, [isOpen]);
+
+  const quantityUnits = [
+    { value: 'tonne', label: 'Tonne' },
+    { value: 'kg', label: 'Kilogram (kg)' },
+    { value: 'tons', label: 'Tons' },
+    { value: 'bags', label: 'Bags' },
+    { value: 'pieces', label: 'Pieces' }
+  ];
+
+  const isHarvestEvent = formValues.category === 'crop-harvest';
 
   const validateField = (name: keyof EventFormValues, value: string) => {
     switch (name) {
@@ -78,13 +106,19 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         return value ? '' : 'Please select a category';
       case 'date':
         return value ? '' : 'Event date is required';
+      case 'cropId':
+        return isHarvestEvent && !value ? 'Crop selection is required for harvest events' : '';
+      case 'cropQuantity':
+        return isHarvestEvent && !value ? 'Crop quantity is required for harvest events' : '';
+      case 'cropQuantityUnit':
+        return isHarvestEvent && !value ? 'Quantity unit is required for harvest events' : '';
       default:
         return '';
     }
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormValues(prev => ({ ...prev, [name]: value }));
@@ -116,27 +150,32 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         if (error) newErrors[key] = error;
       }
     });
+    // Additional validation for harvest events
+    if (isHarvestEvent) {
+      if (!formValues.cropId) newErrors.cropId = 'Crop selection is required';
+      if (!formValues.cropQuantity) newErrors.cropQuantity = 'Crop quantity is required';
+      if (!formValues.cropQuantityUnit) newErrors.cropQuantityUnit = 'Quantity unit is required';
+    }
     return newErrors;
   };
 
   // Map form values to API request format
   const mapFormToApiRequest = (values: EventFormValues): CreateEventRequest => {
-    // Convert date to ISO 8601 format
-    const eventDate = new Date(values.date).toISOString();
+    // Convert date to ISO 8601 format (YYYY-MM-DD)
+    const eventDate = values.date; // Keep as YYYY-MM-DD format as per the payload example
     
-    // Map category to referenceType
-    // const referenceTypeMap: Record<string, 'custom' | 'product' | 'order'> = {
-    //   'quality-inspection': 'custom',
-    //   'delivery': 'order',
-    //   'crop-harvest': 'product'
-    // };
+    const isHarvest = values.category === 'crop-harvest';
 
     return {
       name: values.title,
       description: values.notes || `${values.category}`,
       referenceType: 'custom',
       referenceId: null,
-      eventDate: eventDate // ISO 8601 format: 2025-10-01T00:00:00.000Z
+      eventDate: eventDate, // YYYY-MM-DD format: 2025-10-01
+      isHarvestEvent: isHarvest,
+      cropId: isHarvest && values.cropId ? values.cropId : undefined,
+      cropQuantity: isHarvest && values.cropQuantity ? values.cropQuantity : undefined,
+      cropQuantityUnit: isHarvest && values.cropQuantityUnit ? values.cropQuantityUnit : undefined,
     };
   };
 
@@ -149,7 +188,10 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       title: true,
       category: true,
       date: true,
-      notes: true
+      notes: true,
+      cropId: isHarvestEvent,
+      cropQuantity: isHarvestEvent,
+      cropQuantityUnit: isHarvestEvent
     });
 
     if (Object.keys(newErrors).length === 0) {
@@ -277,6 +319,82 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+
+              {/* Harvest Event Fields - Show only when category is crop-harvest */}
+              {isHarvestEvent && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Crop Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="cropId"
+                      value={formValues.cropId}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('cropId')}
+                      disabled={isCreating || cropsLoading}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Select crop type</option>
+                      {crops.map((crop) => (
+                        <option key={crop.id} value={crop.id}>
+                          {crop.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.cropId && touched.cropId && (
+                      <p className="text-red-500 text-xs mt-1">{errors.cropId}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Quantity <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="cropQuantity"
+                        value={formValues.cropQuantity}
+                        onChange={handleChange}
+                        onBlur={() => handleBlur('cropQuantity')}
+                        placeholder="200"
+                        min="0"
+                        step="0.01"
+                        disabled={isCreating}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      {errors.cropQuantity && touched.cropQuantity && (
+                        <p className="text-red-500 text-xs mt-1">{errors.cropQuantity}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Unit <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="cropQuantityUnit"
+                        value={formValues.cropQuantityUnit}
+                        onChange={handleChange}
+                        onBlur={() => handleBlur('cropQuantityUnit')}
+                        disabled={isCreating}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select unit</option>
+                        {quantityUnits.map((unit) => (
+                          <option key={unit.value} value={unit.value}>
+                            {unit.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.cropQuantityUnit && touched.cropQuantityUnit && (
+                        <p className="text-red-500 text-xs mt-1">{errors.cropQuantityUnit}</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200">

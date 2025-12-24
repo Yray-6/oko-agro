@@ -9,6 +9,7 @@ interface ScheduleEventProps {
   location: string;
   status: 'upcoming' | 'in-progress' | 'completed';
   className?: string;
+  onClick?: () => void;
 }
 
 const ScheduleEvent: React.FC<ScheduleEventProps> = ({
@@ -16,7 +17,8 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
   time,
   location,
   status,
-  className = ''
+  className = '',
+  onClick
 }) => {
   const getStatusColors = (status: string) => {
     switch (status) {
@@ -46,7 +48,10 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
   const colors = getStatusColors(status);
 
   return (
-    <div className={`bg-white border-l-4 border-red rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+    <div 
+      className={`bg-white border-l-4 border-red rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-4">
         <div className={`w-1 h-12 rounded-full ${colors.border.replace('border-', 'bg-')}`}></div>
         
@@ -77,9 +82,10 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
 
 interface CalendarViewProps {
   events?: CalendarEvent[];
+  onEventClick?: (event: CalendarEvent) => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ events = [] }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ events = [], onEventClick }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const monthNames = [
@@ -236,6 +242,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events = [] }) => {
                   time={event.time}
                   location={event.location}
                   status={event.status}
+                  onClick={onEventClick ? () => onEventClick(event) : undefined}
                 />
               ))
             ) : (

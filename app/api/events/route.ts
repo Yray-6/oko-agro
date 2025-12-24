@@ -102,6 +102,10 @@ export async function POST(request: NextRequest) {
       hasName: !!data.name,
       hasEventDate: !!data.eventDate,
       hasReferenceType: !!data.referenceType,
+      isHarvestEvent: data.isHarvestEvent,
+      hasCropId: !!data.cropId,
+      hasCropQuantity: !!data.cropQuantity,
+      hasCropQuantityUnit: !!data.cropQuantityUnit,
       bodyKeys: Object.keys(data)
     });
 
@@ -354,12 +358,17 @@ export async function GET(request: NextRequest) {
         console.log(`🎯 [Events API ${requestId}] Fetching single event: ${eventId}`);
         break;
         
+      case 'all':
+        endpoint = '/events/all';
+        console.log(`👥 [Events API ${requestId}] Fetching all events (admin only)`);
+        break;
+        
       default:
         console.warn(`⚠️ [Events API ${requestId}] Invalid or missing action: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: user-events, single-event',
+            message: 'Invalid action. Valid actions are: user-events, single-event, all',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

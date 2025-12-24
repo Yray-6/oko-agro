@@ -11,6 +11,7 @@ interface ScheduleEventProps {
   location: string;
   status: 'upcoming' | 'in-progress' | 'completed';
   className?: string;
+  onClick?: () => void;
 }
 
 const ScheduleEvent: React.FC<ScheduleEventProps> = ({
@@ -18,7 +19,8 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
   time,
   location,
   status,
-  className = ''
+  className = '',
+  onClick
 }) => {
   const getStatusColors = (status: string) => {
     switch (status) {
@@ -48,7 +50,10 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
   const colors = getStatusColors(status);
 
   return (
-    <div className={`bg-white border-l-4 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${className} ${colors.border}`}>
+    <div 
+      className={`bg-white border-l-4 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer' : ''} ${className} ${colors.border}`}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-4">
         <div className={`w-1 h-12 rounded-full ${colors.border.replace('border-', 'bg-')}`}></div>
         
@@ -88,9 +93,10 @@ interface CalendarEvent {
 
 interface CalendarViewProcessorProps {
   events?: EventDetails[];
+  onEventClick?: (event: EventDetails) => void;
 }
 
-const CalendarViewProcessor: React.FC<CalendarViewProcessorProps> = ({ events: apiEvents = [] }) => {
+const CalendarViewProcessor: React.FC<CalendarViewProcessorProps> = ({ events: apiEvents = [], onEventClick }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Transform API events to calendar events
@@ -251,15 +257,19 @@ const CalendarViewProcessor: React.FC<CalendarViewProcessorProps> = ({ events: a
           
           <div className="space-y-3">
             {monthEvents.length > 0 ? (
-              monthEvents.map(event => (
-                <ScheduleEvent
-                  key={event.id}
-                  title={event.title}
-                  time={event.time}
-                  location={event.location}
-                  status={event.status}
-                />
-              ))
+              monthEvents.map(event => {
+                const apiEvent = apiEvents.find(e => e.id === event.id);
+                return (
+                  <ScheduleEvent
+                    key={event.id}
+                    title={event.title}
+                    time={event.time}
+                    location={event.location}
+                    status={event.status}
+                    onClick={onEventClick && apiEvent ? () => onEventClick(apiEvent) : undefined}
+                  />
+                );
+              })
             ) : (
               <div className="text-center py-4 text-gray-500">
                 No events scheduled for this month

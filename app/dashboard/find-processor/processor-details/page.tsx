@@ -161,7 +161,7 @@ export default function ProcessorDetailsPage() {
                   )}
                 </div>
 
-                <div className="flex gap-3">
+                {/* <div className="flex gap-3">
                   <button 
                     onClick={handleContact}
                     className="px-6 py-2 bg-white text-mainGreen border border-mainGreen flex items-center gap-2 justify-center rounded-lg hover:bg-mainGreen/5 transition-colors"
@@ -169,7 +169,7 @@ export default function ProcessorDetailsPage() {
                     <Phone size={16}/>
                     Contact
                   </button>
-                </div>
+                </div> */}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">

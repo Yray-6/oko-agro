@@ -18,6 +18,10 @@ export interface CreateEventRequest {
   referenceType: 'custom' | 'product' | 'order';
   referenceId?: string | null;
   eventDate: string;
+  isHarvestEvent?: boolean;
+  cropId?: string;
+  cropQuantity?: string;
+  cropQuantityUnit?: string;
 }
 
 export interface UpdateEventRequest {
@@ -47,6 +51,16 @@ interface ApiErrorResponse {
 interface UserEventsResponse extends ApiResponse {
   data:{ data:EventDetails[];}
 
+}
+
+// All Events Response (Admin)
+interface AllEventsResponse extends ApiResponse {
+  data: {
+    items: EventDetails[];
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+  };
 }
 
 // Single Event Response
@@ -118,7 +132,8 @@ interface EventState {
 
 interface EventActions {
   fetchUserEvents: (userId: string) => Promise<void>;
-  fetchEvent: (eventId: string) => Promise<void>;
+  fetchAllEvents: () => Promise<EventDetails[]>;
+  fetchEvent: (eventId: string) => Promise<EventDetails>;
   createEvent: (data: CreateEventRequest) => Promise<EventDetails>;
   updateEvent: (data: UpdateEventRequest) => Promise<EventDetails>;
   deleteEvent: (eventId: string) => Promise<void>;
@@ -228,6 +243,54 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
+  fetchAllEvents: async () => {
+    const { setFetching, setFetchError } = get();
+    setFetching(true);
+    setFetchError(null);
+    
+    try {
+      const response = await apiClient.get<AllEventsResponse>(
+        `/events?action=all`
+      );
+      
+      if (response.data.statusCode === 200 && response.data.data) {
+        // Handle nested response structure: response.data.data.data.items
+        let eventsData: EventDetails[] = [];
+        
+        if (response.data.data && typeof response.data.data === 'object') {
+          // Check if it's the nested structure (data.data.items)
+          if ('data' in response.data.data && 
+              response.data.data.data && 
+              typeof response.data.data.data === 'object' &&
+              'items' in response.data.data.data) {
+            eventsData = (response.data.data.data as { items: EventDetails[] }).items || [];
+          } 
+          // Check if it's direct structure (data.items)
+          else if ('items' in response.data.data) {
+            eventsData = (response.data.data as { items: EventDetails[] }).items || [];
+          }
+        }
+        
+        set({
+          events: eventsData,
+          isFetching: false,
+          fetchError: null,
+        });
+        return eventsData;
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch events');
+      }
+    } catch (error) {
+      const errorMessage = handleApiError(error, 'Failed to fetch events');
+      set({
+        fetchError: errorMessage,
+        isFetching: false,
+        events: [],
+      });
+      throw error;
+    }
+  },
+
   fetchEvent: async (eventId: string) => {
     const { setFetching, setFetchError } = get();
     setFetching(true);
@@ -239,11 +302,23 @@ export const useEventStore = create<EventStore>((set, get) => ({
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
+        // Handle nested response structure from API route
+        let eventData: EventDetails | { data: EventDetails } | unknown = response.data.data;
+        
+        // If the data itself has a nested data structure (API route wraps it)
+        if (eventData && typeof eventData === 'object' && 'data' in eventData && eventData.data) {
+          console.log('📦 [Event Store] Unwrapping nested data structure');
+          eventData = (eventData as { data: EventDetails }).data;
+        }
+        
+        const event = eventData as EventDetails;
+        
         set({
-          currentEvent: response.data.data,
+          currentEvent: event,
           isFetching: false,
           fetchError: null,
         });
+        return event;
       } else {
         throw new Error(response.data.message || 'Failed to fetch event');
       }

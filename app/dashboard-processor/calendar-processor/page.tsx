@@ -1,12 +1,14 @@
 'use client'
-import CalendarView from "@/app/components/dashboard/CalendarView";
+import CalendarViewProcessor from "@/app/components/dashboad-processor/CalendarViewProcessor";
 import ScheduleEvent from "@/app/components/dashboard/Schedule";
 import ScheduleSummary from "@/app/components/dashboard/ScheduleSummary";
 import { AddEventModal } from "@/app/components/dashboard/AddEvent";
+import { EventDetailsModal } from "@/app/components/dashboard/EventDetailsModal";
 import { Clock, Plus } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useEventStore } from '@/app/store/useEventStore';
-import { CalendarEvent } from "@/app/types";
+import { useDataStore } from '@/app/store/useDataStore';
+import { CalendarEvent, EventDetails } from "@/app/types";
 import { countEventsByCategory, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
 
 
@@ -26,18 +28,24 @@ const getUserId = (): string | null => {
 
 export default function SchedulePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [todaysEvents, setTodaysEvents] = useState<CalendarEvent[]>([]);
   
-  const { events, fetchUserEvents, isFetching } = useEventStore();
+  const { events, fetchUserEvents, fetchEvent, isFetching } = useEventStore();
+  const { crops, fetchCrops } = useDataStore();
 
-  // Fetch events on component mount
+  // Fetch events and crops on component mount
   useEffect(() => {
     const userId = getUserId();
     if (userId) {
       fetchUserEvents(userId);
     }
-  }, [fetchUserEvents]);
+    if (crops.length === 0) {
+      fetchCrops().catch(console.error);
+    }
+  }, [fetchUserEvents, fetchCrops, crops.length]);
 
   // Transform API events to calendar events when they change
   useEffect(() => {
@@ -53,6 +61,20 @@ export default function SchedulePage() {
     const userId = getUserId();
     if (userId) {
       fetchUserEvents(userId); // Refresh events list
+    }
+  };
+
+  // Handle event click
+  const handleEventClick = async (event: EventDetails) => {
+    try {
+      const eventDetails = await fetchEvent(event.id);
+      setSelectedEvent(eventDetails);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      console.error('Failed to fetch event details:', error);
+      // Fallback: use the event passed in
+      setSelectedEvent(event);
+      setIsDetailsModalOpen(true);
     }
   };
 
@@ -101,15 +123,19 @@ export default function SchedulePage() {
             <div className="text-center py-4 text-gray-500">Loading events...</div>
           ) : todaysEvents.length > 0 ? (
             <div className="space-y-3">
-              {todaysEvents.map(event => (
-                <ScheduleEvent 
-                  key={event.id}
-                  title={event.title}
-                  time={event.time}
-                  location={event.location}
-                  status={event.status}
-                />
-              ))}
+              {todaysEvents.map(event => {
+                const apiEvent = events.find(e => e.id === event.id);
+                return (
+                  <ScheduleEvent 
+                    key={event.id}
+                    title={event.title}
+                    time={event.time}
+                    location={event.location}
+                    status={event.status}
+                    onClick={apiEvent ? () => handleEventClick(apiEvent) : undefined}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-4 text-gray-500">
@@ -121,7 +147,7 @@ export default function SchedulePage() {
 
       <div className="grid grid-cols-3 mt-5 gap-4">
         <div className="col-span-2">
-          <CalendarView events={calendarEvents} />
+          <CalendarViewProcessor events={events} onEventClick={handleEventClick} />
         </div>
         <div className="col-span-1">
           <ScheduleSummary data={summaryData} />
@@ -132,6 +158,16 @@ export default function SchedulePage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleEventSuccess}
+      />
+
+      <EventDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedEvent(null);
+        }}
+        event={selectedEvent}
+        crops={crops}
       />
     </div>
   );

@@ -435,9 +435,39 @@ export interface EventDetails {
   referenceType: string;
   referenceId?: string;
   eventDate: string;
+  isHarvestEvent?: boolean;
+  cropId?: string;
+  crop?: {
+    id: string;
+    name: string;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+  cropQuantity?: string;
+  cropQuantityUnit?: string;
+  status?: 'upcoming' | 'in-progress' | 'completed';
+  owner?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    farmAddress?: string;
+    farmName?: string;
+    state?: string;
+    country?: string;
+    role?: string;
+  };
+  product?: {
+    id: string;
+    name: string;
+    quantity?: string;
+    quantityUnit?: string;
+    locationAddress?: string;
+  };
   createdAt: string;
   updatedAt: string;
-  userId: string;
+  userId?: string;
 }
 
 // Product/Crop Info
@@ -472,6 +502,10 @@ export interface Event {
   referenceId: string | null;
   referenceType: 'custom' | 'product' | 'order';
   eventDate: string; // ISO 8601 format
+  isHarvestEvent?: boolean;
+  cropId?: string;
+  cropQuantity?: string;
+  cropQuantityUnit?: string;
   status: 'upcoming' | 'in-progress' | 'completed';
   owner: EventOwner;
   product: EventProduct | null;

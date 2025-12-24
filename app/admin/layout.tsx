@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Calendar } from "lucide-react";
 import Logo from "../assets/icons/Logo";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -85,6 +86,13 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       ),
       label: "Analytics",
       href: "/admin/analytics",
+    },
+    {
+      icon: (
+        <Calendar className="w-6 h-6 text-gray-700" />
+      ),
+      label: "Events",
+      href: "/admin/events",
     },
     {
       icon: (
