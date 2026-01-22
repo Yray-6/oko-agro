@@ -1,17 +1,17 @@
 # Oko Agro
 
-An agricultural marketplace platform connecting farmers and processors, built with Next.js 15, React 19, and TypeScript.
+An agricultural marketplace platform connecting farmers and processors, built with   15, React 19, and TypeScript.
 
 ## 📚 Documentation
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Comprehensive project architecture documentation
-- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick reference guide for common tasks
+- **** - Comprehensive project architecture documentation
+- **** - Quick reference guide for common tasks
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 20+ 
+-   20+ 
 - npm, yarn, pnpm, or bun
 
 ### Installation
@@ -55,7 +55,7 @@ Oko Agro is a full-stack agricultural marketplace platform that enables:
 
 ## 🛠️ Technology Stack
 
-- **Framework:** Next.js 15.5.2 (App Router)
+- **Framework:**  15.5.2 (App Router)
 - **UI Library:** React 19.1.0
 - **Language:** TypeScript 5
 - **State Management:** Zustand 5.0.8
@@ -82,7 +82,7 @@ oko-agro/
 └── ...
 ```
 
-For detailed structure, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For detailed structure, see [ ]( ).
 
 ## 🔐 Authentication
 
@@ -94,10 +94,10 @@ The application uses JWT-based authentication with role-based access control:
 
 ## 📖 Learn More
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [React Documentation](https://react.dev)
-- [Zustand Documentation](https://docs.pmnd.rs/zustand)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [  Documentation]( )
+- [React Documentation]( )
+- [Zustand Documentation]( )
+- [Tailwind CSS Documentation]( )
 
 ## 📝 License
 
@@ -105,4 +105,4 @@ This project is private and proprietary.
 
 ---
 
-For detailed architecture and development guidelines, please refer to [ARCHITECTURE.md](./ARCHITECTURE.md).
+For detailed architecture and development guidelines, please refer to [ ]( ).
