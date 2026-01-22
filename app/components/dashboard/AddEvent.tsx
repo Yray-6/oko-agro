@@ -140,7 +140,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     return {
       name: values.name,
       description: values.description || undefined,
-      referenceType: 'product', // Always product for harvest events
+      referenceType: 'custom', // Always custom for harvest events
       referenceId: values.cropId || undefined,
       eventDate: values.date, // YYYY-MM-DD format
       isHarvestEvent: true, // Always true
