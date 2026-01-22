@@ -5,10 +5,9 @@ import { useEventStore, CreateEventRequest } from '@/app/store/useEventStore';
 import { useDataStore } from '@/app/store/useDataStore';
 
 interface EventFormValues {
-  title: string;
-  category: 'quality-inspection' | 'delivery' | 'crop-harvest' | '';
+  name: string;
+  description: string;
   date: string;
-  notes: string;
   cropId: string;
   cropQuantity: string;
   cropQuantityUnit: string;
@@ -26,10 +25,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   onSuccess
 }) => {
   const [formValues, setFormValues] = useState<EventFormValues>({
-    title: '',
-    category: '',
+    name: '',
+    description: '',
     date: '',
-    notes: '',
     cropId: '',
     cropQuantity: '',
     cropQuantityUnit: ''
@@ -47,12 +45,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       fetchCrops().catch(console.error);
     }
   }, [isOpen, crops.length, fetchCrops]);
-
-  const categories = [
-    { value: 'quality-inspection', label: 'Quality Inspection' },
-    { value: 'delivery', label: 'Delivery' },
-    { value: 'crop-harvest', label: 'Crop Harvest' }
-  ];
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -75,10 +67,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setFormValues({
-        title: '',
-        category: '',
+        name: '',
+        description: '',
         date: '',
-        notes: '',
         cropId: '',
         cropQuantity: '',
         cropQuantityUnit: ''
@@ -90,28 +81,23 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
   const quantityUnits = [
     { value: 'tonne', label: 'Tonne' },
-    { value: 'kg', label: 'Kilogram (kg)' },
-    { value: 'tons', label: 'Tons' },
-    { value: 'bags', label: 'Bags' },
-    { value: 'pieces', label: 'Pieces' }
+    { value: 'kilogram', label: 'Kilogram (kg)' },
   ];
 
-  const isHarvestEvent = formValues.category === 'crop-harvest';
-
-  const validateField = (name: keyof EventFormValues, value: string) => {
+  const validateField = (name: keyof EventFormValues, value: string | boolean) => {
     switch (name) {
-      case 'title':
-        return value.trim() ? '' : 'Event title is required';
-      case 'category':
-        return value ? '' : 'Please select a category';
+      case 'name':
+        return typeof value === 'string' && value.trim() ? '' : 'Event name is required';
+      case 'description':
+        return ''; // Description is optional
       case 'date':
-        return value ? '' : 'Event date is required';
+        return typeof value === 'string' && value ? '' : 'Event date is required';
       case 'cropId':
-        return isHarvestEvent && !value ? 'Crop selection is required for harvest events' : '';
+        return !value ? 'Crop selection is required' : '';
       case 'cropQuantity':
-        return isHarvestEvent && !value ? 'Crop quantity is required for harvest events' : '';
+        return !value ? 'Crop quantity is required' : '';
       case 'cropQuantityUnit':
-        return isHarvestEvent && !value ? 'Quantity unit is required for harvest events' : '';
+        return !value ? 'Quantity unit is required' : '';
       default:
         return '';
     }
@@ -121,6 +107,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    
     setFormValues(prev => ({ ...prev, [name]: value }));
     
     if (touched[name as keyof EventFormValues]) {
@@ -131,51 +118,35 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
   const handleBlur = (name: keyof EventFormValues) => {
     setTouched(prev => ({ ...prev, [name]: true }));
-    const error = validateField(name, formValues[name]);
+    const fieldValue = formValues[name];
+    const error = validateField(name, fieldValue);
     setErrors(prev => ({ ...prev, [name]: error }));
-  };
-
-  const handleCategorySelect = (value: string) => {
-    setFormValues(prev => ({ ...prev, category: value as EventFormValues['category'] }));
-    setTouched(prev => ({ ...prev, category: true }));
-    const error = validateField('category', value);
-    setErrors(prev => ({ ...prev, category: error }));
   };
 
   const validateForm = () => {
     const newErrors: Partial<Record<keyof EventFormValues, string>> = {};
     (Object.keys(formValues) as Array<keyof EventFormValues>).forEach(key => {
-      if (key !== 'notes') {
-        const error = validateField(key, formValues[key]);
+      if (key !== 'description') {
+        const fieldValue = formValues[key];
+        const error = validateField(key, fieldValue);
         if (error) newErrors[key] = error;
       }
     });
-    // Additional validation for harvest events
-    if (isHarvestEvent) {
-      if (!formValues.cropId) newErrors.cropId = 'Crop selection is required';
-      if (!formValues.cropQuantity) newErrors.cropQuantity = 'Crop quantity is required';
-      if (!formValues.cropQuantityUnit) newErrors.cropQuantityUnit = 'Quantity unit is required';
-    }
     return newErrors;
   };
 
   // Map form values to API request format
   const mapFormToApiRequest = (values: EventFormValues): CreateEventRequest => {
-    // Convert date to ISO 8601 format (YYYY-MM-DD)
-    const eventDate = values.date; // Keep as YYYY-MM-DD format as per the payload example
-    
-    const isHarvest = values.category === 'crop-harvest';
-
     return {
-      name: values.title,
-      description: values.notes || `${values.category}`,
-      referenceType: 'custom',
-      referenceId: null,
-      eventDate: eventDate, // YYYY-MM-DD format: 2025-10-01
-      isHarvestEvent: isHarvest,
-      cropId: isHarvest && values.cropId ? values.cropId : undefined,
-      cropQuantity: isHarvest && values.cropQuantity ? values.cropQuantity : undefined,
-      cropQuantityUnit: isHarvest && values.cropQuantityUnit ? values.cropQuantityUnit : undefined,
+      name: values.name,
+      description: values.description || undefined,
+      referenceType: 'product', // Always product for harvest events
+      referenceId: values.cropId || undefined,
+      eventDate: values.date, // YYYY-MM-DD format
+      isHarvestEvent: true, // Always true
+      cropId: values.cropId || undefined,
+      cropQuantity: values.cropQuantity || undefined,
+      cropQuantityUnit: values.cropQuantityUnit || undefined,
     };
   };
 
@@ -185,13 +156,12 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     const newErrors = validateForm();
     setErrors(newErrors);
     setTouched({
-      title: true,
-      category: true,
+      name: true,
+      description: true,
       date: true,
-      notes: true,
-      cropId: isHarvestEvent,
-      cropQuantity: isHarvestEvent,
-      cropQuantityUnit: isHarvestEvent
+      cropId: true,
+      cropQuantity: true,
+      cropQuantityUnit: true
     });
 
     if (Object.keys(newErrors).length === 0) {
@@ -244,47 +214,36 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Title <span className="text-red-500">*</span>
+                  Event Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  name="title"
-                  value={formValues.title}
+                  name="name"
+                  value={formValues.name}
                   onChange={handleChange}
-                  onBlur={() => handleBlur('title')}
-                  placeholder="Enter event title"
+                  onBlur={() => handleBlur('name')}
+                  placeholder="Enter event name"
                   disabled={isCreating}
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                {errors.title && touched.title && (
-                  <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+                {errors.name && touched.name && (
+                  <p className="text-red-500 text-xs mt-1">{errors.name}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Select Category <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (optional)
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => handleCategorySelect(cat.value)}
-                      disabled={isCreating}
-                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        formValues.category === cat.value
-                          ? 'border-mainGreen bg-green-50 text-mainGreen'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-                {errors.category && touched.category && (
-                  <p className="text-red-500 text-xs mt-1">{errors.category}</p>
-                )}
+                <textarea
+                  name="description"
+                  value={formValues.description}
+                  onChange={handleChange}
+                  rows={4}
+                  placeholder="Add event description..."
+                  disabled={isCreating}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                />
               </div>
 
               <div>
@@ -305,96 +264,88 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Add note (optional)
-                </label>
-                <textarea
-                  name="notes"
-                  value={formValues.notes}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="Add any extra information regarding the schedule..."
-                  disabled={isCreating}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+              {/* Info about harvest events */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-xs text-blue-800">
+                  <strong>Note:</strong> All events are harvest events and are visible to processors, helping them discover your available crops for purchase.
+                </p>
               </div>
 
-              {/* Harvest Event Fields - Show only when category is crop-harvest */}
-              {isHarvestEvent && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Crop Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="cropId"
-                      value={formValues.cropId}
-                      onChange={handleChange}
-                      onBlur={() => handleBlur('cropId')}
-                      disabled={isCreating || cropsLoading}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Select crop type</option>
-                      {crops.map((crop) => (
-                        <option key={crop.id} value={crop.id}>
-                          {crop.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.cropId && touched.cropId && (
-                      <p className="text-red-500 text-xs mt-1">{errors.cropId}</p>
-                    )}
-                  </div>
+              {/* Crop Fields - Always shown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Crop Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="cropId"
+                  value={formValues.cropId}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('cropId')}
+                  disabled={isCreating || cropsLoading}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Select crop type</option>
+                  {cropsLoading ? (
+                    <option value="" disabled>Loading crops...</option>
+                  ) : (
+                    crops.map((crop) => (
+                      <option key={crop.id} value={crop.id}>
+                        {crop.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {errors.cropId && touched.cropId && (
+                  <p className="text-red-500 text-xs mt-1">{errors.cropId}</p>
+                )}
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Quantity <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        name="cropQuantity"
-                        value={formValues.cropQuantity}
-                        onChange={handleChange}
-                        onBlur={() => handleBlur('cropQuantity')}
-                        placeholder="200"
-                        min="0"
-                        step="0.01"
-                        disabled={isCreating}
-                        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                      {errors.cropQuantity && touched.cropQuantity && (
-                        <p className="text-red-500 text-xs mt-1">{errors.cropQuantity}</p>
-                      )}
-                    </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quantity <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="cropQuantity"
+                    value={formValues.cropQuantity}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur('cropQuantity')}
+                    placeholder="200"
+                    min="0"
+                    step="0.01"
+                    disabled={isCreating}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  {errors.cropQuantity && touched.cropQuantity && (
+                    <p className="text-red-500 text-xs mt-1">{errors.cropQuantity}</p>
+                  )}
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Unit <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        name="cropQuantityUnit"
-                        value={formValues.cropQuantityUnit}
-                        onChange={handleChange}
-                        onBlur={() => handleBlur('cropQuantityUnit')}
-                        disabled={isCreating}
-                        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <option value="">Select unit</option>
-                        {quantityUnits.map((unit) => (
-                          <option key={unit.value} value={unit.value}>
-                            {unit.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.cropQuantityUnit && touched.cropQuantityUnit && (
-                        <p className="text-red-500 text-xs mt-1">{errors.cropQuantityUnit}</p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Unit <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="cropQuantityUnit"
+                    value={formValues.cropQuantityUnit}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur('cropQuantityUnit')}
+                    disabled={isCreating}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select unit</option>
+                    {quantityUnits.map((unit) => (
+                      <option key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.cropQuantityUnit && touched.cropQuantityUnit && (
+                    <p className="text-red-500 text-xs mt-1">{errors.cropQuantityUnit}</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200">

@@ -129,10 +129,9 @@ export default function SchedulePage() {
                   <ScheduleEvent 
                     key={event.id}
                     title={event.title}
-                    time={event.time}
                     location={event.location}
                     status={event.status}
-                    onClick={apiEvent ? () => handleEventClick(apiEvent) : undefined}
+                    onViewDetails={apiEvent ? () => handleEventClick(apiEvent) : undefined}
                   />
                 );
               })}

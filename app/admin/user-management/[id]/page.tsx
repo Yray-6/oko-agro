@@ -1,31 +1,13 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import Modal from "@/app/components/Modal";
-
-interface UserData {
-  name: string;
-  id: string;
-  email: string;
-  phone: string;
-  location: string;
-  role: string;
-  totalOrders: number;
-  totalRevenue: string;
-  firstName: string;
-  lastName: string;
-  farmLocation: string;
-  country: string;
-  state: string;
-  accountName: string;
-  bankName: string;
-  accountNumber: string;
-  farmName: string;
-  cropsGrown: string[];
-  farmSize: string;
-  estimatedProduction: string;
-}
+import apiClient from "@/app/utils/apiClient";
+import { User } from "@/app/types";
+import { useBuyRequestStore } from "@/app/store/useRequestStore";
+import AnimatedLoading from "@/app/Loading";
+import Link from "next/link";
 
 interface OrderDetails {
   id: string;
@@ -48,93 +30,102 @@ interface OrderDetails {
   deliveryLocation: string;
   deliveryFrom?: string;
   status: string;
+  orderState?: string;
   statusColor: string;
   deliveryDate: string;
   orderDate?: string;
   paymentTerms?: string;
 }
 
-// Mock user data - in real app, this would come from an API
-const getUserData = (id: string): UserData => {
-  const users: Record<string, UserData> = {
-    "002333": {
-      name: "Pristine Crops & Livestocks",
-      id: "002333",
-      email: "info@pristinecrops.com",
-      phone: "+2348034876592",
-      location: "Plot 1614, Sapele Industrial Estate, Sapele, Warri",
-      role: "Farmer",
-      totalOrders: 8,
-      totalRevenue: "₦ 1,250,000",
-      firstName: "Oghenevwaire",
-      lastName: "Onorubudu",
-      farmLocation: "Plot 1239, Caleb University Road, Imota, Ikorodu, Lagos.",
-      country: "Nigeria",
-      state: "Lagos",
-      accountName: "Onobrudu Oghenevwaire",
-      bankName: "Access Bank",
-      accountNumber: "1884553729",
-      farmName: "Pristine Crops & Livestocks",
-      cropsGrown: ["Millet", "Sorghum", "Cassava"],
-      farmSize: "5,000 Hectares",
-      estimatedProduction: "100 Tons/year",
-    },
-    "002334": {
-      name: "Augustine Processing Company",
-      id: "002334",
-      email: "info@augustinep.com",
-      phone: "+2348034876592",
-      location: "Plot 1614, Sapele Industrial Estate, Sapele, Warri",
-      role: "Processor",
-      totalOrders: 8,
-      totalRevenue: "₦ 1,250,000",
-      firstName: "Oghenevwaire",
-      lastName: "Onorubudu",
-      farmLocation: "Plot 1239, Caleb University Road, Imota, Ikorodu, Lagos.",
-      country: "Nigeria",
-      state: "Lagos",
-      accountName: "Onobrudu Oghenevwaire",
-      bankName: "Access Bank",
-      accountNumber: "1884553729",
-      farmName: "Augustine Processing Company",
-      cropsGrown: ["Millet", "Sorghum", "Cassava"],
-      farmSize: "5,000 Hectares",
-      estimatedProduction: "100 Tons/year",
-    },
-  };
-  return users[id] || users["002333"];
-};
-
 export default function UserDetailsPage() {
   const params = useParams();
   const userId = params.id as string;
-  const userData = getUserData(userId);
+  const { fetchUserRequests, userRequests, isFetching: isFetchingRequests } = useBuyRequestStore();
+  
+  const [userData, setUserData] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
-  const isProcessor = userData.role === "Processor";
+  const isProcessor = userData?.role === "processor";
   const [activeTab, setActiveTab] = useState(isProcessor ? "Processor Details" : "Farmer Details");
 
-  // Form state
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await apiClient.get<{ statusCode: number; message: string; data: User }>(
+          `/users?userId=${userId}`
+        );
+        if (response.data.statusCode === 200 && response.data.data) {
+          setUserData(response.data.data);
+          // Fetch user requests for orders
+          await fetchUserRequests(response.data.data.id);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch user data');
+        }
+      } catch (error: unknown) {
+        console.error('Error fetching user data:', error);
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to load user data';
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (userId) {
+      fetchUserData();
+    }
+  }, [userId, fetchUserRequests]);
+
+  // Form state - initialize when userData is loaded
   const [formData, setFormData] = useState({
-    firstName: userData.firstName,
-    lastName: userData.lastName,
-    email: userData.email,
-    phone: userData.phone,
-    farmLocation: userData.farmLocation,
-    country: userData.country,
-    state: userData.state,
-    accountName: userData.accountName,
-    bankName: userData.bankName,
-    accountNumber: userData.accountNumber,
-    farmName: userData.farmName,
-    cropsGrown: userData.cropsGrown.join(", "),
-    farmSize: userData.farmSize,
-    estimatedProduction: userData.estimatedProduction,
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    farmLocation: '',
+    country: '',
+    state: '',
+    accountName: '',
+    bankName: '',
+    accountNumber: '',
+    farmName: '',
+    cropsGrown: '',
+    farmSize: '',
+    estimatedProduction: '',
   });
+
+  // Update form data when userData is loaded
+  useEffect(() => {
+    if (userData) {
+      setFormData({
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        email: userData.email || '',
+        phone: userData.phoneNumber || '',
+        farmLocation: userData.farmAddress || '',
+        country: userData.country || '',
+        state: userData.state || '',
+        accountName: `${userData.firstName} ${userData.lastName}`,
+        bankName: userData.bankName || '',
+        accountNumber: userData.accountNumber || '',
+        farmName: userData.farmName || userData.companyName || '',
+        cropsGrown: userData.crops?.map(c => c.name).join(", ") || '',
+        farmSize: userData.farmSize ? `${userData.farmSize} ${userData.farmSizeUnit || ''}` : '',
+        estimatedProduction: userData.estimatedAnnualProduction ? `${userData.estimatedAnnualProduction} ${(userData as User & { estimatedAnnualProductionUnit?: string }).estimatedAnnualProductionUnit || ''}` : '',
+      });
+      setActiveTab(isProcessor ? "Processor Details" : "Farmer Details");
+    }
+  }, [userData, isProcessor]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -161,6 +152,82 @@ export default function UserDetailsPage() {
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
   };
+
+  // Convert user requests to order details format
+  const orders: OrderDetails[] = userRequests.map((req) => ({
+    id: req.requestNumber?.toString() || req.id,
+    farmer: {
+      name: req.seller?.farmName || `${req.seller?.firstName || ''} ${req.seller?.lastName || ''}`.trim() || 'Unknown',
+      id: req.seller?.id || 'N/A',
+      location: req.seller?.state || 'Unknown',
+    },
+    processor: {
+      name: req.buyer?.companyName || `${req.buyer?.firstName || ''} ${req.buyer?.lastName || ''}`.trim() || 'Unknown',
+      id: req.buyer?.id || 'N/A',
+      location: req.buyer?.state || 'Unknown',
+    },
+    order: {
+      product: req.cropType?.name || req.description || 'Unknown',
+      value: `₦${(parseFloat(req.pricePerUnitOffer || '0') * parseFloat(req.productQuantity || '0')).toLocaleString()}`,
+      quantity: `${req.productQuantity} ${req.productQuantityUnit}`,
+      certification: req.qualityStandardType?.name || 'N/A',
+    },
+    deliveryLocation: req.deliveryLocation || 'N/A',
+    deliveryFrom: req.seller?.farmAddress || undefined,
+    status: req.status || 'pending',
+    orderState: req.orderState || undefined,
+    statusColor: req.status === 'completed' ? '#0BA964' : req.status === 'accepted' ? '#1E89EE' : '#EEC41E',
+    deliveryDate: req.estimatedDeliveryDate ? new Date(req.estimatedDeliveryDate).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }) : 'TBD',
+    orderDate: new Date(req.createdAt).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }),
+    paymentTerms: req.preferredPaymentMethod?.replace(/_/g, ' ') || 'On Delivery',
+  }));
+
+  // Calculate total orders and revenue (only from completed orders)
+  const totalOrders = orders.length;
+  const completedOrders = orders.filter(order => {
+    const statusLower = order.status.toLowerCase();
+    return statusLower === 'completed' || order.orderState?.toLowerCase() === 'completed';
+  });
+  
+  const totalRevenue = completedOrders.reduce((sum, order) => {
+    const value = parseFloat(order.order.value.replace(/[₦,]/g, ''));
+    return sum + value;
+  }, 0);
+  
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
+        <AnimatedLoading />
+      </div>
+    );
+  }
+
+  if (error || !userData) {
+    return (
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error || 'User not found'}</p>
+          <Link href="/admin/user-management" className="text-mainGreen hover:underline">
+            Back to User Management
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Get user display name
+  const userName = isProcessor 
+    ? (userData.companyName || `${userData.firstName} ${userData.lastName}`)
+    : (userData.farmName || `${userData.firstName} ${userData.lastName}`);
 
   return (
     <div className="min-h-screen bg-[#F8F8F8]">
@@ -252,7 +319,7 @@ export default function UserDetailsPage() {
               className="text-[16px] font-normal text-[#5C5C5C]"
               style={{ lineHeight: "1.5em" }}
             >
-              {userData.role}
+              {userData.role === 'processor' ? 'Processor' : 'Farmer'}
             </p>
             <p
               className="text-[20px] font-normal text-black"
@@ -261,7 +328,7 @@ export default function UserDetailsPage() {
                 letterSpacing: "-1.1%",
               }}
             >
-              {userData.name}
+              {userName}
             </p>
           </div>
 
@@ -299,7 +366,7 @@ export default function UserDetailsPage() {
                 letterSpacing: "-1.1%",
               }}
             >
-              {userData.phone}
+              {userData.phoneNumber}
             </p>
           </div>
 
@@ -320,7 +387,7 @@ export default function UserDetailsPage() {
                   className="text-[20px] font-medium text-[#28433D]"
                   style={{ lineHeight: "1em" }}
                 >
-                  {userData.totalOrders}
+                  {totalOrders}
                 </p>
               </div>
               <div className="w-[1px] h-[96px] bg-[#CFCFCF]"></div>
@@ -332,13 +399,19 @@ export default function UserDetailsPage() {
                     letterSpacing: "-1.1%",
                   }}
                 >
-                  Total Revenue
+                  {isProcessor ? 'Total Money Spent' : 'Total Revenue'}
                 </p>
                 <p
                   className="text-[20px] font-medium text-[#28433D]"
                   style={{ lineHeight: "1em" }}
                 >
-                  {userData.totalRevenue}
+                  ₦ {totalRevenue.toLocaleString()}
+                </p>
+                <p
+                  className="text-[12px] font-normal text-[#6A7C6A] mt-1"
+                  style={{ lineHeight: "1em" }}
+                >
+                  From {completedOrders.length} completed {completedOrders.length === 1 ? 'order' : 'orders'}
                 </p>
               </div>
             </div>
@@ -359,7 +432,7 @@ export default function UserDetailsPage() {
                 letterSpacing: "-1.1%",
               }}
             >
-              {userData.location}
+              {userData.farmAddress || `${userData.state}, ${userData.country}`}
             </p>
           </div>
 
@@ -1221,15 +1294,6 @@ export default function UserDetailsPage() {
                         lineHeight: "1.429em",
                       }}
                     >
-                      Value
-                    </th>
-                    <th
-                      className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
-                      style={{
-                        fontFamily: "Effra, sans-serif",
-                        lineHeight: "1.429em",
-                      }}
-                    >
                       Processor
                     </th>
                     <th
@@ -1240,6 +1304,15 @@ export default function UserDetailsPage() {
                       }}
                     >
                       Delivery Location
+                    </th>
+                    <th
+                      className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                      style={{
+                        fontFamily: "Effra, sans-serif",
+                        lineHeight: "1.429em",
+                      }}
+                    >
+                      Value
                     </th>
                     <th
                       className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
@@ -1262,54 +1335,21 @@ export default function UserDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Order Data - Mock data based on Figma */}
-                  {[
-                    {
-                      order: "Long Grain Rice (300kg)",
-                      id: "002333",
-                      value: "₦ 300,000",
-                      paymentStatus: "Pending Payment",
-                      processor: "Eronini Feed Mills",
-                      location: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-                      status: "Awaiting Shipping",
-                      statusColor: "#EEC41E",
-                      statusBg: "#EEC41E",
-                    },
-                    {
-                      order: "Premium Maize (200kg)",
-                      id: "002333",
-                      value: "₦ 200,000",
-                      paymentStatus: "Pending Payment",
-                      processor: "Spotlight Processing Factory",
-                      location: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-                      status: "In Transit",
-                      statusColor: "#1E89EE",
-                      statusBg: "#1E89EE",
-                    },
-                    {
-                      order: "Sweet Potato (500kg)",
-                      id: "002333",
-                      value: "₦ 500,000",
-                      paymentStatus: "Pending Payment",
-                      processor: "New Era Producer",
-                      location: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-                      status: "Delivered",
-                      statusColor: "#0BA964",
-                      statusBg: "#0BA964",
-                    },
-                    {
-                      order: "Premium Cassava (400kg)",
-                      id: "002333",
-                      value: "₦ 400,000",
-                      paymentStatus: "Payment Complete",
-                      processor: "Eronini Feed Mills",
-                      location: "Plot 1634, Sapele Industrial Area, Sapele, Warri",
-                      status: "Completed",
-                      statusColor: "#0BA964",
-                      statusBg: "#0BA964",
-                    },
-                  ].map((orderItem, idx) => (
-                    <tr key={idx} className="border-b border-[#EBE7E5]">
+                  {isFetchingRequests ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center">
+                        <AnimatedLoading />
+                      </td>
+                    </tr>
+                  ) : orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-[#80726B]">
+                        No orders found
+                      </td>
+                    </tr>
+                  ) : (
+                    orders.map((orderItem) => (
+                    <tr key={orderItem.id} className="border-b border-[#EBE7E5]">
                       <td className="px-4 py-4">
                         <div className="flex flex-col gap-1">
                           <p
@@ -1319,7 +1359,7 @@ export default function UserDetailsPage() {
                               lineHeight: "1.429em",
                             }}
                           >
-                            {orderItem.order}
+                            {orderItem.order.product} ({orderItem.order.quantity})
                           </p>
                           <p
                             className="text-[14px] font-normal text-[#80726B]"
@@ -1333,34 +1373,6 @@ export default function UserDetailsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1">
-                          <p
-                            className="text-[14px] font-medium text-black"
-                            style={{
-                              fontFamily: "Effra, sans-serif",
-                              lineHeight: "1.429em",
-                            }}
-                          >
-                            {orderItem.value}
-                          </p>
-                          <div
-                            className="inline-flex items-center gap-[6.75px] px-[11.75px] py-[11.75px] rounded-[11.75px]"
-                            style={{
-                              backgroundColor: orderItem.paymentStatus === "Payment Complete" ? "#0BA964" : "#EEC41E",
-                            }}
-                          >
-                            <span
-                              className="text-[12px] font-normal text-white"
-                              style={{
-                                lineHeight: "1.959em",
-                              }}
-                            >
-                              {orderItem.paymentStatus}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
                         <p
                           className="text-[14px] font-normal text-black"
                           style={{
@@ -1368,7 +1380,7 @@ export default function UserDetailsPage() {
                             lineHeight: "1.429em",
                           }}
                         >
-                          {orderItem.processor}
+                          {orderItem.processor.name}
                         </p>
                       </td>
                       <td className="px-4 py-4">
@@ -1379,14 +1391,41 @@ export default function UserDetailsPage() {
                             lineHeight: "1.429em",
                           }}
                         >
-                          {orderItem.location}
+                          {orderItem.deliveryLocation}
                         </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p
+                          className="text-[14px] font-medium text-black"
+                          style={{
+                            fontFamily: "Effra, sans-serif",
+                            lineHeight: "1.429em",
+                          }}
+                        >
+                          {orderItem.order.value}
+                        </p>
+                        {/* <div
+                          className="inline-flex items-center gap-[6.75px] px-[11.75px] py-[11.75px] rounded-[11.75px] mt-1"
+                          style={{
+                            backgroundColor: orderItem.paymentTerms === "Paid" ? "#0BA964" : "#EEC41E",
+                          }}
+                        >
+                          <span
+                            className="text-[12px] font-normal text-white"
+                            style={{
+                              lineHeight: "1.959em",
+                              fontFamily: "Urbanist, sans-serif",
+                            }}
+                          >
+                            {orderItem.paymentTerms === "Paid" ? "Payment Complete" : "Pending Payment"}
+                          </span>
+                        </div> */}
                       </td>
                       <td className="px-4 py-4">
                         <div
                           className="inline-flex items-center gap-[6.75px] px-[11.75px] py-[11.75px] rounded-[11.75px]"
                           style={{
-                            backgroundColor: orderItem.statusBg,
+                            backgroundColor: orderItem.statusColor,
                           }}
                         >
                           {/* Status Icon - Different icons for different statuses */}
@@ -1431,34 +1470,7 @@ export default function UserDetailsPage() {
                       <td className="px-4 py-4">
                         <button
                           onClick={() => {
-                            // Transform order data to match the modal structure
-                            const orderDetails = {
-                              id: orderItem.id,
-                              farmer: {
-                                name: userData.name,
-                                id: userData.id,
-                                location: userData.location,
-                              },
-                              processor: {
-                                name: orderItem.processor,
-                                id: orderItem.id,
-                                location: orderItem.location.split(",")[0] || "Lagos",
-                              },
-                              order: {
-                                product: orderItem.order.split("(")[0].trim(),
-                                value: orderItem.value,
-                                quantity: orderItem.order.match(/\(([^)]+)\)/)?.[1] || "",
-                                certification: "Grade A",
-                              },
-                              deliveryLocation: orderItem.location,
-                              deliveryFrom: userData.location,
-                              status: orderItem.status,
-                              statusColor: orderItem.statusColor,
-                              deliveryDate: "DD: 22-09-2025",
-                              orderDate: "28 Sept 2025",
-                              paymentTerms: orderItem.paymentStatus === "Payment Complete" ? "Paid" : "On Delivery",
-                            };
-                            setSelectedOrder(orderDetails);
+                            setSelectedOrder(orderItem);
                             setShowOrderModal(true);
                           }}
                           className="px-[13px] py-1 bg-[#FFFFFC] border border-[#EBE7E5] rounded-[10px] text-[14px] font-medium text-[#0D3F11] hover:bg-gray-50 transition-colors"
@@ -1471,7 +1483,8 @@ export default function UserDetailsPage() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1629,12 +1642,7 @@ export default function UserDetailsPage() {
             {/* Header */}
             <div className="flex justify-between items-center mb-4 relative">
               <div className="flex items-center gap-2">
-                <Image
-                  src="/icons/invoice-04.svg"
-                  alt="Invoice"
-                  width={24}
-                  height={24}
-                />
+             
                 <h2
                   className="text-[18px] font-semibold text-[#272C34]"
                   style={{

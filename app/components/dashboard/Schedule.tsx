@@ -1,22 +1,22 @@
 import React from 'react';
-import { Clock, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 interface ScheduleEventProps {
   title: string;
-  time: string;
   location: string;
   status: 'upcoming' | 'in-progress' | 'completed';
   className?: string;
   onClick?: () => void;
+  onViewDetails?: () => void;
 }
 
 const ScheduleEvent: React.FC<ScheduleEventProps> = ({
   title,
-  time,
   location,
   status,
   className = '',
-  onClick
+  onClick,
+  onViewDetails
 }) => {
   const getStatusColors = (status: string) => {
     switch (status) {
@@ -47,36 +47,47 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
 
   return (
     <div 
-      className={`bg-white border-l-4 border-red rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      onClick={onClick}
+      className={`bg-white border-l-4 border-red rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${className}`}
     >
       <div className="flex items-center gap-4">
         {/* Status Indicator Line */}
         <div className={`w-1 h-12 rounded-full ${colors.border.replace('border-', 'bg-')}`}></div>
         
         {/* Content */}
-        <div className="flex-1 flex items-center justify-between">
-          <div className="flex-1">
+        <div className="flex-1 flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
             {/* Title */}
-            <h3 className=" font-medium text-base mb-1">{title}</h3>
+            <h3 className="font-medium text-base mb-1">{title}</h3>
             
-            {/* Time and Location */}
+            {/* Location */}
             <div className="flex items-center gap-4 text-xs text-[#6A7C6A]">
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{time}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{location}</span>
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{location}</span>
               </div>
             </div>
           </div>
           
-          {/* Status Badge */}
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
-            {status}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Status Badge */}
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.badge} whitespace-nowrap`}>
+              {status}
+            </span>
+            
+            {/* View Details Button - Always show if onViewDetails is provided */}
+            {onViewDetails && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails();
+                }}
+                className="px-3 py-1.5 text-xs font-medium text-mainGreen border border-mainGreen rounded-md hover:bg-mainGreen/10 transition-colors whitespace-nowrap flex-shrink-0"
+                type="button"
+              >
+                View Details
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

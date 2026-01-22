@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Star, XCircle } from "lucide-react";
 import Image from "next/image";
 
 // Mock icons
@@ -50,6 +50,8 @@ interface OrdersProps {
   onViewProfile?: (orderId: string) => void;
   onMessage?: (orderId: string) => void;
   onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
+  onRate?: (orderId: string, buyRequestId: string) => void;
+  onDispute?: (orderId: string, buyRequestId: string) => void;
 }
 
 type StatusFilter = "All" | "Pending" | "Active" | "Completed" | "Rejected";
@@ -59,6 +61,8 @@ const Orders: React.FC<OrdersProps> = ({
   onAcceptOrder,
   onDeclineOrder,
   onUpdateOrderState,
+  onRate,
+  onDispute,
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
 
@@ -171,6 +175,7 @@ const Orders: React.FC<OrdersProps> = ({
   const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
     const isPending = order.status === "Pending";
     const isAwaitingShipping = order.orderState?.toLowerCase() === 'awaiting_shipping';
+    const isCompleted = order.status === "Completed" || order.orderState?.toLowerCase() === 'completed';
 
     const handleDownloadPurchaseOrder = () => {
       const printWindow = window.open('', '_blank');
@@ -428,6 +433,24 @@ const Orders: React.FC<OrdersProps> = ({
                 className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
               >
                 Ship Order
+              </button>
+            )}
+            {isCompleted && onRate && order.buyRequestId && (
+              <button
+                onClick={() => onRate(order.id, order.buyRequestId!)}
+                className="px-6 py-2 flex items-center gap-2 bg-[#004829] text-white rounded-md hover:bg-[#003d20] transition-colors font-medium"
+              >
+                <Star className="w-4 h-4" />
+                Rate {order.buyerName ? 'Processor' : 'Farmer'}
+              </button>
+            )}
+            {isCompleted && onDispute && order.buyRequestId && (
+              <button
+                onClick={() => onDispute(order.id, order.buyRequestId!)}
+                className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
+              >
+                <XCircle className="w-4 h-4" />
+                Dispute
               </button>
             )}
           </div>

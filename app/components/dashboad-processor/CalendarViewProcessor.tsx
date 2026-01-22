@@ -1,27 +1,9 @@
 'use client'
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { EventDetails } from '@/app/types';
 import { transformEventToCalendarEvent } from '@/app/helpers';
-
-// ScheduleEvent Component
-interface ScheduleEventProps {
-  title: string;
-  time: string;
-  location: string;
-  status: 'upcoming' | 'in-progress' | 'completed';
-  className?: string;
-  onClick?: () => void;
-}
-
-const ScheduleEvent: React.FC<ScheduleEventProps> = ({
-  title,
-  time,
-  location,
-  status,
-  className = '',
-  onClick
-}) => {
+import ScheduleEvent from '../dashboard/Schedule'; // Import the actual ScheduleEvent component
   const getStatusColors = (status: string) => {
     switch (status) {
       case 'upcoming':
@@ -47,46 +29,11 @@ const ScheduleEvent: React.FC<ScheduleEventProps> = ({
     }
   };
 
-  const colors = getStatusColors(status);
-
-  return (
-    <div 
-      className={`bg-white border-l-4 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer' : ''} ${className} ${colors.border}`}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-4">
-        <div className={`w-1 h-12 rounded-full ${colors.border.replace('border-', 'bg-')}`}></div>
-        
-        <div className="flex-1 flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="font-medium text-base mb-1">{title}</h3>
-            
-            <div className="flex items-center gap-4 text-xs text-[#6A7C6A]">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{time}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{location}</span>
-              </div>
-            </div>
-          </div>
-          
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
-            {status}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 interface CalendarEvent {
   id: string;
   title: string;
   date: string;
-  time: string;
   location: string;
   status: 'upcoming' | 'in-progress' | 'completed';
 }
@@ -127,7 +74,24 @@ const CalendarViewProcessor: React.FC<CalendarViewProcessorProps> = ({ events: a
     });
   };
 
-  // Get events for the current month
+  // Get all upcoming events (date >= today)
+  const upcomingEvents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    
+    return events.filter(event => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0); // Reset time to start of day
+      return eventDate >= today;
+    }).sort((a, b) => {
+      // Sort by date ascending
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [events]);
+
+  // Get events for the current month (for calendar display)
   const monthEvents = useMemo(() => {
     return events.filter(event => {
       const eventDate = new Date(event.date);
@@ -252,27 +216,26 @@ const CalendarViewProcessor: React.FC<CalendarViewProcessorProps> = ({ events: a
         {/* Events Section */}
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Events for {monthNames[currentDate.getMonth()]}, {currentDate.getFullYear()}
+            Upcoming Events
           </h3>
           
-          <div className="space-y-3">
-            {monthEvents.length > 0 ? (
-              monthEvents.map(event => {
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map(event => {
                 const apiEvent = apiEvents.find(e => e.id === event.id);
                 return (
                   <ScheduleEvent
                     key={event.id}
                     title={event.title}
-                    time={event.time}
                     location={event.location}
                     status={event.status}
-                    onClick={onEventClick && apiEvent ? () => onEventClick(apiEvent) : undefined}
+                    onViewDetails={onEventClick && apiEvent ? () => onEventClick(apiEvent) : undefined}
                   />
                 );
               })
             ) : (
               <div className="text-center py-4 text-gray-500">
-                No events scheduled for this month
+                No upcoming events scheduled
               </div>
             )}
           </div>

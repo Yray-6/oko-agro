@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Send, MessageSquare, Package, MapPin, User, Loader2, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '@/app/store/useAuthStore';
 import { useNotificationStore } from '@/app/store/useNotificationStore';
@@ -24,24 +24,31 @@ const ContactProcessorModal: React.FC<ContactProcessorModalProps> = ({
   const { user } = useAuthStore();
   const { sendContactMessage, isSending } = useNotificationStore();
   const [isSent, setIsSent] = useState(false);
-
-  if (!isOpen) return null;
-
-  // Generate message template
-  const farmerName = user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer';
-  const farmName = user?.farmName || 'My Farm';
-  const farmLocation = user ? `${user.state}, ${user.country}` : 'Unknown Location';
-  const cropName = buyRequest.cropType?.name || 'the requested crop';
   
-  const messageTemplate = `Hi ${processorName},
+  // Editable offer fields - initialized with buyRequest values as defaults
+  const [quantity, setQuantity] = useState(buyRequest.productQuantity);
+  const [quantityUnit, setQuantityUnit] = useState(buyRequest.productQuantityUnit);
+  const [pricePerUnit, setPricePerUnit] = useState(buyRequest.pricePerUnitOffer);
+  const [deliveryLocation, setDeliveryLocation] = useState(buyRequest.deliveryLocation);
+  const [message, setMessage] = useState('');
+
+  // Initialize message template when modal opens or values change
+  useEffect(() => {
+    if (isOpen) {
+      const farmerName = user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer';
+      const farmName = user?.farmName || 'My Farm';
+      const farmLocation = user ? `${user.state}, ${user.country}` : 'Unknown Location';
+      const cropName = buyRequest.cropType?.name || 'the requested crop';
+      
+      const template = `Hi ${processorName},
 
 I'm ${farmerName} from ${farmName}, and I have ${cropName} available that matches your buy request #${buyRequest.requestNumber}.
 
-Request Details:
+My Offer:
 • Crop: ${cropName}
-• Quantity Needed: ${buyRequest.productQuantity} ${buyRequest.productQuantityUnit}
-• Price Offer: ₦${buyRequest.pricePerUnitOffer}/unit
-• Delivery Location: ${buyRequest.deliveryLocation}
+• Quantity Available: ${quantity} ${quantityUnit}
+• Price Offer: ₦${pricePerUnit}/unit
+• Delivery Location: ${deliveryLocation}
 
 I can fulfill this order. You can view my profile and products for more details, or send me a purchase order directly.
 
@@ -51,13 +58,34 @@ Looking forward to hearing from you!
 
 Best regards,
 ${farmerName}`;
+      
+      setMessage(template);
+    }
+  }, [isOpen, quantity, quantityUnit, pricePerUnit, deliveryLocation, buyRequest, processorName, user]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuantity(buyRequest.productQuantity);
+      setQuantityUnit(buyRequest.productQuantityUnit);
+      setPricePerUnit(buyRequest.pricePerUnitOffer);
+      setDeliveryLocation(buyRequest.deliveryLocation);
+      setIsSent(false);
+    }
+  }, [isOpen, buyRequest]);
+
+  if (!isOpen) return null;
+
+  const farmerName = user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer';
+  const farmName = user?.farmName || 'My Farm';
+  const farmLocation = user ? `${user.state}, ${user.country}` : 'Unknown Location';
 
   const handleSendMessage = async () => {
     try {
       await sendContactMessage({
         buyRequestId: buyRequest.id,
         processorId: processorId,
-        message: messageTemplate,
+        message: message,
       });
       setIsSent(true);
       // Auto close after 2 seconds
@@ -157,20 +185,82 @@ ${farmerName}`;
               </div>
             </div>
 
-            {/* Message Preview */}
-            <div className="p-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Message Preview
-              </label>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
-                  {messageTemplate}
-                </pre>
+            {/* Offer Details - Editable */}
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Your Offer Details</h3>
+                
+                {/* Quantity */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Quantity Available
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                      placeholder="Enter quantity"
+                    />
+                    <select
+                      value={quantityUnit}
+                      onChange={(e) => setQuantityUnit(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                    >
+                      <option value="kg">kg</option>
+                      <option value="tonnes">tonnes</option>
+                      <option value="bags">bags</option>
+                      <option value="units">units</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Price Per Unit */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Price Per Unit (₦)
+                  </label>
+                  <input
+                    type="text"
+                    value={pricePerUnit}
+                    onChange={(e) => setPricePerUnit(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                    placeholder="Enter price per unit"
+                  />
+                </div>
+
+                {/* Delivery Location */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Delivery Location
+                  </label>
+                  <input
+                    type="text"
+                    value={deliveryLocation}
+                    onChange={(e) => setDeliveryLocation(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                    placeholder="Enter delivery location"
+                  />
+                </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                <span className="inline-block w-2 h-2 bg-amber-400 rounded-full"></span>
-                This message will be sent automatically - it cannot be edited
-              </p>
+
+              {/* Message Preview/Editor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message to Processor
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent resize-none"
+                  placeholder="Your message will be generated automatically..."
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  You can edit the message above. The offer details will be included automatically.
+                </p>
+              </div>
             </div>
 
             {/* Actions */}

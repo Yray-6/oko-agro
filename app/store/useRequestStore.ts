@@ -12,11 +12,9 @@ import {
   UpdateBuyRequestStatusRequest,
   UpdateBuyRequestStatusApiRequest,
   DeleteBuyRequestResponse,
-  GeneralBuyRequestsListResponse,
   ApiResponse,
   UserBuyRequestsListResponse,
   UpdateOrderStateRequest,
-  OrderState,
   DirectBuyRequestRequest,
   UploadPurchaseOrderRequest,
 } from '@/app/types';
@@ -75,6 +73,13 @@ interface BuyRequestState {
   currentRequest: BuyRequest | null;
     userRequests: BuyRequest[];
   
+  // Pagination for general requests
+  generalRequestsPagination: {
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+  };
+  
   // Loading states
   isLoading: boolean;
   isCreating: boolean;
@@ -103,7 +108,7 @@ interface BuyRequestActions {
   uploadPurchaseOrder: (data: UploadPurchaseOrderRequest) => Promise<BuyRequest>;
   
   // Fetch operations
-  fetchGeneralRequests: () => Promise<void>;
+  fetchGeneralRequests: (pageNumber?: number, pageSize?: number) => Promise<void>;
   fetchMyRequests: () => Promise<void>;
   fetchBuyRequest: (buyRequestId: string) => Promise<void>;
   
@@ -140,6 +145,12 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
   generalRequests: [],
   currentRequest: null,
   userRequests: [],
+  
+  generalRequestsPagination: {
+    totalRecord: 0,
+    pageNumber: 1,
+    pageSize: 20,
+  },
   
   isLoading: false,
   isCreating: false,
@@ -182,6 +193,12 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     myRequests: [],
     generalRequests: [],
     currentRequest: null,
+    userRequests: [],
+    generalRequestsPagination: {
+      totalRecord: 0,
+      pageNumber: 1,
+      pageSize: 20,
+    },
     isLoading: false,
     isCreating: false,
     isUpdating: false,
@@ -192,7 +209,6 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     updateError: null,
     fetchError: null,
     deleteError: null,
-      userRequests: [],
   }),
 
   // Create buy request
@@ -426,25 +442,40 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
     }
   },
 
-  // Fetch general requests (farmers only - pending, <1 week old)
-  fetchGeneralRequests: async () => {
+  // Fetch general requests (farmers only - pending, <1 week old) with pagination
+  fetchGeneralRequests: async (pageNumber = 1, pageSize = 20) => {
     const { setFetching, setFetchError } = get();
     setFetching(true);
     setFetchError(null);
     
-    console.log('📥 [Buy Request Store] Fetching general requests...');
+    console.log('📥 [Buy Request Store] Fetching general requests with pagination...', { pageNumber, pageSize });
     
     try {
-      const response = await apiClient.get<GeneralBuyRequestsListResponse>(
-        '/requests?action=general'
+      const response = await apiClient.get<ApiResponse<{
+        items: BuyRequest[];
+        totalRecord: number;
+        pageNumber: number;
+        pageSize: number;
+      }>>(
+        `/requests?action=general&pageNumber=${pageNumber}&pageSize=${pageSize}`
       );
       
       if (response.data.statusCode === 200 && response.data.data) {
-        const requests = response.data.data;
-        console.log('✅ [Buy Request Store] General requests fetched:', requests.length);
+        const { items, totalRecord, pageNumber: currentPage, pageSize: currentPageSize } = response.data.data;
+        console.log('✅ [Buy Request Store] General requests fetched:', {
+          count: items.length,
+          totalRecord,
+          pageNumber: currentPage,
+          pageSize: currentPageSize,
+        });
         
         set({
-          generalRequests: requests,
+          generalRequests: items,
+          generalRequestsPagination: {
+            totalRecord,
+            pageNumber: currentPage,
+            pageSize: currentPageSize,
+          },
           isFetching: false,
           fetchError: null,
         });

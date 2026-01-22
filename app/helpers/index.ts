@@ -35,21 +35,66 @@ export const transformEventToCalendarEvent = (event: EventDetails): CalendarEven
     category = 'quality-inspection';
   }
   
-  // Extract location - handle cases where userId might not have additional properties
-  const location = 'Location TBD'; // Since EventDetails doesn't have nested owner/product info
+  // Extract location from owner information
+  let location = 'Location TBD';
+  if (event.owner) {
+    const locationParts: string[] = [];
+    if (event.owner.farmAddress) {
+      locationParts.push(event.owner.farmAddress);
+    }
+    if (event.owner.state) {
+      locationParts.push(event.owner.state);
+    }
+    if (event.owner.country) {
+      locationParts.push(event.owner.country);
+    }
+    if (locationParts.length > 0) {
+      location = locationParts.join(', ');
+    } else if (event.owner.state && event.owner.country) {
+      location = `${event.owner.state}, ${event.owner.country}`;
+    } else if (event.owner.state) {
+      location = event.owner.state;
+    } else if (event.owner.country) {
+      location = event.owner.country;
+    }
+  }
   
-  // Default status if not provided
-  const status: CalendarEvent['status'] = 'upcoming';
+  // Determine status based on event date and current date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const eventDateOnly = new Date(eventDate);
+  eventDateOnly.setHours(0, 0, 0, 0);
+  
+  let status: CalendarEvent['status'] = 'upcoming';
+  if (event.status) {
+    // Use status from API if available
+    const apiStatus = event.status.toLowerCase();
+    if (apiStatus === 'completed' || apiStatus === 'done') {
+      status = 'completed';
+    } else if (apiStatus === 'in-progress' || apiStatus === 'in_progress') {
+      status = 'in-progress';
+    } else if (eventDateOnly < today) {
+      status = 'completed';
+    } else if (eventDateOnly.getTime() === today.getTime()) {
+      status = 'in-progress';
+    } else {
+      status = 'upcoming';
+    }
+  } else {
+    // Fallback: determine status based on date
+    if (eventDateOnly < today) {
+      status = 'completed';
+    } else if (eventDateOnly.getTime() === today.getTime()) {
+      status = 'in-progress';
+    } else {
+      status = 'upcoming';
+    }
+  }
   
   return {
     id: event.id,
     title: event.name,
     date: eventDate.toISOString().split('T')[0], // YYYY-MM-DD
-    time: eventDate.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    }),
     location,
     status,
     category,

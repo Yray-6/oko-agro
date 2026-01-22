@@ -497,33 +497,6 @@ export const useAuthStore = create<AuthStore>()(
   )
 );
 
-// Setup axios interceptor for automatic token refresh
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    
-    // Skip token refresh for registration, login, and other auth actions that don't require tokens
-    const requestData = originalRequest.data ? JSON.parse(originalRequest.data) : {};
-    const isAuthAction = ['register', 'login', 'verify-otp', 'resend-otp', 'forgot-password', 'reset-password'].includes(requestData.action);
-    
-    // Check if error is 401 and we haven't already tried to refresh
-    // Only attempt refresh for authenticated requests (not auth actions like register/login)
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthAction) {
-      originalRequest._retry = true;
-      
-      console.log('[Auth Store] Attempting token refresh due to 401 error');
-      const store = useAuthStore.getState();
-      const refreshSuccess = await store.refreshToken();
-      
-      if (refreshSuccess) {
-        // Retry the original request with new token
-        const newTokens = useAuthStore.getState().tokens;
-        originalRequest.headers['Authorization'] = `Bearer ${newTokens?.accessToken}`;
-        return apiClient(originalRequest);
-      }
-    }
-    
-    return Promise.reject(error);
-  }
-);
+// Note: Token refresh and 401 handling is now managed by the apiClient interceptor
+// in app/utils/apiClient.ts to ensure consistent behavior across the app
+// and proper logout on refresh failure

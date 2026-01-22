@@ -27,13 +27,26 @@ export interface ActivityItem {
   senderName?: string;
 }
 
+// Remove request number patterns (REQ-1000#) from text
+const removeRequestNumbers = (text: string): string => {
+  if (!text) return text;
+  // Remove patterns like "REQ-100011", "REQ-100008", etc.
+  // Also handle variations like "REQ-100011" with surrounding spaces or punctuation
+  let cleaned = text.replace(/\bREQ-\d+\b/gi, '');
+  // Clean up multiple spaces and trim
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  // Remove leading/trailing punctuation that might be left behind
+  cleaned = cleaned.replace(/^[:\s]+|[:\s]+$/g, '').trim();
+  return cleaned;
+};
+
 // Convert Notification to ActivityItem
 export const notificationToActivityItem = (notification: Notification): ActivityItem => {
   return {
     id: notification.id,
     type: notification.type,
-    title: notification.title,
-    description: notification.message,
+    title: removeRequestNumbers(notification.title),
+    description: removeRequestNumbers(notification.message),
     timestamp: formatTimestamp(notification.createdAt),
     isRead: notification.isRead,
     senderName: notification.senderName,

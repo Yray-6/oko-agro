@@ -65,8 +65,16 @@ export default function SchedulePage() {
   };
 
   // Handle event click
-  const handleEventClick = async (event: CalendarEvent) => {
+  const handleEventClick = async (event: CalendarEvent | EventDetails) => {
     try {
+      // If it's already an EventDetails, use it directly
+      if ('eventDate' in event && 'name' in event) {
+        setSelectedEvent(event as EventDetails);
+        setIsDetailsModalOpen(true);
+        return;
+      }
+      
+      // Otherwise, fetch the full event details
       const eventDetails = await fetchEvent(event.id);
       setSelectedEvent(eventDetails);
       setIsDetailsModalOpen(true);
@@ -126,16 +134,22 @@ export default function SchedulePage() {
             <div className="text-center py-4 text-gray-500">Loading events...</div>
           ) : todaysEvents.length > 0 ? (
             <div className="space-y-3">
-              {todaysEvents.map(event => (
-                <ScheduleEvent 
-                  key={event.id}
-                  title={event.title}
-                  time={event.time}
-                  location={event.location}
-                  status={event.status}
-                  onClick={() => handleEventClick(event)}
-                />
-              ))}
+              {todaysEvents.map(event => {
+                // Find the original event to get full details
+                const handleViewDetails = async () => {
+                  await handleEventClick(event);
+                };
+                
+                return (
+                  <ScheduleEvent 
+                    key={event.id}
+                    title={event.title}
+                    location={event.location}
+                    status={event.status}
+                    onViewDetails={handleViewDetails}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-4 text-gray-500">
@@ -147,7 +161,7 @@ export default function SchedulePage() {
 
       <div className="grid grid-cols-3 mt-5 gap-4">
         <div className="col-span-2">
-          <CalendarView events={calendarEvents} onEventClick={handleEventClick} />
+          <CalendarView events={calendarEvents} onEventClick={handleEventClick} allEvents={events} />
         </div>
         <div className="col-span-1">
           <ScheduleSummary data={summaryData} />

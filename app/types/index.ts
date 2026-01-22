@@ -538,7 +538,6 @@ export interface CalendarEvent {
   id: string;
   title: string;
   date: string; // YYYY-MM-DD format
-  time: string;
   location: string;
   status: 'upcoming' | 'in-progress' | 'completed';
   category: 'quality-inspection' | 'delivery' | 'crop-harvest' | 'custom';
@@ -961,4 +960,103 @@ export interface UploadPurchaseOrderResponse {
   statusCode: number;
   message: string;
   data: BuyRequest;
+}
+
+// ============================================
+// RATING TYPES
+// ============================================
+
+export interface UserRatingStats {
+  average: number;
+  total: number;
+  breakdown: {
+    "1": number;
+    "2": number;
+    "3": number;
+    "4": number;
+    "5": number;
+  };
+}
+
+export interface UserRatingStatsResponse {
+  statusCode: number;
+  message: string;
+  data: UserRatingStats;
+}
+
+export interface CreateRatingRequest {
+  buyRequestId: string;
+  score: number; // 1-5
+  comment?: string;
+}
+
+export interface Rating {
+  id: string;
+  buyRequestId: string;
+  raterId: string; // User who gave the rating
+  ratedUserId: string; // User being rated (farmer or processor)
+  score: number;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRatingResponse {
+  statusCode: number;
+  message: string;
+  data: Rating;
+}
+
+// ============================================
+// DISPUTE TYPES
+// ============================================
+
+export interface Dispute {
+  id: string;
+  buyRequestId: string;
+  reason: string;
+  status: 'pending' | 'resolved' | 'rejected';
+  createdBy: string; // User ID who created the dispute
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  buyRequest?: BuyRequest; // Optional: full buy request details
+}
+
+export interface CreateDisputeRequest {
+  buyRequestId: string;
+  reason: string;
+}
+
+export interface CreateDisputeResponse {
+  statusCode: number;
+  message: string;
+  data: Dispute;
+}
+
+export interface DisputesListResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: Dispute[];
+    total: number;
+    pageNumber: number;
+    pageSize: number;
+  };
+}
+
+export interface DisputeResponse {
+  statusCode: number;
+  message: string;
+  data: Dispute;
+}
+
+export interface ResolveDisputeResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    id: string;
+    status: 'resolved' | 'rejected';
+    resolvedAt: string;
+  };
 }

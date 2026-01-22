@@ -16,6 +16,8 @@ import { BuyRequest, OrderState } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
 import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
+import RatingModal from "@/app/components/dashboard/RatingModal";
+import DisputeModal from "@/app/components/dashboard/DisputeModal";
 import { XCircle } from "lucide-react";
 
 // Helper function to get product image based on crop type
@@ -119,6 +121,24 @@ export default function Page() {
     type: null,
     orderId: null,
     orderProductId: undefined,
+  });
+
+  // Rating modal state
+  const [ratingModal, setRatingModal] = useState<{
+    isOpen: boolean;
+    buyRequest: BuyRequest | null;
+  }>({
+    isOpen: false,
+    buyRequest: null,
+  });
+
+  // Dispute modal state
+  const [disputeModal, setDisputeModal] = useState<{
+    isOpen: boolean;
+    buyRequest: BuyRequest | null;
+  }>({
+    isOpen: false,
+    buyRequest: null,
   });
 
   // Fetch buy requests on component mount
@@ -296,6 +316,38 @@ export default function Page() {
     }
   };
 
+  // Handle rate order
+  const handleRate = (orderId: string, buyRequestId: string) => {
+    const buyRequest = myRequests.find(req => req.id === buyRequestId);
+    if (buyRequest) {
+      setRatingModal({
+        isOpen: true,
+        buyRequest,
+      });
+    }
+  };
+
+  // Handle rating submitted
+  const handleRatingSubmitted = () => {
+    fetchMyRequests();
+  };
+
+  // Handle dispute
+  const handleDispute = (orderId: string, buyRequestId: string) => {
+    const buyRequest = myRequests.find(req => req.id === buyRequestId);
+    if (buyRequest) {
+      setDisputeModal({
+        isOpen: true,
+        buyRequest,
+      });
+    }
+  };
+
+  // Handle dispute created
+  const handleDisputeCreated = () => {
+    fetchMyRequests();
+  };
+
   if (isFetching) {
     return (
       <AnimatedLoading />
@@ -325,6 +377,8 @@ export default function Page() {
               onViewProfile={handleViewProfile}
               onMessage={handleMessage}
               onUpdateOrderState={handleUpdateOrderState}
+              onRate={handleRate}
+              onDispute={handleDispute}
             />
           )}
         </div>
@@ -390,6 +444,24 @@ export default function Page() {
           cancelText="Cancel"
           type={confirmationModal.type === 'accept' ? 'success' : 'danger'}
           isLoading={isUpdating}
+        />
+      )}
+
+      {/* Rating Modal */}
+      {ratingModal.buyRequest && (
+        <RatingModal
+          isOpen={ratingModal.isOpen}
+          onClose={() => setRatingModal({ isOpen: false, buyRequest: null })}
+          buyRequest={ratingModal.buyRequest}
+          onRatingSubmitted={handleRatingSubmitted}
+        />
+      )}
+      {disputeModal.buyRequest && (
+        <DisputeModal
+          isOpen={disputeModal.isOpen}
+          onClose={() => setDisputeModal({ isOpen: false, buyRequest: null })}
+          buyRequest={disputeModal.buyRequest}
+          onDisputeCreated={handleDisputeCreated}
         />
       )}
     </div>

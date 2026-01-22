@@ -17,6 +17,8 @@ import processor2 from "@/app/assets/images/Processor2.png";
 import processor3 from "@/app/assets/images/Processor3.png";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useRouter } from "next/navigation";
+import apiClient from "@/app/utils/apiClient";
+import { UserRatingStatsResponse } from "@/app/types";
 
 interface Farmer {
   id: string;
@@ -41,10 +43,30 @@ interface Farmer {
   qualityStandards?: string[];
 }
 
+// Helper function to fetch rating for a user
+const fetchUserRating = async (userId: string): Promise<{ average: number; total: number }> => {
+  try {
+    const response = await apiClient.get<UserRatingStatsResponse>(
+      `/ratings?userId=${userId}`
+    );
+    if (response.data.statusCode === 200 && response.data.data) {
+      return {
+        average: response.data.data.average || 0,
+        total: response.data.data.total || 0,
+      };
+    }
+  } catch (error) {
+    console.error(`Error fetching rating for user ${userId}:`, error);
+  }
+  return { average: 0, total: 0 };
+};
+
 // Helper function to map API data to UI format
-const mapApiToFarmer = (apiFarmer: any, index: number): Farmer => {
+const mapApiToFarmer = (apiFarmer: any, index: number, ratings?: Record<string, { average: number; total: number }>): Farmer => {
   const images = [processor1.src, processor2.src, processor3.src];
   const randomImage = images[index % images.length];
+  
+  const farmerRating = ratings?.[apiFarmer.id] || { average: 0, total: 0 };
   
   return {
     id: apiFarmer.id,
@@ -59,8 +81,8 @@ const mapApiToFarmer = (apiFarmer: any, index: number): Farmer => {
     urgentRequests: [],
     responseTime: "< 2 hours",
     activeRequests: 0,
-    rating: 4.5,
-    reviewCount: 0,
+    rating: farmerRating.average,
+    reviewCount: farmerRating.total,
     isMatched: apiFarmer.perfectMatch || false,
     image: randomImage,
     description: `Located at ${apiFarmer.farmAddress}`,
@@ -109,13 +131,21 @@ const FarmerCard: React.FC<{
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="font-medium text-sm text-gray-900">
-                  {farmer.rating}
-                </span>
-                <span className="text-gray-500 text-sm">
-                  ({farmer.reviewCount})
-                </span>
+                {farmer.reviewCount > 0 ? (
+                  <>
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="font-medium text-sm text-gray-900">
+                      {farmer.rating.toFixed(1)}
+                    </span>
+                    <span className="text-gray-500 text-sm">
+                      ({farmer.reviewCount})
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-gray-500 text-sm">
+                    No ratings yet
+                  </span>
+                )}
               </div>
             </div>
 
@@ -187,6 +217,8 @@ const FarmerMatchingUI: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [mappedFarmers, setMappedFarmers] = useState<Farmer[]>([]);
+  const [ratings, setRatings] = useState<Record<string, { average: number; total: number }>>({});
+  const [isLoadingRatings, setIsLoadingRatings] = useState(false);
 
   // Initial load
   useEffect(() => {
@@ -194,13 +226,44 @@ const FarmerMatchingUI: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Map API data to UI format whenever farmers change
+  // Fetch ratings for all farmers when farmers list changes
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (farmers.length === 0) return;
+      
+      setIsLoadingRatings(true);
+      try {
+        // Fetch ratings for all farmers in parallel
+        const ratingPromises = farmers.map(async (farmer) => {
+          const rating = await fetchUserRating(farmer.id);
+          return { userId: farmer.id, rating };
+        });
+        
+        const ratingResults = await Promise.all(ratingPromises);
+        const ratingsMap: Record<string, { average: number; total: number }> = {};
+        
+        ratingResults.forEach(({ userId, rating }) => {
+          ratingsMap[userId] = rating;
+        });
+        
+        setRatings(ratingsMap);
+      } catch (error) {
+        console.error('Error fetching ratings:', error);
+      } finally {
+        setIsLoadingRatings(false);
+      }
+    };
+
+    fetchRatings();
+  }, [farmers]);
+
+  // Map API data to UI format whenever farmers or ratings change
   useEffect(() => {
     if (farmers.length > 0) {
-      const mapped = farmers.map((farmer, index) => mapApiToFarmer(farmer, index));
+      const mapped = farmers.map((farmer, index) => mapApiToFarmer(farmer, index, ratings));
       setMappedFarmers(mapped);
     }
-  }, [farmers]);
+  }, [farmers, ratings]);
 
   const handleSearch = async (term?: string) => {
     try {

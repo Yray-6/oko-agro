@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import Logo from "../assets/icons/Logo";
 import DashboardIcon from "../assets/icons/Dashboard";
 import Product from "../assets/icons/Product";
-import TransactionHistory from "../assets/icons/TransactionHistory";
 import Calendar from "../assets/icons/Calendar";
 import Message from "../assets/icons/Message";
 import Settings from "../assets/icons/Settings";
 import Logout from "../assets/icons/Logout";
-import { Search } from "lucide-react";
+import { Search, Store } from "lucide-react";
 import Notification from "../assets/icons/Notification";
 import Orders from "../assets/icons/Orders";
 import { useAuthStore } from "../store/useAuthStore";
@@ -107,6 +106,11 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       href: "/dashboard/products",
     },
     { icon: <Orders size={20} />, label: "Orders", href: "/dashboard/orders" },
+    {
+      icon: <Store size={20} />,
+      label: "Marketplace",
+      href: "/dashboard/marketplace",
+    },
     {
       icon: <Notification size={20} />,
       label: "Notifications",

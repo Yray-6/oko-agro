@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useState, useEffect } from "react";
-import { X, Download, FileText, CreditCard } from "lucide-react";
+import { X, Download, FileText, CreditCard, Star, XCircle } from "lucide-react";
 import Image from "next/image";
 import Logo from "@/app/assets/icons/Logo";
 
@@ -413,6 +413,8 @@ interface OrdersProps {
   onMakePayment?: (orderId: string) => void;
   onEditRequest?: (orderId: string) => void;
   onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
+  onRate?: (orderId: string, buyRequestId: string) => void;
+  onDispute?: (orderId: string, buyRequestId: string) => void;
 }
 
 type StatusFilter = "All" | "MyRequests" | "Pending" | "Active" | "Completed" | "Rejected";
@@ -423,7 +425,9 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   onDeclineOrder,
   onMakePayment,
   onEditRequest,
-  onUpdateOrderState
+  onUpdateOrderState,
+  onRate,
+  onDispute,
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
@@ -590,6 +594,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     const canViewInvoice = !isMyRequest && order.status !== "Pending";
     const canMakePayment = isActive && !isMyRequest && onMakePayment;
     const isInTransit = order.orderState?.toLowerCase() === 'in_transit';
+    const isCompleted = order.status === "Completed" || order.orderState?.toLowerCase() === 'completed';
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -702,6 +707,17 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               className="px-6 py-2 flex items-center gap-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
             >
               Mark as Delivered
+            </button>
+          )}
+
+          {/* Rate Farmer Button - For completed orders */}
+          {isCompleted && onRate && order.buyRequestId && (
+            <button
+              onClick={() => onRate(order.id, order.buyRequestId!)}
+              className="px-6 py-2 flex items-center gap-2 bg-[#004829] text-white rounded-md hover:bg-[#003d20] transition-colors font-medium"
+            >
+              <Star className="w-4 h-4" />
+              Rate Farmer
             </button>
           )}
 

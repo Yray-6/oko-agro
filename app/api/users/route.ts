@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
+    const userId = searchParams.get('userId');
     const search = searchParams.get('search') || '';
     const pageNumber = searchParams.get('pageNumber') || '1';
     const pageSize = searchParams.get('pageSize') || '20';
@@ -46,6 +47,20 @@ export async function GET(request: NextRequest) {
         } as ApiResponse,
         { status: 401 }
       );
+    }
+
+    // Handle single user fetch by ID
+    if (userId) {
+      const endpoint = `/users/${userId}`;
+      const response = await apiClient.get(endpoint, {
+        headers: {
+          'Authorization': authHeader
+        }
+      });
+
+      return NextResponse.json(response.data as ApiResponse, {
+        status: response.status,
+      });
     }
 
     let endpoint = '';
@@ -74,7 +89,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: all-users, farmers, processors',
+            message: 'Invalid action. Valid actions are: all-users, farmers, processors, or provide userId',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

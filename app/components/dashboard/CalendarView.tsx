@@ -1,91 +1,16 @@
 'use client'
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
-import { CalendarEvent } from '@/app/types';
-
-interface ScheduleEventProps {
-  title: string;
-  time: string;
-  location: string;
-  status: 'upcoming' | 'in-progress' | 'completed';
-  className?: string;
-  onClick?: () => void;
-}
-
-const ScheduleEvent: React.FC<ScheduleEventProps> = ({
-  title,
-  time,
-  location,
-  status,
-  className = '',
-  onClick
-}) => {
-  const getStatusColors = (status: string) => {
-    switch (status) {
-      case 'upcoming':
-        return {
-          border: 'border-transparent',
-          badge: 'bg-mainGreen/10 text-mainGreen border border-mainGreen/10'
-        };
-      case 'in-progress':
-        return {
-          border: 'border-blue-400',
-          badge: 'bg-blue-50 text-blue-600 border border-blue-200'
-        };
-      case 'completed':
-        return {
-          border: 'border-green-400',
-          badge: 'bg-green-50 text-green-600 border border-green-200'
-        };
-      default:
-        return {
-          border: 'border-gray-400',
-          badge: 'bg-gray-50 text-gray-600 border border-gray-200'
-        };
-    }
-  };
-
-  const colors = getStatusColors(status);
-
-  return (
-    <div 
-      className={`bg-white border-l-4 border-red rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-4">
-        <div className={`w-1 h-12 rounded-full ${colors.border.replace('border-', 'bg-')}`}></div>
-        
-        <div className="flex-1 flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="font-medium text-base mb-1">{title}</h3>
-            
-            <div className="flex items-center gap-4 text-xs text-[#6A7C6A]">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{time}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{location}</span>
-              </div>
-            </div>
-          </div>
-          
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
-            {status}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarEvent, EventDetails } from '@/app/types';
+import ScheduleEvent from './Schedule'; // Import the actual ScheduleEvent component
 
 interface CalendarViewProps {
   events?: CalendarEvent[];
-  onEventClick?: (event: CalendarEvent) => void;
+  onEventClick?: (event: CalendarEvent | EventDetails) => void;
+  allEvents?: EventDetails[]; // Pass original events for lookup
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ events = [], onEventClick }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ events = [], onEventClick, allEvents = [] }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const monthNames = [
@@ -111,7 +36,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events = [], onEventClick }
     });
   };
 
-  // Get events for the current month
+  // Get upcoming events (events with date >= today)
+  const upcomingEvents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    
+    return events.filter(event => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0); // Reset time to start of day
+      // Show events that are today or in the future
+      return eventDate >= today;
+    }).sort((a, b) => {
+      // Sort by date ascending
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [events]);
+
+  // Get events for the current month (for calendar display)
   const monthEvents = useMemo(() => {
     return events.filter(event => {
       const eventDate = new Date(event.date);
@@ -161,8 +104,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events = [], onEventClick }
                       currentDate.getMonth() === today.getMonth() && 
                       currentDate.getFullYear() === today.getFullYear();
       
+      const handleDayClick = () => {
+        if (event && onEventClick) {
+          // Try to find the original event from allEvents if available
+          const originalEvent = allEvents.find(e => e.id === event.id);
+          if (originalEvent) {
+            onEventClick(originalEvent);
+          } else {
+            onEventClick(event);
+          }
+        }
+      };
+      
       days.push(
-        <div key={day} className="p-3 text-sm hover:bg-gray-50 cursor-pointer relative">
+        <div 
+          key={day} 
+          className={`p-3 text-sm hover:bg-gray-50 relative ${event && onEventClick ? 'cursor-pointer' : ''}`}
+          onClick={event && onEventClick ? handleDayClick : undefined}
+        >
           <div className={`w-8 h-8 flex items-center justify-center rounded-full ${
             event ? getEventColor(event.status) : ''
           } ${isToday && !event ? 'bg-gray-200 font-semibold' : ''}`}>
@@ -230,24 +189,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events = [], onEventClick }
 
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Events for {monthNames[currentDate.getMonth()]}, {currentDate.getFullYear()}
+            Upcoming Events
           </h3>
           
-          <div className="space-y-3">
-            {monthEvents.length > 0 ? (
-              monthEvents.map(event => (
-                <ScheduleEvent
-                  key={event.id}
-                  title={event.title}
-                  time={event.time}
-                  location={event.location}
-                  status={event.status}
-                  onClick={onEventClick ? () => onEventClick(event) : undefined}
-                />
-              ))
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map(event => {
+                // Always create handleViewDetails if onEventClick is provided
+                const handleViewDetails = onEventClick ? () => {
+                  // Try to find the original event from allEvents if available
+                  const originalEvent = allEvents.find(e => e.id === event.id);
+                  if (originalEvent) {
+                    onEventClick(originalEvent);
+                  } else {
+                    onEventClick(event);
+                  }
+                } : undefined;
+                
+                return (
+                  <ScheduleEvent
+                    key={event.id}
+                    title={event.title}
+                    location={event.location}
+                    status={event.status}
+                    onViewDetails={handleViewDetails}
+                  />
+                );
+              })
             ) : (
               <div className="text-center py-4 text-gray-500">
-                No events scheduled for this month
+                No upcoming events scheduled
               </div>
             )}
           </div>

@@ -3,12 +3,16 @@ import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useAdminStore } from "../../store/useAdminStore";
 import AnimatedLoading from "../../Loading";
+import apiClient from "../../utils/apiClient";
+import { UserRatingStats } from "../../types";
+import { Star } from "lucide-react";
 
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState("All Users");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+  const [userRatings, setUserRatings] = useState<Record<string, UserRatingStats>>({});
 
   const tabs = ["All Users", "Farmers", "Processors"];
 
@@ -44,6 +48,40 @@ export default function UserManagement() {
     }
   }, [activeTab, searchQuery, currentPage, fetchAllUsers, fetchFarmers, fetchProcessors]);
 
+  // Get current users and meta based on active tab
+  const currentUsers = useMemo(() => {
+    if (activeTab === "All Users") return allUsers;
+    if (activeTab === "Farmers") return farmers;
+    if (activeTab === "Processors") return processors;
+    return [];
+  }, [activeTab, allUsers, farmers, processors]);
+
+  // Fetch ratings for all users
+  useEffect(() => {
+    const fetchRatings = async () => {
+      const ratingsMap: Record<string, UserRatingStats> = {};
+      const promises = currentUsers.map(async (user) => {
+        try {
+          const response = await apiClient.get<{ statusCode: number; message: string; data: UserRatingStats }>(
+            `/ratings?userId=${user.id}`
+          );
+          if (response.data.statusCode === 200 && response.data.data) {
+            ratingsMap[user.id] = response.data.data;
+          }
+        } catch (error) {
+          // Silently fail for ratings - user might not have any ratings yet
+          console.error(`Failed to fetch rating for user ${user.id}:`, error);
+        }
+      });
+      await Promise.all(promises);
+      setUserRatings(ratingsMap);
+    };
+
+    if (currentUsers.length > 0) {
+      fetchRatings();
+    }
+  }, [currentUsers]);
+
   // Handle search with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -55,14 +93,6 @@ export default function UserManagement() {
     setActiveTab(tab);
     setCurrentPage(1); // Reset to first page on tab change
   };
-
-  // Get current users and meta based on active tab
-  const currentUsers = useMemo(() => {
-    if (activeTab === "All Users") return allUsers;
-    if (activeTab === "Farmers") return farmers;
-    if (activeTab === "Processors") return processors;
-    return [];
-  }, [activeTab, allUsers, farmers, processors]);
 
   const currentMeta = useMemo(() => {
     if (activeTab === "All Users") return usersMeta;
@@ -538,6 +568,15 @@ export default function UserManagement() {
                       lineHeight: "1.429em",
                     }}
                   >
+                    Avg Rating
+                  </th>
+                  <th
+                    className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                    style={{
+                      fontFamily: "Effra, sans-serif",
+                      lineHeight: "1.429em",
+                    }}
+                  >
                     Actions
                   </th>
                 </tr>
@@ -545,13 +584,13 @@ export default function UserManagement() {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center">
+                    <td colSpan={7} className="px-4 py-8 text-center">
                       <AnimatedLoading />
                     </td>
                   </tr>
                 ) : currentUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-[#80726B]">
+                    <td colSpan={7} className="px-4 py-8 text-center text-[#80726B]">
                       No users found
                     </td>
                   </tr>
@@ -665,6 +704,32 @@ export default function UserManagement() {
                               {userStatus.status}
                             </span>
                           </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {userRatings[user.id] && userRatings[user.id].total > 0 && userRatings[user.id].average > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                              <span
+                                className="text-[14px] font-normal text-black"
+                                style={{
+                                  fontFamily: "Effra, sans-serif",
+                                  lineHeight: "1.429em",
+                                }}
+                              >
+                                {userRatings[user.id].average.toFixed(1)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span
+                              className="text-[14px] font-normal text-[#80726B]"
+                              style={{
+                                fontFamily: "Effra, sans-serif",
+                                lineHeight: "1.429em",
+                              }}
+                            >
+                              No ratings yet
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-4">
                           <a

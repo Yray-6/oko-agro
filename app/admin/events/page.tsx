@@ -1,19 +1,21 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import CalendarView from '@/app/components/dashboard/CalendarView';
 import { EventDetailsModal } from '@/app/components/dashboard/EventDetailsModal';
 import { useEventStore } from '@/app/store/useEventStore';
 import { useDataStore } from '@/app/store/useDataStore';
 import { CalendarEvent, EventDetails } from '@/app/types';
 import { transformEventToCalendarEvent } from '@/app/helpers';
-import { Calendar, Clock, Package, User, MapPin } from 'lucide-react';
+import { Calendar, Clock, Package, User, MapPin, Download, Filter } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function AdminEventsPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [selectedCropFilter, setSelectedCropFilter] = useState<string>('all');
   
-  const { events, fetchAllEvents, fetchEvent, isFetching } = useEventStore();
+  const { events, fetchAllEvents, isFetching } = useEventStore();
   const { crops, fetchCrops } = useDataStore();
 
   // Fetch all events and crops on component mount
@@ -24,35 +26,59 @@ export default function AdminEventsPage() {
     }
   }, [fetchAllEvents, fetchCrops, crops.length]);
 
+  // Get crop name helper
+  const getCropName = useMemo(() => {
+    return (event: EventDetails): string | null => {
+      if (event.cropId && crops.length > 0) {
+        return crops.find(c => c.id === event.cropId)?.name || null;
+      }
+      // Check if event has crop object (from API response)
+      if ('crop' in event && event.crop && typeof event.crop === 'object' && 'name' in event.crop) {
+        return (event.crop as { name: string }).name;
+      }
+      return null;
+    };
+  }, [crops]);
+
+  // Filter and sort events by date (earliest to latest)
+  const filteredAndSortedEvents = useMemo(() => {
+    let filtered = [...events];
+    
+    // Filter by crop if selected
+    if (selectedCropFilter !== 'all') {
+      filtered = filtered.filter(event => {
+        const cropName = getCropName(event);
+        return cropName && crops.find(c => c.id === selectedCropFilter)?.name === cropName;
+      });
+    }
+    
+    // Sort by date (earliest to latest)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.eventDate).getTime();
+      const dateB = new Date(b.eventDate).getTime();
+      return dateA - dateB; // Ascending order (earliest first)
+    });
+  }, [events, selectedCropFilter, crops, getCropName]);
+
   // Transform API events to calendar events when they change
   useEffect(() => {
-    if (events.length > 0) {
-      const transformed = events.map(transformEventToCalendarEvent);
+    if (filteredAndSortedEvents.length > 0) {
+      const transformed = filteredAndSortedEvents.map(transformEventToCalendarEvent);
       setCalendarEvents(transformed);
+    } else {
+      setCalendarEvents([]);
     }
-  }, [events]);
+  }, [filteredAndSortedEvents]);
 
-  // Handle event click
-  const handleEventClick = async (event: CalendarEvent | EventDetails) => {
-    try {
-      // If it's already an EventDetails, use it directly
-      if ('eventDate' in event && 'referenceType' in event) {
-        const eventDetails = await fetchEvent(event.id);
-        setSelectedEvent(eventDetails);
-        setIsDetailsModalOpen(true);
-      } else {
-        // If it's a CalendarEvent, find the corresponding EventDetails
-        const apiEvent = events.find(e => e.id === event.id);
-        if (apiEvent) {
-          const eventDetails = await fetchEvent(apiEvent.id);
-          setSelectedEvent(eventDetails);
-          setIsDetailsModalOpen(true);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch event details:', error);
-      // Fallback: try to find event in current list
-      const apiEvent = events.find(e => e.id === event.id);
+  // Handle event click - use already fetched events instead of calling API
+  const handleEventClick = (event: CalendarEvent | EventDetails) => {
+    // If it's already an EventDetails, use it directly
+    if ('eventDate' in event && 'referenceType' in event) {
+      setSelectedEvent(event as EventDetails);
+      setIsDetailsModalOpen(true);
+    } else {
+      // If it's a CalendarEvent, find the corresponding EventDetails from already fetched events
+      const apiEvent = filteredAndSortedEvents.find(e => e.id === event.id);
       if (apiEvent) {
         setSelectedEvent(apiEvent);
         setIsDetailsModalOpen(true);
@@ -60,17 +86,52 @@ export default function AdminEventsPage() {
     }
   };
 
+  // Export events to Excel
+  const handleExportToExcel = () => {
+    const exportData = filteredAndSortedEvents.map(event => {
+      const eventDate = new Date(event.eventDate);
+      const cropName = getCropName(event);
+      
+      return {
+        'Event Name': event.name,
+        'Description': event.description || '',
+        'Event Date': eventDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }),
+        'Event Time': eventDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }),
+        'Status': event.status || 'upcoming',
+        'Is Harvest Event': event.isHarvestEvent ? 'Yes' : 'No',
+        'Crop Type': cropName || '',
+        'Crop Quantity': event.cropQuantity || '',
+        'Crop Quantity Unit': event.cropQuantityUnit || '',
+        'Owner Name': event.owner ? `${event.owner.firstName} ${event.owner.lastName}` : '',
+        'Owner Role': event.owner?.role || '',
+        'Farm Name': event.owner?.farmName || '',
+        'Location': event.owner ? `${event.owner.state || ''}, ${event.owner.country || 'Nigeria'}`.replace(/^,\s*|,\s*$/g, '') : '',
+        'Farm Address': event.owner?.farmAddress || '',
+      };
+    });
 
-  // Get crop name helper
-  const getCropName = (event: EventDetails): string | null => {
-    if (event.cropId && crops.length > 0) {
-      return crops.find(c => c.id === event.cropId)?.name || null;
-    }
-    // Check if event has crop object (from API response)
-    if ('crop' in event && event.crop && typeof event.crop === 'object' && 'name' in event.crop) {
-      return (event.crop as { name: string }).name;
-    }
-    return null;
+    // Create workbook and worksheet
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Events');
+
+    // Generate filename with current date
+    const dateStr = new Date().toISOString().split('T')[0];
+    const cropFilter = selectedCropFilter !== 'all' 
+      ? `_${crops.find(c => c.id === selectedCropFilter)?.name || 'filtered'}` 
+      : '';
+    const filename = `events_export${cropFilter}_${dateStr}.xlsx`;
+
+    // Write and download
+    XLSX.writeFile(wb, filename);
   };
 
   return (
@@ -87,7 +148,7 @@ export default function AdminEventsPage() {
         <CalendarView 
           events={calendarEvents} 
           onEventClick={(event) => {
-            const apiEvent = events.find(e => e.id === event.id);
+            const apiEvent = filteredAndSortedEvents.find(e => e.id === event.id);
             if (apiEvent) {
               handleEventClick(apiEvent);
             }
@@ -99,15 +160,43 @@ export default function AdminEventsPage() {
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">
-            All Events ({events.length})
+            All Events ({filteredAndSortedEvents.length})
           </h2>
+          <div className="flex items-center gap-3">
+            {/* Crop Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={selectedCropFilter}
+                onChange={(e) => setSelectedCropFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+              >
+                <option value="all">All Crops</option>
+                {crops.map((crop) => (
+                  <option key={crop.id} value={crop.id}>
+                    {crop.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Export Button */}
+            <button
+              onClick={handleExportToExcel}
+              disabled={filteredAndSortedEvents.length === 0 || isFetching}
+              className="flex items-center gap-2 px-4 py-2 bg-mainGreen text-white rounded-lg hover:bg-mainGreen/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Export to Excel
+            </button>
+          </div>
         </div>
 
         {isFetching ? (
           <div className="text-center py-8 text-gray-500">Loading events...</div>
-        ) : events.length > 0 ? (
+        ) : filteredAndSortedEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {events.map((event) => {
+            {filteredAndSortedEvents.map((event) => {
               const eventDate = new Date(event.eventDate);
               const formattedDate = eventDate.toLocaleDateString('en-US', {
                 year: 'numeric',

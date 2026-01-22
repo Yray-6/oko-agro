@@ -60,7 +60,10 @@ const RecentActivity: React.FC = () => {
         break;
     }
 
-    return allNotifications.map(notificationToActivityItem);
+    // Limit to last 4 notifications (already sorted newest first)
+    const limitedNotifications = allNotifications.slice(0, 4);
+
+    return limitedNotifications.map(notificationToActivityItem);
   }, [notifications, contactMessages, filter]);
 
   const activities = getFilteredActivities();

@@ -9,15 +9,19 @@ import {
   Loader2,
   Phone,
   Mail,
+  Clock,
 } from "lucide-react";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useEventStore } from "@/app/store/useEventStore";
+import { useDataStore } from "@/app/store/useDataStore";
 import ProductCardContainerDetailedProcessor from "@/app/components/dashboad-processor/ProductCardContainerDetaledProcessor";
 import CalendarViewProcessor from "@/app/components/dashboad-processor/CalendarViewProcessor";
+import ScheduleEvent from "@/app/components/dashboard/Schedule";
+import { EventDetailsModal } from "@/app/components/dashboard/EventDetailsModal";
 import rice from "@/app/assets/images/rice.png";
-import { UserProfile } from "@/app/types";
+import { UserProfile, EventDetails, CalendarEvent } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
-import { formatPrice } from "@/app/helpers";
+import { formatPrice, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
 
 export default function FarmerDetailsPage() {
   const router = useRouter();
@@ -26,11 +30,16 @@ export default function FarmerDetailsPage() {
 
   const { products, isFetching, fetchError, fetchApprovedUserProducts } = useProductStore();
   const { events, isFetching: isFetchingEvents, fetchUserEvents } = useEventStore();
+  const { crops, fetchCrops } = useDataStore();
 
   const productOwner = products[0]?.owner;
 
   const [farmerDetails, setFarmerDetails] = useState<UserProfile | null>(null);
   const [isLoadingFarmer, setIsLoadingFarmer] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [todaysEvents, setTodaysEvents] = useState<CalendarEvent[]>([]);
 
   // Fetch farmer details from the farmers list in store
   useEffect(() => {
@@ -61,6 +70,35 @@ export default function FarmerDetailsPage() {
       fetchUserEvents(farmerId);
     }
   }, [farmerId, fetchUserEvents]);
+
+  // Fetch crops for event details modal
+  useEffect(() => {
+    if (crops.length === 0) {
+      fetchCrops().catch(console.error);
+    }
+  }, [crops.length, fetchCrops]);
+
+  // Transform API events to calendar events when they change
+  useEffect(() => {
+    if (events.length > 0) {
+      const transformed = events.map(transformEventToCalendarEvent);
+      setCalendarEvents(transformed);
+      setTodaysEvents(getTodaysEvents(transformed));
+    } else {
+      setCalendarEvents([]);
+      setTodaysEvents([]);
+    }
+  }, [events]);
+
+  // Handle event click - use already fetched events instead of calling API
+  const handleEventClick = (event: EventDetails) => {
+    // Use the event directly from already fetched events
+    setSelectedEvent(event);
+    setIsDetailsModalOpen(true);
+  };
+
+  // Calculate today's count
+  const todaysCount = todaysEvents.length;
 
   // Map products to the format expected by ProductCardContainer
   const mappedProducts = products.map((product) => ({
@@ -245,19 +283,68 @@ export default function FarmerDetailsPage() {
           )}
         </div>
 
-        {/* Calendar View - Always show, independent of products */}
+        {/* Schedule & Calendar Section */}
         <div className="mt-12">
           <h2 className="text-xl font-semibold mb-4">Schedule & Calendar</h2>
-          {isFetchingEvents ? (
-            <div className="flex items-center justify-center py-12 bg-white rounded-lg">
-              <Loader2 className="w-8 h-8 animate-spin text-mainGreen" />
+          
+          {/* Today's Schedule */}
+          <div className="bg-white border border-mainGreen/20 rounded-lg p-5 mb-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Clock size={17}/> Today&apos;s Schedule 
+              <span className="text-mainGreen bg-mainGreen/20 rounded-full text-xs px-2 py-1 font-medium">
+                {todaysCount} {todaysCount === 1 ? 'event' : 'events'}
+              </span>
             </div>
-          ) : (
-            <CalendarViewProcessor events={events} />
-          )}
+            <div>
+              {isFetchingEvents ? (
+                <div className="text-center py-4 text-gray-500">Loading events...</div>
+              ) : todaysEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {todaysEvents.map(event => {
+                    const apiEvent = events.find(e => e.id === event.id);
+                    return (
+                      <ScheduleEvent 
+                        key={event.id}
+                        title={event.title}
+                        location={event.location}
+                        status={event.status}
+                        onViewDetails={apiEvent ? () => handleEventClick(apiEvent) : undefined}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No events scheduled for today
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Calendar View */}
+          <div>
+            {isFetchingEvents ? (
+              <div className="flex items-center justify-center py-12 bg-white rounded-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-mainGreen" />
+              </div>
+            ) : (
+              <CalendarViewProcessor events={events} onEventClick={handleEventClick} />
+            )}
+          </div>
         </div>
       </div>
       {(isFetching || isFetchingEvents) && <AnimatedLoading/>}
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedEvent(null);
+        }}
+        event={selectedEvent}
+        crops={crops}
+      />
     </div>
   );
 }

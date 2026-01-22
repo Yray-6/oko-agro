@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Card from "../components/dashboard/Cards";
 import Revenue from "../assets/icons/Revenue";
 import Listings from "../assets/icons/Listings";
@@ -15,6 +15,8 @@ import CreateNewRequestModal from "../components/dashboad-processor/CreateNewReq
 import { SuccessModal } from "@/app/components/dashboard/ProductModal";
 import { useBuyRequestStore } from "../store/useRequestStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
+import { UserRatingStats } from "@/app/types";
+import apiClient from "@/app/utils/apiClient";
 import AnimatedLoading from "../Loading";
 
 export default function Page() {
@@ -26,6 +28,7 @@ export default function Page() {
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<{ name: string; id: string } | null>(null);
+  const [qualityScore, setQualityScore] = useState<UserRatingStats | null>(null);
 
   // Fetch user's buy requests on component mount
   useEffect(() => {
@@ -33,6 +36,27 @@ export default function Page() {
       fetchMyRequests().catch(console.error);
     }
   }, [user?.id, fetchMyRequests]);
+
+  // Fetch quality score (ratings) for the user
+  useEffect(() => {
+    const fetchQualityScore = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await apiClient.get<{ statusCode: number; message: string; data: UserRatingStats }>(
+          `/ratings?userId=${user.id}`
+        );
+        if (response.data.statusCode === 200 && response.data.data) {
+          setQualityScore(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch quality score:', error);
+        // Silently fail - user might not have ratings yet
+      }
+    };
+
+    fetchQualityScore();
+  }, [user?.id]);
 
   // Calculate active requests count
   // Active requests are those with status 'accepted' or 'active', excluding those with orderState 'completed'
@@ -45,12 +69,31 @@ export default function Page() {
     return (statusLower === 'accepted' || statusLower === 'active');
   }).length;
 
-  // Calculate total expense (sum of all request prices)
-  const totalExpense = myRequests.reduce((acc, req) => {
-    const quantity = parseFloat(req.productQuantity || '0');
-    const pricePerUnit = parseFloat(req.pricePerUnitOffer || '0');
-    return acc + (quantity * pricePerUnit);
-  }, 0);
+  // Calculate pending orders count
+  const pendingOrdersCount = useMemo(() => {
+    return myRequests.filter(req => {
+      const statusLower = req.status.toLowerCase();
+      return statusLower === 'pending' && !req.isGeneral && !req.isDeleted;
+    }).length;
+  }, [myRequests]);
+
+  // Calculate total expense from completed orders only
+  const totalExpense = useMemo(() => {
+    const completedOrders = myRequests.filter(req => {
+      // Priority: orderState "completed" takes precedence
+      if (req.orderState?.toLowerCase() === 'completed') {
+        return true;
+      }
+      const statusLower = req.status.toLowerCase();
+      return statusLower === 'completed';
+    });
+
+    return completedOrders.reduce((acc, req) => {
+      const quantity = parseFloat(req.productQuantity || '0');
+      const pricePerUnit = parseFloat(req.pricePerUnitOffer || '0');
+      return acc + (quantity * pricePerUnit);
+    }, 0);
+  }, [myRequests]);
 
   const handleNewRequestClick = () => {
     setShowCreateRequestModal(true);
@@ -73,9 +116,9 @@ export default function Page() {
       <div className="text-2xl">Hello, {user?.firstName || 'Oghenevwaire'}</div>
       <div className="grid grid-cols-4 py-4 gap-4">
         <Card
-          title="Expense"
+          title="Total Expense"
           value={`₦${totalExpense.toLocaleString()}`}
-          subtitle="+12% from last month"
+          subtitle="From completed orders"
           subtitleColor="text-green"
           iconColor="text-green"
           icon={Revenue}
@@ -90,16 +133,16 @@ export default function Page() {
         />
         <Card
           title="Pending Orders"
-          value="3"
-          subtitle="Due in 5 days"
+          value={pendingOrdersCount.toString()}
+          subtitle="Awaiting action"
           subtitleColor="text-black"
           iconColor="text-yellow"
           icon={ViewOrders}
         />
         <Card
           title="Quality Score"
-          value="4.5"
-          subtitle="44 Reviews"
+          value={qualityScore && qualityScore.total > 0 ? qualityScore.average.toFixed(1) : 'N/A'}
+          subtitle={qualityScore && qualityScore.total > 0 ? `${qualityScore.total} Review${qualityScore.total === 1 ? '' : 's'}` : 'No ratings yet'}
           subtitleColor="text-black"
           icon={Star}
         />

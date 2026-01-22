@@ -448,8 +448,17 @@ export async function GET(request: NextRequest) {
     // Handle different GET actions
     switch (action) {
       case 'general':
-        endpoint = '/buy-requests/general';
-        console.log(`🌾 [Buy Requests API ${requestId}] Fetching general requests (farmers only - pending, <1 week old)`);
+        // Build query string for general buy requests with pagination
+        const generalQuery = new URLSearchParams();
+        generalQuery.append('isGeneral', 'true');
+        generalQuery.append('pageNumber', pageNumber);
+        generalQuery.append('pageSize', pageSize);
+        
+        endpoint = `/buy-requests?${generalQuery.toString()}`;
+        console.log(`🌾 [Buy Requests API ${requestId}] Fetching general requests with pagination:`, {
+          pageNumber,
+          pageSize
+        });
         break;
         
       case 'my-requests':
@@ -526,8 +535,8 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // For ongoing-buyrequest, the response is already in the correct format
-    if (action === 'ongoing-buyrequest') {
+    // For ongoing-buyrequest and general (with pagination), the response is already in the correct format
+    if (action === 'ongoing-buyrequest' || action === 'general') {
       return NextResponse.json(response.data as ApiResponse, {
         status: 200
       });

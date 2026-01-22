@@ -3,9 +3,10 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import ChartCard from "../components/dashboard/ChartCard";
 import { useAdminStore } from "../store/useAdminStore";
+import { useDisputeStore } from "../store/useDisputeStore";
 import ProductApprovalModal from "../components/admin/ProductApprovalModal";
 import Modal from "../components/Modal";
-import { ProductDetails, BuyRequest, OrderState } from "../types";
+import { ProductDetails, BuyRequest, OrderState, UserFile } from "../types";
 import AnimatedLoading from "../Loading";
 
 interface Order {
@@ -34,6 +35,7 @@ interface Order {
   orderDate?: string;
   paymentTerms?: string;
   orderState?: string;
+  purchaseOrderDoc?: UserFile | null;
 }
 
 export default function AdminDashboard() {
@@ -149,6 +151,7 @@ export default function AdminDashboard() {
       }),
       paymentTerms: buyRequest.preferredPaymentMethod || "On Delivery",
       orderState: buyRequest.orderState || undefined,
+      purchaseOrderDoc: buyRequest.purchaseOrderDoc || null,
     };
   };
 
@@ -187,8 +190,9 @@ export default function AdminDashboard() {
           const orderState = statusToOrderState(selectedStatus);
           await updateOrderState(buyRequest.id, orderState);
           
-          // Update local state
-          const updatedOrder = { ...selectedOrder, status: selectedStatus };
+          // Update local state with fresh data from buyRequest
+          const updatedOrder = mapBuyRequestToOrder(buyRequest);
+          updatedOrder.status = selectedStatus;
           setSelectedOrder(updatedOrder);
           setShowOrderModal(false);
         }
@@ -216,6 +220,16 @@ export default function AdminDashboard() {
     fetchOngoingBuyRequests,
     updateOrderState,
   } = useAdminStore();
+
+  const {
+    disputes,
+    isLoading: isLoadingDisputes,
+    isResolving,
+    isRejecting,
+    fetchAllDisputes,
+    resolveDispute,
+    rejectDispute,
+  } = useDisputeStore();
 
   // Convert ongoing buy requests to orders
   const orders = ongoingBuyRequests.map(mapBuyRequestToOrder);
@@ -248,6 +262,13 @@ export default function AdminDashboard() {
       });
     }
   }, [activeTableTab, searchQuery, orderStateFilter, fetchOngoingBuyRequests]);
+
+  // Fetch disputes when Disputes tab is active
+  useEffect(() => {
+    if (activeTableTab === "Disputes") {
+      fetchAllDisputes({ pageNumber: 1, pageSize: 20 });
+    }
+  }, [activeTableTab, fetchAllDisputes]);
 
   const handleApproveReject = (product: ProductDetails, action: "approve" | "reject") => {
     setApprovalModal({
@@ -654,7 +675,22 @@ export default function AdminDashboard() {
                 letterSpacing: "-3.33%",
               }}
             >
-              Pending Listings
+              Pending and Approved Listings
+            </button>
+            <button
+              onClick={() => setActiveTableTab("Disputes")}
+              className={`text-[18px] font-normal pb-[25px] ${
+                activeTableTab === "Disputes"
+                  ? "text-[#004829]"
+                  : "text-[#C3C3C3]"
+              }`}
+              style={{
+                fontFamily: "Effra, sans-serif",
+                lineHeight: "1.333em",
+                letterSpacing: "-3.33%",
+              }}
+            >
+              Disputes
             </button>
           </div>
 
@@ -668,6 +704,8 @@ export default function AdminDashboard() {
                     ? "Search products..." 
                     : activeTableTab === "Ongoing Orders"
                     ? "Search orders..."
+                    : activeTableTab === "Disputes"
+                    ? "Search disputes..."
                     : "Search users..."
                 }
                 value={searchQuery}
@@ -741,7 +779,55 @@ export default function AdminDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#EBE7E5]">
-                  {activeTableTab === "Ongoing Orders" ? (
+                  {activeTableTab === "Disputes" ? (
+                    <>
+                      <th
+                        className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                        style={{
+                          fontFamily: "Effra, sans-serif",
+                          lineHeight: "1.429em",
+                        }}
+                      >
+                        Order ID
+                      </th>
+                      <th
+                        className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                        style={{
+                          fontFamily: "Effra, sans-serif",
+                          lineHeight: "1.429em",
+                        }}
+                      >
+                        Reason
+                      </th>
+                      <th
+                        className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                        style={{
+                          fontFamily: "Effra, sans-serif",
+                          lineHeight: "1.429em",
+                        }}
+                      >
+                        Status
+                      </th>
+                      <th
+                        className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                        style={{
+                          fontFamily: "Effra, sans-serif",
+                          lineHeight: "1.429em",
+                        }}
+                      >
+                        Created Date
+                      </th>
+                      <th
+                        className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                        style={{
+                          fontFamily: "Effra, sans-serif",
+                          lineHeight: "1.429em",
+                        }}
+                      >
+                        Actions
+                      </th>
+                    </>
+                  ) : activeTableTab === "Ongoing Orders" ? (
                     <>
                       <th
                         className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
@@ -768,7 +854,7 @@ export default function AdminDashboard() {
                           lineHeight: "1.429em",
                         }}
                       >
-                        Order & Value
+                        Order
                       </th>
                       <th
                         className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
@@ -778,6 +864,15 @@ export default function AdminDashboard() {
                         }}
                       >
                         Delivery Location
+                      </th>
+                      <th
+                        className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
+                        style={{
+                          fontFamily: "Effra, sans-serif",
+                          lineHeight: "1.429em",
+                        }}
+                      >
+                        Value
                       </th>
                       <th
                         className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]"
@@ -860,7 +955,126 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {/* Table Rows */}
-                {activeTableTab === "Pending Listings" ? (
+                {activeTableTab === "Disputes" ? (
+                  isLoadingDisputes ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center">
+                        <AnimatedLoading />
+                      </td>
+                    </tr>
+                  ) : disputes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-[#80726B]">
+                        No disputes found
+                      </td>
+                    </tr>
+                  ) : (
+                    disputes.map((dispute) => (
+                      <tr key={dispute.id} className="border-b border-[#EBE7E5]">
+                        <td className="px-4 py-4">
+                          <p
+                            className="text-[14px] font-medium text-[#0D3F11]"
+                            style={{
+                              fontFamily: "Effra, sans-serif",
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {dispute.buyRequestId.substring(0, 8).toUpperCase()}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p
+                            className="text-[14px] font-normal text-[#80726B] line-clamp-2"
+                            style={{
+                              fontFamily: "Effra, sans-serif",
+                              lineHeight: "1.429em",
+                            }}
+                            title={dispute.reason}
+                          >
+                            {dispute.reason}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              dispute.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : dispute.status === 'resolved'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {dispute.status.charAt(0).toUpperCase() + dispute.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p
+                            className="text-[14px] font-normal text-[#80726B]"
+                            style={{
+                              fontFamily: "Effra, sans-serif",
+                              lineHeight: "1.429em",
+                            }}
+                          >
+                            {new Date(dispute.createdAt).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          {dispute.status === 'pending' && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await resolveDispute(dispute.id);
+                                  } catch (error) {
+                                    console.error('Failed to resolve dispute:', error);
+                                  }
+                                }}
+                                disabled={isResolving || isRejecting}
+                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isResolving ? 'Resolving...' : 'Resolve'}
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await rejectDispute(dispute.id);
+                                  } catch (error) {
+                                    console.error('Failed to reject dispute:', error);
+                                  }
+                                }}
+                                disabled={isResolving || isRejecting}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isRejecting ? 'Rejecting...' : 'Reject'}
+                              </button>
+                            </div>
+                          )}
+                          {dispute.status !== 'pending' && (
+                            <p
+                              className="text-[12px] font-normal text-[#80726B]"
+                              style={{
+                                fontFamily: "Effra, sans-serif",
+                                lineHeight: "1.333em",
+                              }}
+                            >
+                              {dispute.resolvedAt
+                                ? `Resolved: ${new Date(dispute.resolvedAt).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}`
+                                : 'N/A'}
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )
+                ) : activeTableTab === "Pending Listings" ? (
                   isLoadingProductListings ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-8 text-center">
@@ -901,12 +1115,12 @@ export default function AdminDashboard() {
                         <td className="px-4 py-4">
                           <div className="flex flex-col gap-[3.5px]">
                             <div className="flex items-center gap-1">
-                              <Image
+                              {/* <Image
                                 src="/icons/search-01.svg"
                                 alt="Product"
                                 width={12}
                                 height={12}
-                              />
+                              /> */}
                               <span
                                 className="text-[14px] font-normal text-[#0D3F11]"
                                 style={{
@@ -967,28 +1181,32 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleApproveReject(product, "approve")}
-                              disabled={isApprovingProduct || product.approvalStatus !== "pending"}
-                              className="px-[13px] py-1 bg-[#0BA964] rounded-[10px] text-[14px] font-normal text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0a9558] transition-colors"
-                              style={{
-                                fontFamily: "Arial, sans-serif",
-                                lineHeight: "1.429em",
-                              }}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleApproveReject(product, "reject")}
-                              disabled={isApprovingProduct || product.approvalStatus !== "pending"}
-                              className="px-[13px] py-1 bg-[#FFFFFC] border border-[#EBE7E5] rounded-[10px] text-[14px] font-normal text-[#CD0003] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                              style={{
-                                fontFamily: "Arial, sans-serif",
-                                lineHeight: "1.429em",
-                              }}
-                            >
-                              Reject
-                            </button>
+                            {(product.approvalStatus === "pending") && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveReject(product, "approve")}
+                                  disabled={isApprovingProduct || product.approvalStatus !== "pending"}
+                                  className="px-[13px] py-1 bg-[#0BA964] rounded-[10px] text-[14px] font-normal text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0a9558] transition-colors"
+                                  style={{
+                                    fontFamily: "Arial, sans-serif",
+                                    lineHeight: "1.429em",
+                                  }}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleApproveReject(product, "reject")}
+                                  disabled={isApprovingProduct || product.approvalStatus !== "pending"}
+                                  className="px-[13px] py-1 bg-[#FFFFFC] border border-[#EBE7E5] rounded-[10px] text-[14px] font-normal text-[#CD0003] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                                  style={{
+                                    fontFamily: "Arial, sans-serif",
+                                    lineHeight: "1.429em",
+                                  }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1088,32 +1306,21 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex flex-col gap-[3.5px]">
-                          <div className="flex items-center gap-1">
-                            <Image
-                              src="/icons/search-01.svg"
-                              alt="Product"
-                              width={12}
-                              height={12}
-                            />
-                            <span
-                              className="text-[14px] font-normal text-[#0D3F11]"
-                              style={{
-                                fontFamily: "Effra, sans-serif",
-                                lineHeight: "1.429em",
-                              }}
-                            >
-                              {order.order.product}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-1">
+                          <Image
+                            src="/icons/search-01.svg"
+                            alt="Product"
+                            width={12}
+                            height={12}
+                          />
                           <span
-                            className="text-[14px] font-medium text-[#4CAE4F]"
+                            className="text-[14px] font-normal text-[#0D3F11]"
                             style={{
                               fontFamily: "Effra, sans-serif",
                               lineHeight: "1.429em",
                             }}
                           >
-                            {order.order.value}
+                            {order.order.product}
                           </span>
                         </div>
                       </td>
@@ -1126,6 +1333,17 @@ export default function AdminDashboard() {
                           }}
                         >
                           {order.deliveryLocation}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p
+                          className="text-[14px] font-medium text-[#4CAE4F]"
+                          style={{
+                            fontFamily: "Effra, sans-serif",
+                            lineHeight: "1.429em",
+                          }}
+                        >
+                          {order.order.value}
                         </p>
                       </td>
                       <td className="px-4 py-4">
@@ -1689,39 +1907,60 @@ export default function AdminDashboard() {
               </div>
 
               {/* Document Upload */}
-              <div className="bg-white border border-[#E7E7E7] rounded-[12px] p-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-[34px] h-[28px] bg-[#FF1418] rounded-[5px] flex items-center justify-center">
-                    <span className="text-white text-[12px] font-medium">PDF</span>
-                  </div>
-                  <div className="flex-1 flex flex-col gap-[2px]">
-                    <p
-                      className="text-[12px] font-semibold text-[#0B0B0B]"
-                      style={{
-                        lineHeight: "1.5em",
-                      }}
+              {selectedOrder.purchaseOrderDoc ? (
+                <div className="bg-white border border-[#E7E7E7] rounded-[12px] p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-[34px] h-[28px] bg-[#FF1418] rounded-[5px] flex items-center justify-center">
+                      <span className="text-white text-[12px] font-medium">PDF</span>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-[2px]">
+                      <p
+                        className="text-[12px] font-semibold text-[#0B0B0B]"
+                        style={{
+                          lineHeight: "1.5em",
+                        }}
+                      >
+                        {selectedOrder.purchaseOrderDoc.name}
+                      </p>
+                      <p
+                        className="text-[12px] font-normal text-[#6D6D6D]"
+                        style={{
+                          lineHeight: "1.5em",
+                        }}
+                      >
+                        {selectedOrder.purchaseOrderDoc.size}
+                      </p>
+                    </div>
+                    <a
+                      href={selectedOrder.purchaseOrderDoc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 hover:bg-gray-100 rounded"
+                      title="View Purchase Order"
                     >
-                      Purchase Order for 2 Tons of Maize.pdf
-                    </p>
+                      <Image
+                        src="/icons/invoice-04.svg"
+                        alt="View"
+                        width={20}
+                        height={20}
+                      />
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-[#E7E7E7] rounded-[12px] p-4">
+                  <div className="flex items-center justify-center py-4">
                     <p
                       className="text-[12px] font-normal text-[#6D6D6D]"
                       style={{
                         lineHeight: "1.5em",
                       }}
                     >
-                      500kb
+                      No purchase order document available
                     </p>
                   </div>
-                  <button className="p-1 hover:bg-gray-100 rounded">
-                    <Image
-                      src="/icons/invoice-04.svg"
-                      alt="View"
-                      width={20}
-                      height={20}
-                    />
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Order Status Update */}
               <div className="flex flex-col gap-2">
