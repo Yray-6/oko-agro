@@ -6,14 +6,14 @@ import {
   User, 
   Package, 
   Loader2, 
-  ExternalLink,
-  MapPin
+  ExternalLink
 } from 'lucide-react';
 import { useProductStore } from '@/app/store/useProductStore';
 import { useRouter } from 'next/navigation';
 import { Notification } from '@/app/types';
 import Image from 'next/image';
 import rice from '@/app/assets/images/rice.png';
+import { imageLoader } from '@/app/helpers';
 
 interface ViewFarmerProductsModalProps {
   isOpen: boolean;
@@ -137,10 +137,11 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                   >
                     <div className="flex items-start gap-4">
                       <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                        {product.images && product.images.length > 0 ? (
+                        {product.photos && product.photos.length > 0 ? (
                           <Image
-                            src={product.images[0].url}
+                            src={product.photos[0].url}
                             alt={product.name}
+                            loader={imageLoader}
                             width={80}
                             height={80}
                             className="w-full h-full object-cover"
@@ -149,6 +150,7 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                           <Image
                             src={getProductImage(product.cropType?.name || 'rice')}
                             alt={product.name}
+                            loader={imageLoader}
                             width={80}
                             height={80}
                             className="w-full h-full object-cover"
@@ -163,9 +165,9 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                           {product.cropType?.name || 'N/A'}
                         </p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
-                          {product.price && (
+                          {product.pricePerUnit && (
                             <span className="font-medium text-mainGreen">
-                              ₦{parseFloat(product.price).toLocaleString()}
+                              ₦{parseFloat(product.pricePerUnit).toLocaleString()}/unit
                             </span>
                           )}
                           {product.quantity && (
@@ -174,9 +176,9 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                             </span>
                           )}
                         </div>
-                        {product.qualityStandard && (
+                        {product.locationAddress && (
                           <p className="text-xs text-gray-500 mt-2">
-                            Quality: {product.qualityStandard.name}
+                            Location: {product.locationAddress}
                           </p>
                         )}
                       </div>
