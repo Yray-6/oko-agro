@@ -86,6 +86,8 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     originalStatus: buyRequest.status,
     orderState: orderState, // Store orderState for accepted orders (set to in_transit if accepted)
     purchaseOrderDoc: buyRequest.purchaseOrderDoc || undefined,
+    ratings: buyRequest.ratings || [], // Include ratings from buy request
+    currentUserRole: 'farmer', // Farmer viewing their orders
   };
 };
 

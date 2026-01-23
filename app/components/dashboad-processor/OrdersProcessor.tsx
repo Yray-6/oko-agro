@@ -12,6 +12,18 @@ const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
   </svg>
 );
 
+// Rating interface for order display
+export interface OrderRating {
+  id: string;
+  raterRole: 'seller' | 'buyer';
+  rateeRole: 'seller' | 'buyer';
+  score: number;
+  comment?: string | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // TypeScript interfaces
 export interface Order {
   id: string;
@@ -43,6 +55,8 @@ export interface Order {
     createdAt: string;
     updatedAt: string;
   } | null;
+  ratings?: OrderRating[]; // Ratings for this order
+  currentUserRole?: 'farmer' | 'processor'; // Current user's role to determine if they can rate
 }
 
 interface InvoiceData {
@@ -595,6 +609,12 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     const canMakePayment = isActive && !isMyRequest && onMakePayment;
     const isInTransit = order.orderState?.toLowerCase() === 'in_transit';
     const isCompleted = order.status === "Completed" || order.orderState?.toLowerCase() === 'completed';
+    
+    // Check if current user (processor/buyer) has already rated
+    const userRating = order.ratings?.find(rating => 
+      rating.raterRole === 'buyer' && !rating.isDeleted
+    );
+    const hasUserRated = !!userRating;
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -710,15 +730,42 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </button>
           )}
 
-          {/* Rate Farmer Button - For completed orders */}
-          {isCompleted && onRate && order.buyRequestId && (
-            <button
-              onClick={() => onRate(order.id, order.buyRequestId!)}
-              className="px-6 py-2 flex items-center gap-2 bg-[#004829] text-white rounded-md hover:bg-[#003d20] transition-colors font-medium"
-            >
-              <Star className="w-4 h-4" />
-              Rate Farmer
-            </button>
+          {/* Display rating if exists, otherwise show rate button */}
+          {isCompleted && (
+            <>
+              {hasUserRated && userRating ? (
+                <div className="px-6 py-2 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${
+                          i < userRating.score
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-700">
+                    You rated {userRating.score}/5
+                  </span>
+                  {userRating.comment && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      &ldquo;{userRating.comment}&rdquo;
+                    </span>
+                  )}
+                </div>
+              ) : onRate && order.buyRequestId ? (
+                <button
+                  onClick={() => onRate(order.id, order.buyRequestId!)}
+                  className="px-6 py-2 flex items-center gap-2 bg-[#004829] text-white rounded-md hover:bg-[#003d20] transition-colors font-medium"
+                >
+                  <Star className="w-4 h-4" />
+                  Rate Farmer
+                </button>
+              ) : null}
+            </>
           )}
 
           {/* View Invoice Button - For non-pending orders */}

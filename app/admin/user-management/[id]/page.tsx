@@ -35,6 +35,17 @@ interface OrderDetails {
   deliveryDate: string;
   orderDate?: string;
   paymentTerms?: string;
+  purchaseOrderDoc?: {
+    id: string;
+    name: string;
+    url: string;
+    publicId: string;
+    description: string;
+    mimeType: string;
+    size: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 }
 
 export default function UserDetailsPage() {
@@ -188,6 +199,7 @@ export default function UserDetailsPage() {
       year: 'numeric',
     }),
     paymentTerms: req.preferredPaymentMethod?.replace(/_/g, ' ') || 'On Delivery',
+    purchaseOrderDoc: req.purchaseOrderDoc || null,
   }));
 
   // Calculate total orders and revenue (only from completed orders)
@@ -2032,39 +2044,60 @@ export default function UserDetailsPage() {
               </div>
 
               {/* Document Upload */}
-              <div className="bg-white border border-[#E7E7E7] rounded-[12px] p-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-[34px] h-[28px] bg-[#FF1418] rounded-[5px] flex items-center justify-center">
-                    <span className="text-white text-[12px] font-medium">PDF</span>
-                  </div>
-                  <div className="flex-1 flex flex-col gap-[2px]">
-                    <p
-                      className="text-[12px] font-semibold text-[#0B0B0B]"
-                      style={{
-                        lineHeight: "1.5em",
+              {selectedOrder.purchaseOrderDoc ? (
+                <div className="bg-white border border-[#E7E7E7] rounded-[12px] p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-[34px] h-[28px] bg-[#FF1418] rounded-[5px] flex items-center justify-center">
+                      <span className="text-white text-[12px] font-medium">
+                        {selectedOrder.purchaseOrderDoc.mimeType?.includes('pdf') ? 'PDF' : 
+                         selectedOrder.purchaseOrderDoc.mimeType?.includes('image') ? 'IMG' : 'DOC'}
+                      </span>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-[2px]">
+                      <p
+                        className="text-[12px] font-semibold text-[#0B0B0B]"
+                        style={{
+                          lineHeight: "1.5em",
+                        }}
+                      >
+                        {selectedOrder.purchaseOrderDoc.name}
+                      </p>
+                      <p
+                        className="text-[12px] font-normal text-[#6D6D6D]"
+                        style={{
+                          lineHeight: "1.5em",
+                        }}
+                      >
+                        {(parseFloat(selectedOrder.purchaseOrderDoc.size) / 1024).toFixed(2)} KB
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        if (selectedOrder.purchaseOrderDoc?.url) {
+                          window.open(selectedOrder.purchaseOrderDoc.url, '_blank');
+                        }
                       }}
+                      className="p-1 hover:bg-gray-100 rounded"
+                      title="View Purchase Order"
                     >
-                      Purchase Order for {selectedOrder.order.product}.pdf
-                    </p>
-                    <p
-                      className="text-[12px] font-normal text-[#6D6D6D]"
-                      style={{
-                        lineHeight: "1.5em",
-                      }}
-                    >
-                      500kb
-                    </p>
+                      <Image
+                        src="/icons/invoice-04.svg"
+                        alt="View"
+                        width={20}
+                        height={20}
+                      />
+                    </button>
                   </div>
-                  <button className="p-1 hover:bg-gray-100 rounded">
-                    <Image
-                      src="/icons/invoice-04.svg"
-                      alt="View"
-                      width={20}
-                      height={20}
-                    />
-                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white border border-[#E7E7E7] rounded-[12px] p-4">
+                  <div className="flex items-center justify-center py-4">
+                    <p className="text-[12px] font-normal text-[#6D6D6D]">
+                      No purchase order document available
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

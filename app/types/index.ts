@@ -634,6 +634,18 @@ export interface ProductReference {
 }
 
 // Main Buy Request Interface
+// Rating as returned from buy request endpoint
+export interface BuyRequestRating {
+  id: string;
+  raterRole: 'seller' | 'buyer';
+  rateeRole: 'seller' | 'buyer';
+  score: number;
+  comment?: string | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BuyRequest {
   id: string;
   requestNumber: number | string;
@@ -660,6 +672,7 @@ export interface BuyRequest {
   paymentConfirmed?: boolean;
   paymentConfirmedAt?: string;
   purchaseOrderDoc?: UserFile | null; // Purchase order document
+  ratings?: BuyRequestRating[]; // Ratings for this buy request
 }
 
 // Create Buy Request Payload
@@ -879,6 +892,12 @@ export type NotificationType = 'buy_request' | 'order_status' | 'contact_message
 
 export interface Notification {
   id: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   type: NotificationType;
   title: string;
   message: string;

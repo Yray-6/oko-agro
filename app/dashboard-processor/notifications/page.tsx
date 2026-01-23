@@ -17,11 +17,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { useNotificationStore } from '@/app/store/useNotificationStore';
 import { useAuthStore } from '@/app/store/useAuthStore';
-import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { showToast } from '@/app/hooks/useToast';
 import ActivityItemComponent, { notificationToActivityItem } from '@/app/components/dashboard/ActivityItems';
-import DirectOrderModal from '@/app/components/dashboad-processor/DirectOrderModal';
-import { Notification, NotificationType, BuyRequest } from '@/app/types';
+import ViewFarmerProductsModal from '@/app/components/dashboad-processor/ViewFarmerProductsModal';
+import { Notification, NotificationType } from '@/app/types';
 import Link from 'next/link';
 
 type FilterType = 'all' | 'unread' | 'contact_message' | 'buy_request' | 'order_status';
@@ -40,27 +39,22 @@ export default function NotificationsPage() {
     isMarking
   } = useNotificationStore();
   
-  const { fetchBuyRequest, currentRequest, myRequests, fetchMyRequests } = useBuyRequestStore();
-
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [directModal, setDirectModal] = useState<{
+  const [viewProductsModal, setViewProductsModal] = useState<{
     isOpen: boolean;
     notification: Notification | null;
-    buyRequest: BuyRequest | null;
   }>({
     isOpen: false,
     notification: null,
-    buyRequest: null,
   });
 
-  // Fetch notifications and buy requests on mount
+  // Fetch notifications on mount
   useEffect(() => {
     if (user?.id) {
       fetchAllNotifications().catch(console.error);
-      fetchMyRequests().catch(console.error);
     }
-  }, [user?.id, fetchAllNotifications, fetchMyRequests]);
+  }, [user?.id, fetchAllNotifications]);
 
   // Get filtered and searched notifications
   const getFilteredNotifications = useCallback((): Notification[] => {
@@ -107,16 +101,6 @@ export default function NotificationsPage() {
   const activities = filteredNotifications.map(notificationToActivityItem);
 
   const handleContactMessageClick = async (notification: Notification) => {
-    console.log('🔵 [Notifications Page] handleContactMessageClick called', {
-      notificationId: notification.id,
-      type: notification.type,
-      relatedEntityId: notification.relatedEntityId,
-      relatedEntityType: notification.relatedEntityType,
-      senderId: notification.senderId,
-      senderName: notification.senderName,
-      message: notification.message,
-    });
-
     if (!notification.isRead) {
       try {
         await markAsRead(notification.id);
@@ -125,86 +109,16 @@ export default function NotificationsPage() {
       }
     }
 
-    // For contact messages, find the buy request and open direct order modal
-    if (notification.type === 'contact_message') {
-      let buyRequestId = notification.relatedEntityId;
-      let buyRequest: BuyRequest | null = null;
-      
-      // If relatedEntityId is missing, try to find it from user's buy requests
-      if (!buyRequestId) {
-        console.log('⚠️ [Notifications Page] relatedEntityId missing, searching in myRequests...', {
-          myRequestsCount: myRequests.length,
-          senderId: notification.senderId,
-        });
-        
-        // Find a general request (seller is null) that matches
-        // Or find a request that has been directed to this seller but PO not uploaded
-        const matchingRequest = myRequests.find(req => {
-          // Check if it's a general request (no seller) or already directed to this seller
-          const isGeneralRequest = req.seller === null && req.isGeneral === true && (req.status === 'pending' || req.status === 'accepted');
-          const isDirectedToThisSeller = req.seller?.id === notification.senderId && !req.purchaseOrderDoc;
-          
-          return isGeneralRequest || isDirectedToThisSeller;
-        });
-        
-        if (matchingRequest) {
-          buyRequestId = matchingRequest.id;
-          buyRequest = matchingRequest;
-          console.log('✅ [Notifications Page] Found matching buy request:', {
-            buyRequestId,
-            hasSeller: !!matchingRequest.seller,
-            hasPurchaseOrder: !!matchingRequest.purchaseOrderDoc,
-          });
-        } else {
-          console.warn('⚠️ [Notifications Page] No matching buy request found', {
-            myRequests: myRequests.map(r => ({
-              id: r.id,
-              sellerId: r.seller?.id,
-              isGeneral: r.isGeneral,
-              status: r.status,
-              hasPO: !!r.purchaseOrderDoc,
-            })),
-          });
-        }
-      } else {
-        // If we have relatedEntityId, try to find the request in myRequests first
-        const existingRequest = myRequests.find(req => req.id === buyRequestId);
-        if (existingRequest) {
-          buyRequest = existingRequest;
-          console.log('✅ [Notifications Page] Found existing request in myRequests');
-        }
-      }
-
-      if (buyRequestId) {
-        console.log('✅ [Notifications Page] Opening direct order modal for contact message', {
-          buyRequestId,
-          hasBuyRequest: !!buyRequest,
-        });
-        try {
-          // Open modal with notification and buy request if available
-          setDirectModal({
-            isOpen: true,
-            notification: {
-              ...notification,
-              relatedEntityId: buyRequestId, // Set it so modal can use it
-            },
-            buyRequest: buyRequest, // Pass it if we found it, otherwise modal will fetch
-          });
-          console.log('✅ [Notifications Page] Modal state updated');
-        } catch (error) {
-          console.error('❌ [Notifications Page] Failed to open direct order modal:', error);
-        }
-      } else {
-        console.error('❌ [Notifications Page] Cannot open modal - no buy request ID found', {
-          hasRelatedEntityId: !!notification.relatedEntityId,
-          myRequestsCount: myRequests.length,
-        });
-        // Show error to user
-        showToast('Unable to find the associated buy request. Please try refreshing the page.', 'error');
-      }
+    // For contact messages, open view farmer products modal
+    if (notification.type === 'contact_message' && notification.senderId) {
+      setViewProductsModal({
+        isOpen: true,
+        notification: notification,
+      });
     } else {
-      console.warn('⚠️ [Notifications Page] Not a contact message', {
+      console.warn('⚠️ [Notifications Page] Not a contact message or missing senderId', {
         type: notification.type,
+        hasSenderId: !!notification.senderId,
       });
     }
   };
@@ -244,15 +158,13 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleDirectModalClose = () => {
-    setDirectModal({
+  const handleViewProductsModalClose = () => {
+    setViewProductsModal({
       isOpen: false,
       notification: null,
-      buyRequest: null,
     });
-    // Refresh notifications and requests after directing order
+    // Refresh notifications after viewing products
     fetchAllNotifications().catch(console.error);
-    fetchMyRequests().catch(console.error);
   };
 
   const filterOptions: { value: FilterType; label: string; icon?: React.ReactNode }[] = [
@@ -443,17 +355,12 @@ export default function NotificationsPage() {
                       <div className="px-4 pb-3">
                         <button
                           onClick={(e) => {
-                            console.log('🟢 [Notifications Page] Button clicked!', {
-                              notificationId: notification.id,
-                              event: e,
-                            });
                             e.stopPropagation();
-                            console.log('🟢 [Notifications Page] Calling handleContactMessageClick');
                             handleContactMessageClick(notification);
                           }}
                           className="text-sm text-mainGreen hover:text-green-800 font-medium"
                         >
-                          View & Direct Order →
+                          View Farmer Products →
                         </button>
                       </div>
                     )}
@@ -465,14 +372,13 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Direct Order Modal */}
-      {directModal.notification && (
-        <DirectOrderModal
-          isOpen={directModal.isOpen}
-          onClose={handleDirectModalClose}
-          notification={directModal.notification}
-          buyRequest={directModal.buyRequest}
-          onSuccess={handleDirectModalClose}
+      {/* View Farmer Products Modal */}
+      {viewProductsModal.notification && (
+        <ViewFarmerProductsModal
+          isOpen={viewProductsModal.isOpen}
+          onClose={handleViewProductsModalClose}
+          notification={viewProductsModal.notification}
+          onSuccess={handleViewProductsModalClose}
         />
       )}
     </div>
