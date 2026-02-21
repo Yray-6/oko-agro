@@ -40,7 +40,14 @@ const validationSchema = Yup.object({
   quantityUnit: Yup.string().required('Unit is required'),
   pricePerUnit: Yup.string().required('Price per unit is required'),
   priceCurrency: Yup.string().required('Currency is required'),
-  harvestDate: Yup.string().required('Harvest date is required'),
+  harvestDate: Yup.string()
+    .required('Harvest date is required')
+    .test('not-in-past', 'Harvest date cannot be in the past', (value) => {
+      if (!value) return true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return new Date(value) >= today;
+    }),
   locationAddress: Yup.string().required('Storage/Farm location is required'),
   mainPicture: Yup.mixed().when('$isEditing', {
     is: false,
@@ -449,8 +456,8 @@ const handleSubmit = async (values: ProductFormValues) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <TextField
                             name="pricePerUnit"
-                            label="Price per unit"
-                            placeholder="Enter price per unit"
+                            label={values.quantityUnit === 'kilogram' ? 'Price per Kg' : values.quantityUnit === 'tonne' ? 'Price per Tonne' : 'Price per unit'}
+                            placeholder={values.quantityUnit === 'kilogram' ? 'Enter price per Kg' : values.quantityUnit === 'tonne' ? 'Enter price per Tonne' : 'Enter price per unit'}
                             required
                           />
                           
@@ -473,6 +480,7 @@ const handleSubmit = async (values: ProductFormValues) => {
                                 type="date"
                                 name="harvestDate"
                                 value={values.harvestDate}
+                                min={new Date().toISOString().split('T')[0]}
                                 onChange={(e) => setFieldValue('harvestDate', e.target.value)}
                                 className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent transition-colors pr-10"
                               />

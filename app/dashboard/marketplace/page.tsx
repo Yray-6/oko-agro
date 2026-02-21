@@ -60,6 +60,9 @@ export default function MarketplacePage() {
 
   // Filter and sort buy requests
   let filteredRequests = generalRequests.filter(request => {
+    // Hide requests that have a seller assigned and are no longer pending
+    if (request.seller && request.status !== 'pending') return false;
+
     // Search filter
     const searchLower = searchQuery.toLowerCase();
     const cropName = request.cropType?.name || '';
@@ -350,19 +353,8 @@ ${farmerName}`;
                       </div>
                     </div>
 
-                    {/* Right Side - Status and Actions */}
-                    <div className="flex flex-col items-end justify-between gap-2">
-                      {/* Status Badge */}
-                      <div className={`rounded-[11.75px] px-3 py-1 ${
-                        request.status === 'pending' 
-                          ? 'bg-yellow-100 text-yellow-700' 
-                          : request.status === 'accepted'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-[#0BA964] text-white'
-                      }`}>
-                        <span className="text-sm capitalize">{request.status}</span>
-                      </div>
-
+                    {/* Right Side - Actions */}
+                    <div className="flex flex-col items-end justify-end gap-2">
                       {/* Action Buttons */}
                       <div className="flex gap-2">
                         <button
@@ -494,9 +486,9 @@ ${farmerName}`;
           />
           
           {/* Modal */}
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[70vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Header */}
-            <div className="bg-gradient-to-r from-mainGreen to-green-700 px-6 py-4">
+            <div className="flex-shrink-0 bg-gradient-to-r from-mainGreen to-green-700 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -516,103 +508,108 @@ ${farmerName}`;
               </div>
             </div>
 
-            {/* Success State */}
-            {isSent ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Success State */}
+              {isSent ? (
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Message Sent!</h3>
+                  <p className="text-gray-600">
+                    Your interest has been sent to {selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'the processor'}. They will receive a notification.
+                  </p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Message Sent!</h3>
-                <p className="text-gray-600">
-                  Your interest has been sent to {selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'the processor'}. They will receive a notification.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Product Info */}
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900">
-                        {selectedRequest.cropType?.name || selectedRequest.description}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'Processor'}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Package className="w-3 h-3" />
-                          {selectedRequest.productQuantity} {selectedRequest.productQuantityUnit}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {selectedRequest.deliveryLocation}
-                        </span>
+              ) : (
+                <>
+                  {/* Product Info */}
+                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900">
+                          {selectedRequest.cropType?.name || selectedRequest.description}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'Processor'}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            {selectedRequest.productQuantity} {selectedRequest.productQuantityUnit}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {selectedRequest.deliveryLocation}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Sender Info */}
-                <div className="px-6 py-3 border-b border-gray-200 flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
+                  {/* Sender Info */}
+                  <div className="px-6 py-3 border-b border-gray-200 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        Sending as: {user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {user?.farmName || 'My Farm'} • {user ? `${user.state}, ${user.country}` : 'Unknown Location'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      Sending as: {user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {user?.farmName || 'My Farm'} • {user ? `${user.state}, ${user.country}` : 'Unknown Location'}
+
+                  {/* Message Editor */}
+                  <div className="p-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Message to Processor (Edit message to match your offer)
+                    </label>
+                    <textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent resize-none"
+                      placeholder="Your message will be generated automatically..."
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      You can edit the message above. The product details will be included automatically.
                     </p>
                   </div>
-                </div>
+                </>
+              )}
+            </div>
 
-                {/* Message Editor */}
-                <div className="p-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message to Processor (Edit message to match your offer)
-                  </label>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent resize-none"
-                    placeholder="Your message will be generated automatically..."
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    You can edit the message above. The product details will be included automatically.
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
-                  <button
-                    onClick={handleCloseContactModal}
-                    disabled={isSending}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSendContactMessage}
-                    disabled={isSending}
-                    className="flex-1 px-4 py-2.5 bg-mainGreen text-white rounded-lg font-medium hover:bg-green-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isSending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Send Message
-                      </>
-                    )}
-                  </button>
-                </div>
-              </>
+            {/* Fixed Actions Footer */}
+            {!isSent && (
+              <div className="flex-shrink-0 px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={handleCloseContactModal}
+                  disabled={isSending}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendContactMessage}
+                  disabled={isSending}
+                  className="flex-1 px-4 py-2.5 bg-mainGreen text-white rounded-lg font-medium hover:bg-green-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Send Message
+                    </>
+                  )}
+                </button>
+              </div>
             )}
           </div>
         </div>
