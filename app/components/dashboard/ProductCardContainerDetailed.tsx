@@ -22,8 +22,7 @@ export interface ProductCardData {
 interface ProductCardContainerDetailedProps {
   products: ProductCardData[];
   onEditListing?: (productId: string) => void;
-  onSuspendListing?: (productId: string) => void;
-  onCancelListing?: (productId: string) => void;
+  onDeleteListing?: (productId: string) => void;
 }
 
 type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out" | "Suspended";
@@ -31,8 +30,7 @@ type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out" | "Susp
 const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> = ({ 
   products, 
   onEditListing, 
-  onSuspendListing, 
-  onCancelListing 
+  onDeleteListing 
 }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [sortBy, setSortBy] = useState<string>("newest");
@@ -43,7 +41,6 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     "Active Listings": "Active",
     "Pending Inspection": "Pending Inspection",
     "Sold Out Listings": "Sold Out",
-    "Suspended Listings": "Suspended"
   };
 
   // Get display names in order
@@ -52,7 +49,6 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     "Active Listings", 
     "Pending Inspection", 
     "Sold Out Listings",
-    "Suspended Listings"
   ];
 
   // Filter products based on active filter
@@ -152,7 +148,7 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
   const ActionButtons: React.FC<{
     productId: string;
     status: ProductCardData["status"];
-  }> = ({ productId, status }) => {
+  }> = ({ productId }) => {
     return (
       <div className="flex flex-col items-center justify-end space-y-2 mt-2">
         {onEditListing && (
@@ -173,58 +169,21 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
           </button>
         )}
 
-        {/* Show suspend button for Active products */}
-        {onSuspendListing && status === "Active" && (
+        {onDeleteListing && (
           <button
-            onClick={() => onSuspendListing(productId)}
-            className="flex items-center space-x-2 border px-4 py-2 rounded border-gray-200 text-yellow-600 hover:text-yellow-800 transition-colors text-sm"
-            title="Suspend this listing"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeWidth={2}
-                d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>Suspend</span>
-          </button>
-        )}
-
-        {/* Show reactivate button for Suspended products */}
-        {onSuspendListing && status === "Suspended" && (
-          <button
-            onClick={() => onSuspendListing(productId)}
-            className="flex items-center space-x-2 text-green-600 hover:text-green-800 transition-colors text-sm"
-            title="Reactivate this listing"
+            onClick={() => onDeleteListing(productId)}
+            className="flex items-center space-x-2 border px-4 py-2 w-full text-center rounded border-gray-200 text-red-600 cursor-pointer hover:text-red-800 transition-colors text-sm"
+            title="Delete this product listing"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
               />
             </svg>
-            <span>Reactivate</span>
-          </button>
-        )}
-
-        {/* Show cancel button for any non-active status if needed */}
-        {onCancelListing && (status === "Pending Inspection" || status === "Suspended") && (
-          <button
-            onClick={() => onCancelListing(productId)}
-            className="flex items-center space-x-2 text-red-600 hover:text-red-800 transition-colors text-sm"
-            title="Cancel this listing"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-            <span>Cancel</span>
+            <span>Delete</span>
           </button>
         )}
       </div>

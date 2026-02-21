@@ -4,6 +4,7 @@ import ProductCardContainerDetailed, { ProductCardData } from "@/app/components/
 import { PlusIcon } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { ListNewProductModal, SuccessModal } from "@/app/components/dashboard/ProductModal";
+import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { ProductDetails } from "@/app/types";
@@ -30,6 +31,8 @@ export default function Page() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch products on component mount
   useEffect(() => {
@@ -104,24 +107,22 @@ const handleEditListing = (productId: string) => {
     console.error("Failed to load product for editing:", error);
   }
 };
-  const handleSuspendListing = async (productId: string) => {
-    try {
-      // You'll need to implement suspend functionality in your store
-      console.log("Suspend listing for product:", productId);
-      setSuccessMessage("Product listing has been suspended successfully.");
-      setShowSuccessModal(true);
-    } catch (error) {
-      console.error("Failed to suspend listing:", error);
-    }
+  const handleDeleteListing = (productId: string) => {
+    setDeleteProductId(productId);
   };
 
-  const handleCancelListing = async (productId: string) => {
+  const confirmDelete = async () => {
+    if (!deleteProductId) return;
+    setIsDeleting(true);
     try {
-      await deleteProduct(productId.toString());
-      setSuccessMessage("Product listing has been cancelled successfully.");
+      await deleteProduct(deleteProductId);
+      setDeleteProductId(null);
+      setSuccessMessage("Product has been deleted successfully.");
       setShowSuccessModal(true);
     } catch (error) {
-      console.error("Failed to cancel listing:", error);
+      console.error("Failed to delete listing:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -242,8 +243,7 @@ const handleEditListing = (productId: string) => {
             <ProductCardContainerDetailed
               products={transformedProducts}
               onEditListing={handleEditListing}
-              onSuspendListing={handleSuspendListing}
-              onCancelListing={handleCancelListing}
+              onDeleteListing={handleDeleteListing}
             />
           )}
         </div>
@@ -295,6 +295,18 @@ const handleEditListing = (productId: string) => {
         title="Success!"
         message={successMessage}
         buttonText="Continue"
+      />
+
+      <ConfirmationModal
+        isOpen={!!deleteProductId}
+        onClose={() => setDeleteProductId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        isLoading={isDeleting}
       />{isFetching && <AnimatedLoading/>}
     </div>
   );

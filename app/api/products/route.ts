@@ -295,6 +295,95 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  const requestId = Math.random().toString(36).substr(2, 9);
+  console.log(`📝 [Products API] DELETE Request Started - ID: ${requestId}`);
+  
+  try {
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('productId');
+    
+    console.log(`📊 [Products API ${requestId}] Delete Request:`, { productId });
+
+    const authHeader = extractAuthToken(request);
+
+    if (!authHeader) {
+      console.warn(`⚠️ [Products API ${requestId}] Missing authorization header`);
+      return NextResponse.json(
+        {
+          statusCode: 401,
+          message: 'Authorization header is required',
+          error: 'Unauthorized'
+        } as ApiResponse,
+        { status: 401 }
+      );
+    }
+
+    if (!productId) {
+      console.warn(`⚠️ [Products API ${requestId}] Missing productId`);
+      return NextResponse.json(
+        {
+          statusCode: 400,
+          message: 'productId is required',
+          error: 'Bad Request'
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    const endpoint = `/products/${productId}`;
+    console.log(`🗑️ [Products API ${requestId}] Deleting product: ${productId}`);
+
+    const response = await apiClient.delete(endpoint, {
+      headers: {
+        'Authorization': authHeader
+      }
+    });
+
+    console.log(`✅ [Products API ${requestId}] Delete successful:`, {
+      status: response.status,
+      hasData: !!response.data,
+    });
+
+    return NextResponse.json(response.data as ApiResponse, {
+      status: response.status,
+    });
+  } catch (error) {
+    console.error(`❌ [Products API ${requestId}] DELETE Error:`, error);
+    
+    if (error instanceof AxiosError) {
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || error.message || 'Delete failed';
+      
+      console.error(`🔥 [Products API ${requestId}] Axios Error Details:`, {
+        status: statusCode,
+        message: errorMessage,
+        responseData: error.response?.data,
+      });
+      
+      return NextResponse.json(
+        {
+          statusCode,
+          message: errorMessage,
+          error: error.response?.data?.error || 'Internal Server Error'
+        } as ApiResponse,
+        { status: statusCode }
+      );
+    }
+
+    console.error(`💥 [Products API ${requestId}] Unexpected Error:`);
+
+    return NextResponse.json(
+      {
+        statusCode: 500,
+        message: 'Internal server error',
+        error: 'Internal Server Error'
+      } as ApiResponse,
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(request: NextRequest) {
   const requestId = Math.random().toString(36).substr(2, 9);
   console.log(`📝 [Products API] GET Request Started - ID: ${requestId}`);

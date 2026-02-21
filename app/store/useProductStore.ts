@@ -534,7 +534,7 @@ export const useProductStore = create<ProductStore>()(
     console.log('🗑️ [Product Store] Deleting product:', productId);
     
     try {
-      const response = await apiClient.delete<ApiResponse>(`/products/${productId}`);
+      const response = await apiClient.delete<ApiResponse>(`/products?productId=${productId}`);
       
       if (response.data.statusCode === 200) {
         console.log('✅ [Product Store] Product deleted:', productId);
