@@ -172,9 +172,9 @@ export interface UserProductsResponse {
 export interface ProductDetails extends BaseEntityProduct {
   name: string;
   cropType?: CropType;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
+  quantityKg: string;
+  pricePerKg: string;
+  reservedQuantityKg: string;
   priceCurrency: string;
   locationAddress: string;
   owner?: ProductOwner;
@@ -328,9 +328,8 @@ export interface CertificationResponse {
 export interface CreateProduct {
   name: string;
   cropId: string;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
+  quantityKg: string;
+  pricePerKg: string;
   priceCurrency: string;
   harvestDate: string;
   locationAddress: string;
@@ -340,11 +339,9 @@ export interface CreateProduct {
 export interface EditProduct {
   productId: string;
   name: string;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
+  quantityKg: string;
+  pricePerKg: string;
   priceCurrency: string;
-  harvestDate: string;
   locationAddress: string;
 }
 
@@ -374,9 +371,8 @@ export interface UsersSearchResponse {
 export interface CreateProductRequest {
   name: string;
   cropId: string;
-  quantity: string;
-  quantityUnit: 'kilogram' | 'tonne';
-  pricePerUnit: string;
+  quantityKg: string;
+  pricePerKg: string;
   priceCurrency: string;
   harvestDate: string;
   locationAddress: string;
@@ -386,9 +382,8 @@ export interface CreateProductRequest {
 export interface UpdateProductRequest {
   productId: string;
   name: string;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
+  quantityKg: string;
+  pricePerKg: string;
   priceCurrency: string;
   harvestDate?: string;
   locationAddress: string;
@@ -461,8 +456,8 @@ export interface EventDetails {
   product?: {
     id: string;
     name: string;
-    quantity?: string;
-    quantityUnit?: string;
+    quantityKg?: string;
+    reservedQuantityKg?: string;
     locationAddress?: string;
   };
   createdAt: string;
@@ -484,9 +479,9 @@ export interface EventProduct {
   id: string;
   name: string;
   cropType: CropType;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
+  quantityKg: string;
+  reservedQuantityKg: string;
+  pricePerKg: string;
   priceCurrency: string;
   locationAddress: string;
   isDeleted: boolean;
@@ -652,9 +647,8 @@ export interface BuyRequest {
   description: string;
   cropType: CropType;
   qualityStandardType: QualityResponse;
-  productQuantity: string;
-  productQuantityUnit: string;
-  pricePerUnitOffer: string;
+  productQuantityKg: string;
+  pricePerKgOffer: string;
   estimatedDeliveryDate: string;
   deliveryLocation: string;
   preferredPaymentMethod: PaymentMethod;
@@ -680,9 +674,8 @@ export interface CreateBuyRequestRequest {
   description: string;
   cropId: string;
   qualityStandardId: string;
-  productQuantity: string;
-  productQuantityUnit: string;
-  pricePerUnitOffer: string;
+  productQuantityKg: string;
+  pricePerKgOffer: string;
   estimatedDeliveryDate: string;
   deliveryLocation: string;
   preferredPaymentMethod: PaymentMethod;
@@ -698,9 +691,8 @@ export interface UpdateBuyRequestRequest {
   description?: string;
   cropId?: string;
   qualityStandardId?: string;
-  productQuantity?: string;
-  productQuantityUnit?: string;
-  pricePerUnitOffer?: string;
+  productQuantityKg?: string;
+  pricePerKgOffer?: string;
   estimatedDeliveryDate?: string;
   deliveryLocation?: string;
   preferredPaymentMethod?: PaymentMethod;
@@ -1078,4 +1070,51 @@ export interface ResolveDisputeResponse {
     status: 'resolved' | 'rejected';
     resolvedAt: string;
   };
+}
+
+// ============================================
+// INVENTORY TYPES
+// ============================================
+
+export type InventoryType = 'addition' | 'reservation' | 'release' | 'deduction';
+
+export interface InventoryProduct {
+  id: string;
+  name: string;
+  cropType: CropType;
+  quantityKg: string;
+  reservedQuantityKg: string;
+  pricePerKg: string;
+  priceCurrency: string;
+  locationAddress: string;
+  approvalStatus: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  product: InventoryProduct;
+  quantityKg: string;
+  type: InventoryType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoriesListResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: InventoryItem[];
+    totalRecord: number;
+    pageSize: number;
+    pageNumber: number;
+  };
+}
+
+export interface ProductInventoryLogsResponse {
+  statusCode: number;
+  message: string;
+  data: InventoryItem[];
 }

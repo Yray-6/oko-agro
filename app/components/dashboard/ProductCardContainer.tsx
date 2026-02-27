@@ -22,10 +22,8 @@ const ProductCardContainer: React.FC = () => {
   }, [user?.id, fetchUserProducts]);
 
   // Helper function to format quantity display
-  const formatQuantity = (quantity: string, unit: string): string => {
-    const isKilogram = unit === 'kilogram' || unit === 'kg';
-    const suffix = isKilogram ? 'kg' : ' Tons';
-    return `${quantity}${suffix}`;
+  const formatQuantity = (quantityKg: string): string => {
+    return `${quantityKg}kg`;
   };
 
   // Helper function to format price display
@@ -59,8 +57,8 @@ const ProductCardContainer: React.FC = () => {
   const transformedProducts: Product[] = products.map(product => ({
     id: parseInt(product.id),
     name: product.name,
-    quantity: formatQuantity(product.quantity, product.quantityUnit),
-    price: formatPrice(product.pricePerUnit, product.priceCurrency, product.quantityUnit),
+    quantity: formatQuantity(product.quantityKg),
+    price: formatPrice(product.pricePerKg, product.priceCurrency),
     certification: "Grade A", // You can derive this from certifications if available
     status: getProductStatus(product),
     listedDate: new Date(product.createdAt).toLocaleDateString('en-GB', {

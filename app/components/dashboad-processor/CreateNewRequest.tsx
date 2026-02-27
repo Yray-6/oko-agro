@@ -6,7 +6,6 @@ import { X, Calendar, Upload, FileText } from 'lucide-react';
 import { 
   TextField, 
   SelectField, 
-  unitOptions
 } from '../forms/FormFields';
 import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { useDataStore } from '@/app/store/useDataStore';
@@ -16,8 +15,7 @@ interface CreateRequestFormValues {
   cropType: string;
   qualityStandard: string;
   requestQuantity: string;
-  unit: string;
-  pricePerUnit: string;
+  pricePerKg: string;
   estimatedDeliveryDate: string;
   deliveryLocation: string;
   preferredPaymentMethod: string;
@@ -29,8 +27,7 @@ const initialValues: CreateRequestFormValues = {
   cropType: '',
   qualityStandard: '',
   requestQuantity: '',
-  unit: '',
-  pricePerUnit: '',
+  pricePerKg: '',
   estimatedDeliveryDate: '',
   deliveryLocation: '',
   preferredPaymentMethod: '',
@@ -70,8 +67,7 @@ const createValidationSchema = (isSpecificRequest: boolean) => Yup.object({
   cropType: Yup.string().required('Crop type is required'),
   qualityStandard: Yup.string().required('Quality standard is required'),
   requestQuantity: Yup.string().required('Request quantity is required'),
-  unit: Yup.string().required('Unit is required'),
-  pricePerUnit: Yup.string().required('Price per unit is required'),
+  pricePerKg: Yup.string().required('Price per kg is required'),
   estimatedDeliveryDate: Yup.string().required('Estimated delivery date is required'),
   deliveryLocation: Yup.string().required('Delivery location is required'),
   preferredPaymentMethod: Yup.string().required('Preferred payment method is required'),
@@ -235,10 +231,9 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
       return {
         cropType: buyRequest.cropType.id,
         qualityStandard: buyRequest.qualityStandardType.id,
-        requestQuantity: buyRequest.productQuantity,
-        unit: buyRequest.productQuantityUnit,
-        pricePerUnit: buyRequest.pricePerUnitOffer,
-        estimatedDeliveryDate: buyRequest.estimatedDeliveryDate.split('T')[0], // Format for date input
+        requestQuantity: buyRequest.productQuantityKg,
+        pricePerKg: buyRequest.pricePerKgOffer,
+        estimatedDeliveryDate: buyRequest.estimatedDeliveryDate.split('T')[0],
         deliveryLocation: buyRequest.deliveryLocation,
         preferredPaymentMethod: buyRequest.preferredPaymentMethod,
         description: buyRequest.description,
@@ -271,9 +266,8 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
         buyRequestId: buyRequest.id,
         description: values.description,
         qualityStandardId: values.qualityStandard,
-        productQuantity: String(values.requestQuantity),
-        productQuantityUnit: values.unit,
-        pricePerUnitOffer: String(values.pricePerUnit),
+        productQuantityKg: String(values.requestQuantity),
+        pricePerKgOffer: String(values.pricePerKg),
         estimatedDeliveryDate: values.estimatedDeliveryDate,
         deliveryLocation: values.deliveryLocation,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -298,9 +292,8 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
         description: values.description,
         cropId: values.cropType,
         qualityStandardId: values.qualityStandard,
-        productQuantity: String(values.requestQuantity),
-        productQuantityUnit: values.unit,
-        pricePerUnitOffer: String(values.pricePerUnit),
+        productQuantityKg: String(values.requestQuantity),
+        pricePerKgOffer: String(values.pricePerKg),
         estimatedDeliveryDate: values.estimatedDeliveryDate,
         deliveryLocation: values.deliveryLocation,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -433,29 +426,22 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <TextField
                             name="requestQuantity"
-                            label="Request Quantity"
-                            placeholder="Enter request quantity"
+                            label="Request Quantity (kg)"
+                            placeholder="Enter request quantity in kg"
                             type="number"
                             required
                           />
                           
-                          <SelectField
-                            name="unit"
-                            label="Unit"
-                            placeholder="Select unit..."
-                            options={unitOptions}
+                          <TextField
+                            name="pricePerKg"
+                            label="Price per kg"
+                            placeholder="Enter price per kg"
+                            type="number"
                             required
                           />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <TextField
-                            name="pricePerUnit"
-                            label="Price per unit"
-                            placeholder="Enter price per unit"
-                            type="number"
-                            required
-                          />
                           
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">

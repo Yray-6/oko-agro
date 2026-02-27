@@ -53,19 +53,50 @@ export async function GET(request: NextRequest) {
         endpoint = '/admin/dashboard/overview';
         break;
 
-      case 'all-admins':
-        // Get query parameters for pagination
+      case 'all-admins': {
         const role = searchParams.get('role') || 'admin';
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '20';
         endpoint = `/admin/all-admins?role=${role}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
         break;
+      }
+
+      case 'inventories': {
+        const invPageNumber = searchParams.get('pageNumber') || '1';
+        const invPageSize = searchParams.get('pageSize') || '20';
+        const invSearch = searchParams.get('search') || '';
+        const invType = searchParams.get('type') || '';
+        const invParams = new URLSearchParams({
+          pageNumber: invPageNumber,
+          pageSize: invPageSize,
+        });
+        if (invSearch) invParams.append('search', invSearch);
+        if (invType) invParams.append('type', invType);
+        endpoint = `/admin/inventories?${invParams.toString()}`;
+        break;
+      }
+
+      case 'product-inventory-logs': {
+        const productId = searchParams.get('productId');
+        if (!productId) {
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'productId is required for product-inventory-logs action',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        endpoint = `/admin/inventories/product/${productId}`;
+        break;
+      }
 
       default:
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: dashboard-overview, all-admins',
+            message: 'Invalid action. Valid actions are: dashboard-overview, all-admins, inventories, product-inventory-logs',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

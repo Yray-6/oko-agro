@@ -65,7 +65,7 @@ export default function Page() {
 
   // Calculate inventory percentage
   const inventoryPercentage = products.length > 0 
-    ? Math.round((products.reduce((acc, p) => acc + parseFloat(p.quantity || '0'), 0) / products.length) * 100) 
+    ? Math.round((products.reduce((acc, p) => acc + parseFloat(p.quantityKg || '0'), 0) / products.length) * 100) 
     : 0;
 
   // Calculate revenue from completed orders
@@ -87,9 +87,9 @@ export default function Page() {
     
     // Sum up revenue from completed orders
     return completedOrders.reduce((sum, req) => {
-      const quantity = parseFloat(req.productQuantity || '0');
-      const pricePerUnit = parseFloat(req.pricePerUnitOffer || '0');
-      return sum + (quantity * pricePerUnit);
+      const quantity = parseFloat(req.productQuantityKg || '0');
+      const pricePerKg = parseFloat(req.pricePerKgOffer || '0');
+      return sum + (quantity * pricePerKg);
     }, 0);
   }, [myRequests]);
 
@@ -125,7 +125,7 @@ export default function Page() {
 
   return (
     <div>
-      <div className="text-2xl">Hello, Oghenevwaire</div>
+      <div className="text-2xl">Hello, {user?.firstName || 'Oghenevwaire'}</div>
       <div className="grid grid-cols-4 py-4 gap-4">
         <Card
           title="Revenue"

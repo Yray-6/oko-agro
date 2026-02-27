@@ -8,8 +8,7 @@ import {
   TextField,
   SelectField,
   cropsOptions,
-  unitOptions,
-} from "../forms/FormFields"; // Import your reusable components
+} from "../forms/FormFields";
 import Image from "next/image";
 import mail from "@/app/assets/images/productSuccess.png";
 
@@ -18,8 +17,7 @@ interface ListProductFormValues {
   productName: string;
   cropType: string;
   availableQuantity: string;
-  unit: string;
-  pricePerUnit: string;
+  pricePerKg: string;
   harvestDate: string;
   storageFarmLocation: string;
   mainPicture: File | null;
@@ -30,8 +28,7 @@ const initialValues: ListProductFormValues = {
   productName: "",
   cropType: "",
   availableQuantity: "",
-  unit: "",
-  pricePerUnit: "",
+  pricePerKg: "",
   harvestDate: "",
   storageFarmLocation: "",
   mainPicture: null,
@@ -43,8 +40,7 @@ const validationSchema = Yup.object({
   productName: Yup.string().required("Product name is required"),
   cropType: Yup.string().required("Crop type is required"),
   availableQuantity: Yup.string().required("Available quantity is required"),
-  unit: Yup.string().required("Unit is required"),
-  pricePerUnit: Yup.string().required("Price per unit is required"),
+  pricePerKg: Yup.string().required("Price per kg is required"),
   harvestDate: Yup.string().required("Harvest date is required"),
   storageFarmLocation: Yup.string().required(
     "Storage/Farm location is required"
@@ -302,27 +298,20 @@ const ListNewRequestModal: React.FC<ListNewProductModalProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <TextField
                             name="availableQuantity"
-                            label="Available Quantity"
-                            placeholder="Enter available quantity"
+                            label="Available Quantity (kg)"
+                            placeholder="Enter available quantity in kg"
                             required
                           />
 
-                          <SelectField
-                            name="unit"
-                            label="Unit"
-                            placeholder="Select unit..."
-                            options={unitOptions}
+                          <TextField
+                            name="pricePerKg"
+                            label="Price per kg"
+                            placeholder="Enter price per kg"
                             required
                           />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <TextField
-                            name="pricePerUnit"
-                            label="Price per unit"
-                            placeholder="Enter price per unit"
-                            required
-                          />
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">

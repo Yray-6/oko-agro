@@ -383,16 +383,16 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({
                     <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
                       <span className="flex items-center gap-1">
                         <Package className="w-3 h-3" />
-                        {requestData.productQuantity} {requestData.productQuantityUnit}
+                        {requestData.productQuantityKg} kg
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
                         {requestData.deliveryLocation?.split(',')[0] || requestData.deliveryLocation}
                       </span>
                     </div>
-                    {requestData.pricePerUnitOffer && (
+                    {requestData.pricePerKgOffer && (
                       <p className="text-xs text-gray-600 mt-1">
-                        Price: ₦{requestData.pricePerUnitOffer}/unit
+                        Price: ₦{requestData.pricePerKgOffer}/kg
                       </p>
                     )}
                   </div>

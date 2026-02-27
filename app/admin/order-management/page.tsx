@@ -77,8 +77,8 @@ export default function OrderManagement() {
       },
       order: {
         product: buyRequest.cropType?.name || buyRequest.product?.name || "Unknown",
-        value: `₦${(parseFloat(buyRequest.pricePerUnitOffer || "0") * parseFloat(buyRequest.productQuantity || "0")).toLocaleString()}`,
-        quantity: `${buyRequest.productQuantity} ${buyRequest.productQuantityUnit}`,
+        value: `₦${(parseFloat(buyRequest.pricePerKgOffer || "0") * parseFloat(buyRequest.productQuantityKg || "0")).toLocaleString()}`,
+        quantity: `${buyRequest.productQuantityKg} kg`,
         certification: buyRequest.qualityStandardType?.name || "N/A",
       },
       deliveryLocation: buyRequest.deliveryLocation || "N/A",

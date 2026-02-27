@@ -1,7 +1,7 @@
 // stores/useAdminStore.ts
 import { create } from 'zustand';
 import { AxiosError } from 'axios';
-import { AdminDashboardStats, UsersListResponse, UserListItem, ApiResponse, ProductDetails, BuyRequest, OngoingBuyRequestResponse, OrderState, CreateAdminRequest, CreateAdminResponse, UpdateUserStatusRequest, UpdateAdminPasswordRequest } from '@/app/types';
+import { AdminDashboardStats, UsersListResponse, UserListItem, ApiResponse, ProductDetails, BuyRequest, OngoingBuyRequestResponse, OrderState, CreateAdminRequest, CreateAdminResponse, UpdateUserStatusRequest, UpdateAdminPasswordRequest, InventoryItem, InventoriesListResponse, ProductInventoryLogsResponse, InventoryType } from '@/app/types';
 import apiClient from '../utils/apiClient';
 
 interface AdminState {
@@ -59,6 +59,15 @@ interface AdminState {
     pageSize: number;
   } | null;
   
+  // Inventories
+  inventories: InventoryItem[];
+  inventoriesMeta: {
+    totalRecord: number;
+    pageNumber: number;
+    pageSize: number;
+  } | null;
+  productInventoryLogs: InventoryItem[];
+  
   // Loading states
   isLoadingDashboard: boolean;
   isLoadingUsers: boolean;
@@ -69,6 +78,8 @@ interface AdminState {
   isApprovingProduct: boolean;
   isLoadingOngoingBuyRequests: boolean;
   isUpdatingOrderState: boolean;
+  isLoadingInventories: boolean;
+  isLoadingProductInventoryLogs: boolean;
   isCreatingAdmin: boolean;
   isUpdatingUserStatus: boolean;
   isUpdatingAdminPassword: boolean;
@@ -82,6 +93,7 @@ interface AdminState {
   adminsError: string | null;
   productListingsError: string | null;
   ongoingBuyRequestsError: string | null;
+  inventoriesError: string | null;
   adminManagementError: string | null;
 }
 
@@ -103,6 +115,10 @@ interface AdminActions {
   fetchOngoingBuyRequests: (params?: { search?: string; state?: string; pageNumber?: number; pageSize?: number }) => Promise<void>;
   updateOrderState: (buyRequestId: string, orderState: OrderState) => Promise<void>;
   
+  // Inventories
+  fetchInventories: (params?: { search?: string; type?: InventoryType | ''; pageNumber?: number; pageSize?: number }) => Promise<void>;
+  fetchProductInventoryLogs: (productId: string) => Promise<void>;
+  
   // Admin management
   createAdmin: (data: CreateAdminRequest) => Promise<CreateAdminResponse>;
   updateUserStatus: (data: UpdateUserStatusRequest) => Promise<void>;
@@ -117,6 +133,7 @@ interface AdminActions {
   clearAdminsError: () => void;
   clearProductListingsError: () => void;
   clearOngoingBuyRequestsError: () => void;
+  clearInventoriesError: () => void;
   clearAdminManagementError: () => void;
   clearAllErrors: () => void;
   
@@ -128,6 +145,7 @@ interface AdminActions {
   resetAdmins: () => void;
   resetProductListings: () => void;
   resetOngoingBuyRequests: () => void;
+  resetInventories: () => void;
   resetAll: () => void;
 }
 
@@ -148,6 +166,9 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   productListingsMeta: null,
   ongoingBuyRequests: [],
   ongoingBuyRequestsMeta: null,
+  inventories: [],
+  inventoriesMeta: null,
+  productInventoryLogs: [],
   
   // Loading states
   isLoadingDashboard: false,
@@ -159,6 +180,8 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   isApprovingProduct: false,
   isLoadingOngoingBuyRequests: false,
   isUpdatingOrderState: false,
+  isLoadingInventories: false,
+  isLoadingProductInventoryLogs: false,
   isCreatingAdmin: false,
   isUpdatingUserStatus: false,
   isUpdatingAdminPassword: false,
@@ -172,6 +195,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   adminsError: null,
   productListingsError: null,
   ongoingBuyRequestsError: null,
+  inventoriesError: null,
   adminManagementError: null,
 
   // Fetch dashboard stats
@@ -575,6 +599,81 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     }
   },
 
+  // Fetch inventories
+  fetchInventories: async (params = {}) => {
+    set({ isLoadingInventories: true, inventoriesError: null });
+    try {
+      const { search = '', type = '', pageNumber = 1, pageSize = 20 } = params;
+      const queryParams = new URLSearchParams({
+        action: 'inventories',
+        pageNumber: pageNumber.toString(),
+        pageSize: pageSize.toString(),
+      });
+      if (search) queryParams.append('search', search);
+      if (type) queryParams.append('type', type);
+
+      const response = await apiClient.get<InventoriesListResponse>(
+        `/admin?${queryParams.toString()}`
+      );
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        set({
+          inventories: response.data.data.items || [],
+          inventoriesMeta: {
+            totalRecord: response.data.data.totalRecord || 0,
+            pageNumber: response.data.data.pageNumber || 1,
+            pageSize: response.data.data.pageSize || 20,
+          },
+          isLoadingInventories: false,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch inventories');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof AxiosError
+        ? error.response?.data?.message || error.message
+        : 'Failed to fetch inventories';
+      set({
+        inventoriesError: errorMessage,
+        isLoadingInventories: false,
+      });
+      console.error('Error fetching inventories:', error);
+    }
+  },
+
+  // Fetch product inventory logs
+  fetchProductInventoryLogs: async (productId: string) => {
+    set({ isLoadingProductInventoryLogs: true, inventoriesError: null });
+    try {
+      const queryParams = new URLSearchParams({
+        action: 'product-inventory-logs',
+        productId,
+      });
+
+      const response = await apiClient.get<ProductInventoryLogsResponse>(
+        `/admin?${queryParams.toString()}`
+      );
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        set({
+          productInventoryLogs: response.data.data || [],
+          isLoadingProductInventoryLogs: false,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch product inventory logs');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof AxiosError
+        ? error.response?.data?.message || error.message
+        : 'Failed to fetch product inventory logs';
+      set({
+        inventoriesError: errorMessage,
+        isLoadingProductInventoryLogs: false,
+      });
+      console.error('Error fetching product inventory logs:', error);
+    }
+  },
+
   // Create admin user
   createAdmin: async (data: CreateAdminRequest) => {
     set({ isCreatingAdmin: true, adminManagementError: null });
@@ -718,6 +817,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   clearAdminsError: () => set({ adminsError: null }),
   clearProductListingsError: () => set({ productListingsError: null }),
   clearOngoingBuyRequestsError: () => set({ ongoingBuyRequestsError: null }),
+  clearInventoriesError: () => set({ inventoriesError: null }),
   clearAdminManagementError: () => set({ adminManagementError: null }),
   clearAllErrors: () => set({ 
     dashboardError: null,
@@ -727,6 +827,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     adminsError: null,
     productListingsError: null,
     ongoingBuyRequestsError: null,
+    inventoriesError: null,
     adminManagementError: null,
   }),
 
@@ -738,6 +839,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   resetAdmins: () => set({ admins: [], adminsMeta: null, adminsError: null }),
   resetProductListings: () => set({ productListings: [], productListingsMeta: null, productListingsError: null }),
   resetOngoingBuyRequests: () => set({ ongoingBuyRequests: [], ongoingBuyRequestsMeta: null, ongoingBuyRequestsError: null }),
+  resetInventories: () => set({ inventories: [], inventoriesMeta: null, productInventoryLogs: [], inventoriesError: null }),
   resetAll: () => set({
     dashboardStats: null,
     allUsers: [],
@@ -752,6 +854,9 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     productListingsMeta: null,
     ongoingBuyRequests: [],
     ongoingBuyRequestsMeta: null,
+    inventories: [],
+    inventoriesMeta: null,
+    productInventoryLogs: [],
     dashboardError: null,
     usersError: null,
     farmersError: null,
@@ -759,6 +864,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     adminsError: null,
     productListingsError: null,
     ongoingBuyRequestsError: null,
+    inventoriesError: null,
     adminManagementError: null,
   }),
 }));

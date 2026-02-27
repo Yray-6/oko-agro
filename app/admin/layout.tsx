@@ -77,6 +77,19 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     {
       icon: (
         <Image
+          src="/icons/package-delivered-01.svg"
+          alt="Inventories"
+          width={24}
+          height={24}
+          className="flex-shrink-0"
+        />
+      ),
+      label: "Inventories",
+      href: "/admin/inventories",
+    },
+    {
+      icon: (
+        <Image
           src="/icons/analytics-03.svg"
           alt="Analytics"
           width={24}

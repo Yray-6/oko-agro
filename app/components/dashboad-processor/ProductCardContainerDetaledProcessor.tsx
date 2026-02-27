@@ -50,8 +50,8 @@ const ProductCardContainerDetailedProcessor: React.FC<
     return {
       id: apiProduct.id,
       name: apiProduct.name,
-      quantity: `${apiProduct.quantity} ${apiProduct.quantityUnit}`,
-      price: formatPrice(apiProduct.pricePerUnit, apiProduct.priceCurrency, apiProduct.quantityUnit),
+      quantity: `${apiProduct.quantityKg} kg`,
+      price: formatPrice(apiProduct.pricePerKg, apiProduct.priceCurrency),
       certification: "Grade A",
       status: apiProduct.status || "Active",
       listedDate: new Date(apiProduct.createdAt).toLocaleDateString("en-GB", {
@@ -61,7 +61,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
       }),
       image: apiProduct.photos?.[0]?.url || "/placeholder-product.png",
       slug: apiProduct.id,
-      inventoryStatus: `${apiProduct.quantity}/${apiProduct.quantity}${apiProduct.quantityUnit}`,
+      inventoryStatus: `${apiProduct.quantityKg}/${apiProduct.quantityKg}kg`,
       inventoryPercentage: 100,
       sellerId: apiProduct.owner?.id, // Extract seller ID from owner
       cropId:apiProduct.cropId

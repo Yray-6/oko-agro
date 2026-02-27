@@ -5,10 +5,11 @@ import { PlusIcon } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { ListNewProductModal, SuccessModal } from "@/app/components/dashboard/ProductModal";
 import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
+import Modal from "@/app/components/Modal";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { ProductDetails } from "@/app/types";
-import { formatPrice } from "@/app/helpers";
+import { formatPrice, getInventoryTypeLabel, getInventoryTypeBadgeStyle } from "@/app/helpers";
 import AnimatedLoading from "@/app/Loading";
 
 export default function Page() {
@@ -21,7 +22,10 @@ export default function Page() {
     fetchUserProducts,
     deleteProduct,
     setCurrentProduct,
-    currentProduct
+    currentProduct,
+    productInventoryLogs,
+    isLoadingProductInventoryLogs,
+    fetchProductInventoryLogs,
   } = useProductStore();
   
   const { user } = useAuthStore();
@@ -33,6 +37,8 @@ export default function Page() {
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showInventoryLogsModal, setShowInventoryLogsModal] = useState(false);
+  const [logsProductName, setLogsProductName] = useState('');
 
   // Fetch products on component mount
   useEffect(() => {
@@ -65,26 +71,24 @@ export default function Page() {
     return 'Active';
   };
 
-  // Helper function to format quantity display
-  const formatQuantity = (quantity: string, unit: string): string => {
-    const isKilogram = unit === 'kilogram' || unit === 'kg';
-    const suffix = isKilogram ? 'kg' : ' tons';
-    return `${quantity}${suffix}`;
-  };
-
-
-  // Helper function to calculate inventory status
   const getInventoryStatus = (product: ProductDetails): { status: string; percentage: number } => {
-    const status = getProductStatus(product);
-    if (status === 'Sold Out') {
+    const total = parseFloat(product.quantityKg) || 0;
+    const reserved = parseFloat(product.reservedQuantityKg) || 0;
+    const available = Math.max(total - reserved, 0);
+    const availablePercent = total > 0 ? Math.round((available / total) * 100) : 0;
+
+    if (availablePercent === 0) {
       return {
-        status: `${product.quantity}/${product.quantity}${product.quantityUnit === 'kilogram' ? 'kg' : ' tons'} (100% Sold)`,
-        percentage: 100
+        status: `0/${total}kg available`,
+        percentage: 0,
       };
     }
+
     return {
-      status: `Available: ${formatQuantity(product.quantity, product.quantityUnit)}`,
-      percentage: 0
+      status: reserved > 0
+        ? `${available}kg available · ${reserved}kg in transit`
+        : `${available}kg available`,
+      percentage: availablePercent,
     };
   };
 
@@ -126,6 +130,13 @@ const handleEditListing = (productId: string) => {
     }
   };
 
+  const handleViewLogs = async (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    setLogsProductName(product?.name || '');
+    setShowInventoryLogsModal(true);
+    await fetchProductInventoryLogs(productId);
+  };
+
   const handleAddNewListing = () => {
     setCurrentProduct(null);
     setEditingProduct(null);
@@ -160,8 +171,8 @@ const handleEditListing = (productId: string) => {
     return {
       id: product.id,
       name: product.name,
-      quantity: formatQuantity(product.quantity, product.quantityUnit),
-      price: formatPrice(product.pricePerUnit, product.priceCurrency, product.quantityUnit),
+      quantity: `${product.quantityKg}kg`,
+      price: formatPrice(product.pricePerKg, product.priceCurrency),
       certification: "Grade A", // You might want to derive this from certifications or other fields
       status: status,
       listedDate: new Date(product.createdAt).toLocaleDateString('en-GB', {
@@ -244,6 +255,7 @@ const handleEditListing = (productId: string) => {
               products={transformedProducts}
               onEditListing={handleEditListing}
               onDeleteListing={handleDeleteListing}
+              onViewLogs={handleViewLogs}
             />
           )}
         </div>
@@ -307,7 +319,82 @@ const handleEditListing = (productId: string) => {
         cancelText="Cancel"
         type="danger"
         isLoading={isDeleting}
-      />{isFetching && <AnimatedLoading/>}
+      />
+
+      {/* Inventory Logs Modal */}
+      <Modal
+        isOpen={showInventoryLogsModal}
+        onClose={() => setShowInventoryLogsModal(false)}
+        size="xl"
+        className="bg-[#FAFAFA] rounded-[8px]"
+        showCloseButton={false}
+      >
+        <div className="p-[25px]">
+          <div className="flex justify-between items-center mb-6 relative pr-12">
+            <div>
+              <h2 className="text-[18px] font-semibold text-[#272C34]" style={{ lineHeight: "1em", letterSpacing: "-2.5%" }}>
+                Inventory Logs
+              </h2>
+              {logsProductName && (
+                <p className="text-[14px] text-[#80726B] mt-1">{logsProductName}</p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowInventoryLogsModal(false)}
+              className="absolute top-0 right-0 w-[40px] h-[40px] flex items-center justify-center rounded-[6px] hover:bg-gray-100 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 4L12 12M12 4L4 12" stroke="#272C34" strokeWidth="1.33" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="bg-white border border-[rgba(229,231,235,0.5)] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] overflow-hidden">
+            {isLoadingProductInventoryLogs ? (
+              <div className="py-8 flex justify-center">
+                <AnimatedLoading />
+              </div>
+            ) : productInventoryLogs.length === 0 ? (
+              <div className="py-8 text-center text-[#80726B] text-[14px]">
+                No inventory logs found for this product
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#EBE7E5]">
+                    <th className="px-4 py-3 text-left text-[12px] font-medium text-[#80726B]">Type</th>
+                    <th className="px-4 py-3 text-left text-[12px] font-medium text-[#80726B]">Quantity (Kg)</th>
+                    <th className="px-4 py-3 text-left text-[12px] font-medium text-[#80726B]">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productInventoryLogs.map((log) => (
+                    <tr key={log.id} className="border-b border-[#EBE7E5] last:border-b-0">
+                      <td className="px-4 py-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getInventoryTypeBadgeStyle(log.type)}`}>
+                          {getInventoryTypeLabel(log.type)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[14px] text-[#0D3F11]">
+                        {parseFloat(log.quantityKg).toLocaleString()} kg
+                      </td>
+                      <td className="px-4 py-3 text-[14px] text-[#80726B]">
+                        {new Date(log.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {" "}
+                        <span className="text-[12px]">
+                          {new Date(log.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {isFetching && <AnimatedLoading/>}
     </div>
   );
 }

@@ -5,7 +5,9 @@ import {
   ApiResponse,
   CreateProductApiRequest,
   CreateProductRequest,
+  InventoryItem,
   ProductDetails,
+  ProductInventoryLogsResponse,
   SearchUsersParams,
   UpdateProductApiRequest,
   UpdateProductRequest,
@@ -87,6 +89,9 @@ interface ProductState {
     pageSize: number;
   } | null;
 
+  productInventoryLogs: InventoryItem[];
+  isLoadingProductInventoryLogs: boolean;
+
   isLoading: boolean;
   isCreating: boolean;
   isUpdating: boolean;
@@ -109,6 +114,8 @@ interface ProductActions {
   createProduct: (data: CreateProductRequest) => Promise<ProductDetails>;
   updateProduct: (data: UpdateProductRequest) => Promise<ProductDetails>;
   deleteProduct: (productId: string) => Promise<void>;
+
+  fetchProductInventoryLogs: (productId: string) => Promise<void>;
 
   searchFarmers: (params: SearchUsersParams) => Promise<UsersSearchResponse>;
   searchProcessors: (params: SearchUsersParams) => Promise<UsersSearchResponse>;
@@ -145,6 +152,9 @@ export const useProductStore = create<ProductStore>()(
       processors: [],
       farmersSearchMeta: null,
       processorsSearchMeta: null,
+
+      productInventoryLogs: [],
+      isLoadingProductInventoryLogs: false,
 
       isLoading: false,
       isCreating: false,
@@ -561,6 +571,35 @@ export const useProductStore = create<ProductStore>()(
         isLoading: false,
       });
       throw error;
+    }
+  },
+
+  fetchProductInventoryLogs: async (productId: string) => {
+    set({ isLoadingProductInventoryLogs: true });
+    try {
+      const queryParams = new URLSearchParams({
+        action: 'product-inventory-logs',
+        productId,
+      });
+
+      const response = await apiClient.get<ProductInventoryLogsResponse>(
+        `/admin?${queryParams.toString()}`
+      );
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        set({
+          productInventoryLogs: response.data.data || [],
+          isLoadingProductInventoryLogs: false,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch inventory logs');
+      }
+    } catch (error) {
+      console.error('Error fetching product inventory logs:', error);
+      set({
+        productInventoryLogs: [],
+        isLoadingProductInventoryLogs: false,
+      });
     }
   },
 }), 

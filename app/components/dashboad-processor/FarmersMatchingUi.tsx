@@ -220,9 +220,9 @@ const FarmerMatchingUI: React.FC = () => {
   const [ratings, setRatings] = useState<Record<string, { average: number; total: number }>>({});
   const [isLoadingRatings, setIsLoadingRatings] = useState(false);
 
-  // Initial load
+  // Initial load - fetch all farmers
   useEffect(() => {
-    handleSearch("lagos");
+    handleSearch("");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -268,7 +268,7 @@ const FarmerMatchingUI: React.FC = () => {
   const handleSearch = async (term?: string) => {
     try {
       await searchFarmers({
-        search: term || searchTerm,
+        search: term !== undefined ? term : searchTerm,
         pageNumber: 1,
         pageSize: 20,
       });

@@ -36,8 +36,8 @@ const RatingModal: React.FC<RatingModalProps> = ({
   // Format order details
   const orderNumber = buyRequest.requestNumber?.toString() || 'N/A';
   const productName = buyRequest.cropType?.name || buyRequest.description || 'Unknown Product';
-  const quantity = `${buyRequest.productQuantity} ${buyRequest.productQuantityUnit}`;
-  const orderValue = `₦${(parseFloat(buyRequest.pricePerUnitOffer) * parseFloat(buyRequest.productQuantity)).toLocaleString()}`;
+  const quantity = `${buyRequest.productQuantityKg} kg`;
+  const orderValue = `₦${(parseFloat(buyRequest.pricePerKgOffer) * parseFloat(buyRequest.productQuantityKg)).toLocaleString()}`;
   const productDetails = `${productName} (${quantity} - ${orderValue})`;
   const deliveryLocation = buyRequest.deliveryLocation || 'N/A';
   

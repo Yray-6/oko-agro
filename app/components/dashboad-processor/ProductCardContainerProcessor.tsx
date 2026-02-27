@@ -62,8 +62,8 @@ const ProductCardContainerProcessor: React.FC = () => {
     return {
       id: parseInt(request.id) || 0,
       name: request.cropType?.name || 'Unknown Crop',
-      quantity: `${request.productQuantity} ${request.productQuantityUnit}`,
-      price: `₦${parseFloat(request.pricePerUnitOffer || '0').toLocaleString()}/${request.productQuantityUnit}`,
+      quantity: `${request.productQuantityKg} kg`,
+      price: `₦${parseFloat(request.pricePerKgOffer || '0').toLocaleString()}/kg`,
       certification: request.qualityStandardType?.name || 'N/A',
       status: getStatusDisplay(request.status, request.orderState) as Product['status'],
       listedDate: new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', {

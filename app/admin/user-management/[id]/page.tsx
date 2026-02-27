@@ -179,8 +179,8 @@ export default function UserDetailsPage() {
     },
     order: {
       product: req.cropType?.name || req.description || 'Unknown',
-      value: `₦${(parseFloat(req.pricePerUnitOffer || '0') * parseFloat(req.productQuantity || '0')).toLocaleString()}`,
-      quantity: `${req.productQuantity} ${req.productQuantityUnit}`,
+      value: `₦${(parseFloat(req.pricePerKgOffer || '0') * parseFloat(req.productQuantityKg || '0')).toLocaleString()}`,
+      quantity: `${req.productQuantityKg} kg`,
       certification: req.qualityStandardType?.name || 'N/A',
     },
     deliveryLocation: req.deliveryLocation || 'N/A',

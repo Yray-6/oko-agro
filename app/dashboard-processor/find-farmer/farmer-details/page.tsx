@@ -104,8 +104,8 @@ export default function FarmerDetailsPage() {
   const mappedProducts = products.map((product) => ({
     id: product.id,
     name: product.name,
-    quantity: `${product.quantity} ${product.quantityUnit}`,
-    price: formatPrice(product.pricePerUnit, product.priceCurrency, product.quantityUnit),
+    quantity: `${product.quantityKg} kg`,
+    price: formatPrice(product.pricePerKg, product.priceCurrency),
     certification: "Grade A",
     status: product.status || "Active",
     listedDate: new Date(product.createdAt).toLocaleDateString("en-GB", {
@@ -114,7 +114,7 @@ export default function FarmerDetailsPage() {
       year: "numeric",
     }),
     image: product.photos?.[0]?.url || rice.src,
-    inventoryStatus: `${product.quantity}/${product.quantity}${product.quantityUnit}`,
+    inventoryStatus: `${product.quantityKg}/${product.quantityKg}kg`,
     inventoryPercentage: 100,
     slug: product.id,
     sellerId:product.owner?.id,

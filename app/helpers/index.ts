@@ -1,26 +1,51 @@
-import { CalendarEvent, EventDetails } from "../types";
+import { CalendarEvent, EventDetails, InventoryType } from "../types";
+
+export const getInventoryTypeLabel = (type: InventoryType | string): string => {
+  switch (type) {
+    case 'addition':
+      return 'Stock Added';
+    case 'reservation':
+      return 'In Transit';
+    case 'release':
+      return 'Released';
+    case 'deduction':
+      return 'Sold';
+    default:
+      return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+};
+
+export const getInventoryTypeBadgeStyle = (type: string): string => {
+  switch (type) {
+    case 'addition':
+      return 'bg-green-100 text-green-800';
+    case 'reservation':
+      return 'bg-blue-100 text-blue-800';
+    case 'release':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'deduction':
+      return 'bg-orange-100 text-orange-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const imageLoader = ({src}:any) => {
     return  `${src}`
 }
 
-export const formatPrice = (price: string, currency: string, unit: string): string => {
-  const isKilogram = unit === 'kilogram' || unit === 'kg';
-  const suffix = isKilogram ? 'kg' : 'ton';
-  
-  // Handle currency formatting - case insensitive
+export const formatPrice = (price: string, currency: string, _unit?: string): string => {
   const normalizedCurrency = currency.toUpperCase();
   const currencySymbol = normalizedCurrency === 'NGN' ? '₦' : currency;
   
-  // Format the price with proper number formatting
   const numericPrice = parseFloat(price);
   const formattedPrice = numericPrice.toLocaleString('en-NG', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
   
-  return `${currencySymbol}${formattedPrice}/${suffix}`;
+  return `${currencySymbol}${formattedPrice}/kg`;
 };
 export const transformEventToCalendarEvent = (event: EventDetails): CalendarEvent => {
   const eventDate = new Date(event.eventDate);

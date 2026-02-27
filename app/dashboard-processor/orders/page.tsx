@@ -68,8 +68,8 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     id: buyRequest.requestNumber.toString(),
     buyRequestId: buyRequest.id, // Store the actual ID for API calls
     productName: buyRequest.cropType?.name || 'Unknown Product',
-    quantity: `${buyRequest.productQuantity}${buyRequest.productQuantityUnit}`,
-    price: `₦${buyRequest.pricePerUnitOffer}/${buyRequest.productQuantityUnit}`,
+    quantity: `${buyRequest.productQuantityKg}kg`,
+    price: `₦${buyRequest.pricePerKgOffer}/kg`,
     certification: buyRequest.qualityStandardType?.name || 'N/A',
     status: status as "Pending" | "Active" | "Completed" | "Rejected",
     createdDate: new Date(buyRequest.createdAt).toLocaleDateString('en-US', { 
@@ -82,7 +82,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
       month: 'short', 
       year: 'numeric' 
     }),
-    orderValue: `₦${(parseFloat(buyRequest.pricePerUnitOffer) * parseFloat(buyRequest.productQuantity)).toLocaleString()}`,
+    orderValue: `₦${(parseFloat(buyRequest.pricePerKgOffer) * parseFloat(buyRequest.productQuantityKg)).toLocaleString()}`,
     paymentTerms: buyRequest.preferredPaymentMethod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     buyerName: buyRequest.seller 
       ? `${buyRequest.seller.firstName} ${buyRequest.seller.lastName}` 
@@ -168,7 +168,7 @@ export default function Page() {
 
       // Calculate statistics
       const totalValue = myRequests.reduce((sum, req) => {
-        return sum + (parseFloat(req.pricePerUnitOffer) * parseFloat(req.productQuantity));
+        return sum + (parseFloat(req.pricePerKgOffer) * parseFloat(req.productQuantityKg));
       }, 0);
 
       // Count completed orders (exclude rejected)

@@ -13,6 +13,7 @@ import { Search, Store } from "lucide-react";
 import Notification from "../assets/icons/Notification";
 import Orders from "../assets/icons/Orders";
 import { useAuthStore } from "../store/useAuthStore";
+import { useNotificationStore } from "../store/useNotificationStore";
 import { useTokenMonitor } from "../hooks/useTokenMonitor";
 import AnimatedLoading from "../Loading";
 
@@ -39,6 +40,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     clearError,
   } = useAuthStore();
 
+  const { unreadCount, fetchNotifications } = useNotificationStore();
   const router = useRouter();
   const isFarmer = user?.role === "farmer"
   // Initialize token monitoring
@@ -93,6 +95,13 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     loadProfile();
   }, [hasHydrated, isAuthenticated, tokens, user, fetchProfile]);
+
+  // Fetch notifications to get unread count
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated && tokens?.accessToken) {
+      fetchNotifications().catch(console.error);
+    }
+  }, [hasHydrated, isAuthenticated, tokens, fetchNotifications]);
 
   const navItems: NavItem[] = [
     {
@@ -297,9 +306,16 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
                 <Message size={20} />
               </button>
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative">
+              <button 
+                onClick={() => router.push('/dashboard/notifications')}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative"
+              >
                 <Notification size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Profile */}

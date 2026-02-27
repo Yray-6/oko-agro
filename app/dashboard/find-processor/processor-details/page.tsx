@@ -363,7 +363,7 @@ export default function ProcessorDetailsPage() {
                           <span className="text-xs text-gray-500 uppercase">Quantity</span>
                         </div>
                         <p className="font-semibold text-gray-900">
-                          {request.productQuantity} {request.productQuantityUnit}
+                          {request.productQuantityKg}kg
                         </p>
                       </div>
 
@@ -374,7 +374,7 @@ export default function ProcessorDetailsPage() {
                           <span className="text-xs text-gray-500 uppercase">Price Offer</span>
                         </div>
                         <p className="font-semibold text-mainGreen">
-                          {request.pricePerUnitOffer}/unit
+                          {request.pricePerKgOffer}/kg
                         </p>
                       </div>
 

@@ -26,9 +26,8 @@ const ContactProcessorModal: React.FC<ContactProcessorModalProps> = ({
   const [isSent, setIsSent] = useState(false);
   
   // Editable offer fields - initialized with buyRequest values as defaults
-  const [quantity, setQuantity] = useState(buyRequest.productQuantity);
-  const [quantityUnit, setQuantityUnit] = useState(buyRequest.productQuantityUnit);
-  const [pricePerUnit, setPricePerUnit] = useState(buyRequest.pricePerUnitOffer);
+  const [quantity, setQuantity] = useState(buyRequest.productQuantityKg);
+  const [pricePerKg, setPricePerKg] = useState(buyRequest.pricePerKgOffer);
   const [deliveryLocation, setDeliveryLocation] = useState(buyRequest.deliveryLocation);
   const [message, setMessage] = useState('');
 
@@ -46,8 +45,8 @@ I'm ${farmerName} from ${farmName}, and I have ${cropName} available that matche
 
 My Offer:
 • Crop: ${cropName}
-• Quantity Available: ${quantity} ${quantityUnit}
-• Price Offer: ₦${pricePerUnit}/unit
+• Quantity Available: ${quantity}kg
+• Price Offer: ₦${pricePerKg}/kg
 • Delivery Location: ${deliveryLocation}
 
 I can fulfill this order. You can view my profile and products for more details, or send me a purchase order directly.
@@ -61,14 +60,13 @@ ${farmerName}`;
       
       setMessage(template);
     }
-  }, [isOpen, quantity, quantityUnit, pricePerUnit, deliveryLocation, buyRequest, processorName, user]);
+  }, [isOpen, quantity, pricePerKg, deliveryLocation, buyRequest, processorName, user]);
 
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setQuantity(buyRequest.productQuantity);
-      setQuantityUnit(buyRequest.productQuantityUnit);
-      setPricePerUnit(buyRequest.pricePerUnitOffer);
+      setQuantity(buyRequest.productQuantityKg);
+      setPricePerKg(buyRequest.pricePerKgOffer);
       setDeliveryLocation(buyRequest.deliveryLocation);
       setIsSent(false);
     }
@@ -165,7 +163,7 @@ ${farmerName}`;
                     <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
                       <span className="flex items-center gap-1">
                         <Package className="w-3 h-3" />
-                        {buyRequest.productQuantity} {buyRequest.productQuantityUnit}
+                        {buyRequest.productQuantityKg}kg
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
@@ -197,38 +195,29 @@ ${farmerName}`;
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Quantity Available
                     </label>
-                    <div className="flex gap-2">
+                    <div className="relative">
                       <input
                         type="text"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                        placeholder="Enter quantity"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
+                        placeholder="Enter quantity in kg"
                       />
-                      <select
-                        value={quantityUnit}
-                        onChange={(e) => setQuantityUnit(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      >
-                        <option value="kg">kg</option>
-                        <option value="tonnes">tonnes</option>
-                        <option value="bags">bags</option>
-                        <option value="units">units</option>
-                      </select>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">kg</span>
                     </div>
                   </div>
 
-                  {/* Price Per Unit */}
+                  {/* Price Per Kg */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Price Per Unit (₦)
+                      Price Per Kg (₦)
                     </label>
                     <input
                       type="text"
-                      value={pricePerUnit}
-                      onChange={(e) => setPricePerUnit(e.target.value)}
+                      value={pricePerKg}
+                      onChange={(e) => setPricePerKg(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-                      placeholder="Enter price per unit"
+                      placeholder="Enter price per kg"
                     />
                   </div>
 

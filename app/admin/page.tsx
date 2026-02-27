@@ -131,8 +131,8 @@ export default function AdminDashboard() {
       },
       order: {
         product: buyRequest.cropType?.name || buyRequest.product?.name || "Unknown",
-        value: `₦${(parseFloat(buyRequest.pricePerUnitOffer || "0") * parseFloat(buyRequest.productQuantity || "0")).toLocaleString()}`,
-        quantity: `${buyRequest.productQuantity} ${buyRequest.productQuantityUnit}`,
+        value: `₦${(parseFloat(buyRequest.pricePerKgOffer || "0") * parseFloat(buyRequest.productQuantityKg || "0")).toLocaleString()}`,
+        quantity: `${buyRequest.productQuantityKg} kg`,
         certification: buyRequest.qualityStandardType?.name || "N/A",
       },
       deliveryLocation: buyRequest.deliveryLocation || "N/A",
@@ -269,6 +269,7 @@ export default function AdminDashboard() {
       fetchAllDisputes({ pageNumber: 1, pageSize: 20 });
     }
   }, [activeTableTab, fetchAllDisputes]);
+
 
   const handleApproveReject = (product: ProductDetails, action: "approve" | "reject") => {
     setApprovalModal({
@@ -1150,7 +1151,7 @@ export default function AdminDashboard() {
                               lineHeight: "1.429em",
                             }}
                           >
-                            {product.quantity} {product.quantityUnit}
+                            {product.quantityKg} kg
                           </p>
                         </td>
                         <td className="px-4 py-4">
@@ -1161,7 +1162,7 @@ export default function AdminDashboard() {
                               lineHeight: "1.429em",
                             }}
                           >
-                            {product.priceCurrency?.toLowerCase() === 'ngn' ? '₦' : product.priceCurrency} {parseFloat(product.pricePerUnit).toLocaleString()}
+                            {product.priceCurrency?.toLowerCase() === 'ngn' ? '₦' : product.priceCurrency} {parseFloat(product.pricePerKg).toLocaleString()}
                           </p>
                         </td>
                         <td className="px-4 py-4">
@@ -2048,6 +2049,7 @@ export default function AdminDashboard() {
           </div>
         )}
       </Modal>
+
     </div>
   );
 }

@@ -93,23 +93,23 @@ export default function MarketplacePage() {
     });
   } else if (sortBy === 'price-low') {
     filteredRequests = [...filteredRequests].sort((a, b) => {
-      const priceA = parseFloat(a.pricePerUnitOffer || '0');
-      const priceB = parseFloat(b.pricePerUnitOffer || '0');
+      const priceA = parseFloat(a.pricePerKgOffer || '0');
+      const priceB = parseFloat(b.pricePerKgOffer || '0');
       return priceA - priceB;
     });
   } else if (sortBy === 'price-high') {
     filteredRequests = [...filteredRequests].sort((a, b) => {
-      const priceA = parseFloat(a.pricePerUnitOffer || '0');
-      const priceB = parseFloat(b.pricePerUnitOffer || '0');
+      const priceA = parseFloat(a.pricePerKgOffer || '0');
+      const priceB = parseFloat(b.pricePerKgOffer || '0');
       return priceB - priceA;
     });
   } else if (sortBy === 'quantity-low') {
     filteredRequests = [...filteredRequests].sort((a, b) => {
-      return getQuantityValue(a.productQuantity) - getQuantityValue(b.productQuantity);
+      return getQuantityValue(a.productQuantityKg) - getQuantityValue(b.productQuantityKg);
     });
   } else if (sortBy === 'quantity-high') {
     filteredRequests = [...filteredRequests].sort((a, b) => {
-      return getQuantityValue(b.productQuantity) - getQuantityValue(a.productQuantity);
+      return getQuantityValue(b.productQuantityKg) - getQuantityValue(a.productQuantityKg);
     });
   }
 
@@ -163,8 +163,8 @@ I'm ${farmerName} from ${farmName}, and I'm interested in your buy request for $
 
 Request Details:
 • Product: ${cropName}
-• Quantity: ${request.productQuantity} ${request.productQuantityUnit}
-• Price Offer: ${formatPrice(request.pricePerUnitOffer)}/${request.productQuantityUnit}
+• Quantity: ${request.productQuantityKg}kg
+• Price Offer: ${formatPrice(request.pricePerKgOffer)}/kg
 ${request.estimatedDeliveryDate ? `• Expected Delivery: ${new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
 • Delivery Location: ${request.deliveryLocation}
 
@@ -344,7 +344,7 @@ ${farmerName}`;
                           {cropName} {companyName && `- ${companyName}`}
                         </h3>
                         <div className="space-y-1 text-sm font-light text-black">
-                          <p>Quantity: {request.productQuantity} {request.productQuantityUnit} | {formatPrice(request.pricePerUnitOffer)}/{request.productQuantityUnit}</p>
+                          <p>Quantity: {request.productQuantityKg}kg | {formatPrice(request.pricePerKgOffer)}/kg</p>
                           {request.estimatedDeliveryDate && (
                             <p className="mt-5">Expected Delivery Date: {new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                           )}
@@ -536,7 +536,7 @@ ${farmerName}`;
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
                           <span className="flex items-center gap-1">
                             <Package className="w-3 h-3" />
-                            {selectedRequest.productQuantity} {selectedRequest.productQuantityUnit}
+                            {selectedRequest.productQuantityKg}kg
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3 h-3" />

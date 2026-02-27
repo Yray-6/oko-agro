@@ -89,9 +89,9 @@ export default function Page() {
     });
 
     return completedOrders.reduce((acc, req) => {
-      const quantity = parseFloat(req.productQuantity || '0');
-      const pricePerUnit = parseFloat(req.pricePerUnitOffer || '0');
-      return acc + (quantity * pricePerUnit);
+      const quantity = parseFloat(req.productQuantityKg || '0');
+      const pricePerKg = parseFloat(req.pricePerKgOffer || '0');
+      return acc + (quantity * pricePerKg);
     }, 0);
   }, [myRequests]);
 

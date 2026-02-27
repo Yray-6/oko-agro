@@ -165,14 +165,14 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                           {product.cropType?.name || 'N/A'}
                         </p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
-                          {product.pricePerUnit && (
+                          {product.pricePerKg && (
                             <span className="font-medium text-mainGreen">
-                              ₦{parseFloat(product.pricePerUnit).toLocaleString()}/unit
+                              ₦{parseFloat(product.pricePerKg).toLocaleString()}/kg
                             </span>
                           )}
-                          {product.quantity && (
+                          {product.quantityKg && (
                             <span>
-                              {product.quantity} {product.quantityUnit || 'kg'}
+                              {product.quantityKg} kg
                             </span>
                           )}
                         </div>

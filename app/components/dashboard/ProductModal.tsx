@@ -7,7 +7,6 @@ import { Camera, X, Calendar } from 'lucide-react';
 import { 
   TextField, 
   SelectField, 
-  unitOptions
 } from '../forms/FormFields';
 import Image from 'next/image';
 import mail from "@/app/assets/images/productSuccess.png"
@@ -22,9 +21,8 @@ import AnimatedLoading from '@/app/Loading';
 interface ProductFormValues {
   name: string;
   cropId: string;
-  quantity: string;
-  quantityUnit: string;
-  pricePerUnit: string;
+  quantityKg: string;
+  pricePerKg: string;
   priceCurrency: string;
   harvestDate: string;
   locationAddress: string;
@@ -36,9 +34,8 @@ interface ProductFormValues {
 const validationSchema = Yup.object({
   name: Yup.string().required('Product name is required'),
   cropId: Yup.string().required('Crop type is required'),
-  quantity: Yup.string().required('Available quantity is required'),
-  quantityUnit: Yup.string().required('Unit is required'),
-  pricePerUnit: Yup.string().required('Price per unit is required'),
+  quantityKg: Yup.string().required('Available quantity is required'),
+  pricePerKg: Yup.string().required('Price per Kg is required'),
   priceCurrency: Yup.string().required('Currency is required'),
   harvestDate: Yup.string()
     .required('Harvest date is required')
@@ -101,13 +98,11 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
   // Generate initial values based on editing mode
   const getInitialValues = (): ProductFormValues => {
     if (isEditing && editingProduct) {
-      // Extract values from ProductDetails
       return {
         name: editingProduct.name,
         cropId: editingProduct.cropType?.id || '',
-        quantity: editingProduct.quantity,
-        quantityUnit: editingProduct.quantityUnit,
-        pricePerUnit: editingProduct.pricePerUnit,
+        quantityKg: editingProduct.quantityKg,
+        pricePerKg: editingProduct.pricePerKg,
         priceCurrency: editingProduct.priceCurrency,
         harvestDate: editingProduct.harvestEvent?.eventDate 
           ? new Date(editingProduct.harvestEvent.eventDate).toISOString().split('T')[0]
@@ -121,9 +116,8 @@ const ListNewProductModal: React.FC<ListNewProductModalProps> = ({
     return {
       name: '',
       cropId: '',
-      quantity: '',
-      quantityUnit: '',
-      pricePerUnit: '',
+      quantityKg: '',
+      pricePerKg: '',
       priceCurrency: 'ngn',
       harvestDate: '',
       locationAddress: '',
@@ -180,9 +174,8 @@ const handleSubmit = async (values: ProductFormValues) => {
     // Prepare the payload excluding photos and cropId for edit mode
     const productData: any = {
       name: values.name,
-      quantity: values.quantity,
-      quantityUnit: values.quantityUnit as 'kilogram' | 'tonne',
-      pricePerUnit: values.pricePerUnit,
+      quantityKg: values.quantityKg,
+      pricePerKg: values.pricePerKg,
       priceCurrency: values.priceCurrency,
       locationAddress: values.locationAddress,
     };
@@ -438,29 +431,21 @@ const handleSubmit = async (values: ProductFormValues) => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <TextField
-                            name="quantity"
-                            label="Available Quantity"
-                            placeholder="Enter available quantity"
+                            name="quantityKg"
+                            label="Available Quantity (Kg)"
+                            placeholder="Enter quantity in Kg"
                             required
                           />
                           
-                          <SelectField
-                            name="quantityUnit"
-                            label="Unit"
-                            placeholder="Select unit..."
-                            options={unitOptions}
+                          <TextField
+                            name="pricePerKg"
+                            label="Price per Kg"
+                            placeholder="Enter price per Kg"
                             required
                           />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <TextField
-                            name="pricePerUnit"
-                            label={values.quantityUnit === 'kilogram' ? 'Price per Kg' : values.quantityUnit === 'tonne' ? 'Price per Tonne' : 'Price per unit'}
-                            placeholder={values.quantityUnit === 'kilogram' ? 'Enter price per Kg' : values.quantityUnit === 'tonne' ? 'Enter price per Tonne' : 'Enter price per unit'}
-                            required
-                          />
-                          
                           <SelectField
                             name="priceCurrency"
                             label="Currency"
