@@ -650,10 +650,10 @@ export default function AdminDashboard() {
           <div className="flex gap-[27px] px-[25px] pt-[25px] pb-0">
             <button
               onClick={() => setActiveTableTab("Ongoing Orders")}
-              className={`text-[18px] font-normal pb-[25px] ${
+              className={`text-[18px] font-normal pb-[25px] cursor-pointer ${
                 activeTableTab === "Ongoing Orders"
                   ? "text-[#004829]"
-                  : "text-[#C3C3C3]"
+                  : "text-[#C3C3C3] hover:text-[#004829]/60"
               }`}
               style={{
                 fontFamily: "Effra, sans-serif",
@@ -665,10 +665,10 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTableTab("Pending Listings")}
-              className={`text-[18px] font-normal pb-[25px] ${
+              className={`text-[18px] font-normal pb-[25px] cursor-pointer ${
                 activeTableTab === "Pending Listings"
                   ? "text-[#004829]"
-                  : "text-[#C3C3C3]"
+                  : "text-[#C3C3C3] hover:text-[#004829]/60"
               }`}
               style={{
                 fontFamily: "Effra, sans-serif",
@@ -680,10 +680,10 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTableTab("Disputes")}
-              className={`text-[18px] font-normal pb-[25px] ${
+              className={`text-[18px] font-normal pb-[25px] cursor-pointer ${
                 activeTableTab === "Disputes"
                   ? "text-[#004829]"
-                  : "text-[#C3C3C3]"
+                  : "text-[#C3C3C3] hover:text-[#004829]/60"
               }`}
               style={{
                 fontFamily: "Effra, sans-serif",

@@ -97,7 +97,7 @@ const capacityUnitOptions = [
   { value: "tons", label: "Tons per day" },
   { value: "tons", label: "Tons per week" },
   { value: "tons", label: "Tons per month" },
-  { value: "kg", label: "Kilograms per day" },
+  { value: "tons", label: "Tons per year" },
 ];
 
 const operatingDays = [

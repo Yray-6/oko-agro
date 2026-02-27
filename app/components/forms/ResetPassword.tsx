@@ -38,10 +38,11 @@ const ResetPasswordForm: React.FC = () => {
       clearError();
       
       // Call the forgot password API
-      await forgotPassword({ email: values.email });
+      const normalizedEmail = values.email.toLowerCase().trim();
+      await forgotPassword({ email: normalizedEmail });
       
       // Store the email for display in modal
-      setSubmittedEmail(values.email);
+      setSubmittedEmail(normalizedEmail);
       
       // Show the verification modal
       setShowVerificationModal(true);
