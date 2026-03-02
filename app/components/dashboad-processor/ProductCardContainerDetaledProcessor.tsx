@@ -18,8 +18,10 @@ export interface Product {
   slug?: string;
   inventoryStatus?: string;
   inventoryPercentage?: number;
-  sellerId?: string; // Add seller ID for targeting specific requests
-   cropId?: string; // Add this field
+  sellerId?: string;
+  cropId?: string;
+  rawPricePerKg?: string;
+  rawQuantityKg?: string;
 }
 
 interface ProductCardContainerDetailedProps {
@@ -63,8 +65,10 @@ const ProductCardContainerDetailedProcessor: React.FC<
       slug: apiProduct.id,
       inventoryStatus: `${apiProduct.quantityKg}/${apiProduct.quantityKg}kg`,
       inventoryPercentage: 100,
-      sellerId: apiProduct.owner?.id, // Extract seller ID from owner
-      cropId:apiProduct.cropId
+      sellerId: apiProduct.owner?.id,
+      cropId: apiProduct.cropId,
+      rawPricePerKg: apiProduct.pricePerKg,
+      rawQuantityKg: apiProduct.quantityKg,
     };
 
 
@@ -230,7 +234,6 @@ const ProductCardContainerDetailedProcessor: React.FC<
     return entry ? entry[0] : filter;
   };
 
-  // Get selected product details for modal
   const getSelectedProductDetails = () => {
     if (!selectedProduct) return { productName: '', productId: undefined, sellerId: undefined };
     
@@ -239,7 +242,9 @@ const ProductCardContainerDetailedProcessor: React.FC<
       productName: normalized.name,
       productId: normalized.id.toString(),
       sellerId: normalized.sellerId,
-      cropId:normalized.cropId
+      cropId: normalized.cropId,
+      pricePerKg: normalized.rawPricePerKg,
+      quantityKg: normalized.rawQuantityKg,
     };
   };
 
@@ -330,6 +335,8 @@ const ProductCardContainerDetailedProcessor: React.FC<
         productId={selectedProductDetails.productId}
         sellerId={selectedProductDetails.sellerId}
         cropId={selectedProductDetails.cropId}
+        pricePerKg={selectedProductDetails.pricePerKg}
+        quantityKg={selectedProductDetails.quantityKg}
       />
     </div>
   );

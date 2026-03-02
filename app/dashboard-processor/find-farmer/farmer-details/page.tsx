@@ -117,8 +117,10 @@ export default function FarmerDetailsPage() {
     inventoryStatus: `${product.quantityKg}/${product.quantityKg}kg`,
     inventoryPercentage: 100,
     slug: product.id,
-    sellerId:product.owner?.id,
-    cropId:product.cropType?.id
+    sellerId: product.owner?.id,
+    cropId: product.cropType?.id,
+    rawPricePerKg: product.pricePerKg,
+    rawQuantityKg: product.quantityKg,
   }));
 
   const handleBack = () => {

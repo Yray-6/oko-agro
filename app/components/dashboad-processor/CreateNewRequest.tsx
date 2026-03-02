@@ -9,6 +9,7 @@ import {
 } from '../forms/FormFields';
 import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { useDataStore } from '@/app/store/useDataStore';
+import { useAuthStore } from '@/app/store/useAuthStore';
 import { BuyRequest } from '@/app/types';
 
 interface CreateRequestFormValues {
@@ -92,6 +93,8 @@ interface CreateNewRequestModalProps {
   productId?: string;
   sellerId?: string;
   cropId?: string;
+  pricePerKg?: string;
+  quantityKg?: string;
   buyRequest?: BuyRequest | null; 
 }
 
@@ -103,9 +106,12 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
   productId,
   sellerId,
   cropId,
+  pricePerKg: productPricePerKg,
+  quantityKg: productQuantityKg,
   buyRequest
 }) => {
   const { createBuyRequest, updateBuyRequest, isCreating, isUpdating } = useBuyRequestStore();
+  const { user } = useAuthStore();
   const isEditMode = !!buyRequest;
   const { crops, fetchCrops, qualityStandards, fetchQualityStandards } = useDataStore();
   
@@ -247,12 +253,25 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
     // Pre-fill cropType if cropId is provided
     if (cropId && cropOptions.some(option => option.value === cropId)) {
       baseValues.cropType = cropId;
-      console.log('Setting cropType to:', cropId);
     }
     
     // Pre-fill description if productName is provided
     if (productName) {
       baseValues.description = `Request for ${productName}`;
+    }
+
+    // Pre-fill price and quantity from product
+    if (productPricePerKg) {
+      baseValues.pricePerKg = productPricePerKg;
+    }
+    if (productQuantityKg) {
+      baseValues.requestQuantity = productQuantityKg;
+    }
+
+    // Pre-fill delivery location from user's address
+    if (user?.farmAddress) {
+      const addressParts = [user.farmAddress, user.state, user.country].filter(Boolean);
+      baseValues.deliveryLocation = addressParts.join(', ');
     }
     
     return baseValues;
