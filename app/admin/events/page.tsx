@@ -6,14 +6,13 @@ import { useEventStore } from '@/app/store/useEventStore';
 import { useDataStore } from '@/app/store/useDataStore';
 import { CalendarEvent, EventDetails } from '@/app/types';
 import { transformEventToCalendarEvent } from '@/app/helpers';
-import { Calendar, Clock, Package, User, MapPin, Download, Filter } from 'lucide-react';
+import { Calendar, Clock, Package, User, MapPin, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminEventsPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [selectedCropFilter, setSelectedCropFilter] = useState<string>('all');
   
   const { events, fetchAllEvents, isFetching } = useEventStore();
   const { crops, fetchCrops } = useDataStore();
@@ -40,25 +39,14 @@ export default function AdminEventsPage() {
     };
   }, [crops]);
 
-  // Filter and sort events by date (earliest to latest)
+  // Sort events by date (earliest to latest)
   const filteredAndSortedEvents = useMemo(() => {
-    let filtered = [...events];
-    
-    // Filter by crop if selected
-    if (selectedCropFilter !== 'all') {
-      filtered = filtered.filter(event => {
-        const cropName = getCropName(event);
-        return cropName && crops.find(c => c.id === selectedCropFilter)?.name === cropName;
-      });
-    }
-    
-    // Sort by date (earliest to latest)
-    return filtered.sort((a, b) => {
+    return [...events].sort((a, b) => {
       const dateA = new Date(a.eventDate).getTime();
       const dateB = new Date(b.eventDate).getTime();
       return dateA - dateB; // Ascending order (earliest first)
     });
-  }, [events, selectedCropFilter, crops, getCropName]);
+  }, [events]);
 
   // Transform API events to calendar events when they change
   useEffect(() => {
@@ -125,10 +113,7 @@ export default function AdminEventsPage() {
 
     // Generate filename with current date
     const dateStr = new Date().toISOString().split('T')[0];
-    const cropFilter = selectedCropFilter !== 'all' 
-      ? `_${crops.find(c => c.id === selectedCropFilter)?.name || 'filtered'}` 
-      : '';
-    const filename = `events_export${cropFilter}_${dateStr}.xlsx`;
+    const filename = `events_export_${dateStr}.xlsx`;
 
     // Write and download
     XLSX.writeFile(wb, filename);
@@ -163,23 +148,6 @@ export default function AdminEventsPage() {
             All Events ({filteredAndSortedEvents.length})
           </h2>
           <div className="flex items-center gap-3">
-            {/* Crop Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <select
-                value={selectedCropFilter}
-                onChange={(e) => setSelectedCropFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent"
-              >
-                <option value="all">All Crops</option>
-                {crops.map((crop) => (
-                  <option key={crop.id} value={crop.id}>
-                    {crop.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
             {/* Export Button */}
             <button
               onClick={handleExportToExcel}
