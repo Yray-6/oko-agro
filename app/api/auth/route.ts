@@ -298,8 +298,20 @@ export async function GET(request: NextRequest) {
 
       case 'crops':
         try {
-          // Fetch crops from the backend
-          const response = await apiClient.get<CropResponse[]>('/crops');
+          const authHeader = request.headers.get('authorization');
+          if (!authHeader) {
+            return NextResponse.json(
+              {
+                statusCode: 401,
+                message: 'Authorization header is required',
+                error: 'Unauthorized'
+              } as ApiResponse,
+              { status: 401 }
+            );
+          }
+          const response = await apiClient.get<CropResponse[]>('/crops', {
+            headers: { 'Authorization': authHeader }
+          });
           
           return NextResponse.json(
             {
@@ -331,8 +343,20 @@ export async function GET(request: NextRequest) {
 
       case 'quality-standards':
         try {
-          // Fetch quality standards from the backend
-          const response = await apiClient.get<QualityResponse[]>('/quality-standards');
+          const authHeader = request.headers.get('authorization');
+          if (!authHeader) {
+            return NextResponse.json(
+              {
+                statusCode: 401,
+                message: 'Authorization header is required',
+                error: 'Unauthorized'
+              } as ApiResponse,
+              { status: 401 }
+            );
+          }
+          const response = await apiClient.get<QualityResponse[]>('/quality-standards', {
+            headers: { 'Authorization': authHeader }
+          });
           
           return NextResponse.json(
             {
@@ -364,8 +388,20 @@ export async function GET(request: NextRequest) {
 
       case 'certifications':
         try {
-          // Fetch certifications from the backend
-          const response = await apiClient.get<CertificationResponse[]>('/certifications');
+          const authHeader = request.headers.get('authorization');
+          if (!authHeader) {
+            return NextResponse.json(
+              {
+                statusCode: 401,
+                message: 'Authorization header is required',
+                error: 'Unauthorized'
+              } as ApiResponse,
+              { status: 401 }
+            );
+          }
+          const response = await apiClient.get<CertificationResponse[]>('/certifications', {
+            headers: { 'Authorization': authHeader }
+          });
           
           return NextResponse.json(
             {
