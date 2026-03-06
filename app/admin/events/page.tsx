@@ -18,7 +18,7 @@ export default function AdminEventsPage() {
   const { events, fetchAllEvents, isFetching } = useEventStore();
   const { crops, fetchCrops } = useDataStore();
 
-  // Fetch all events and crops on component mount
+  // Fetch all events and crops on component mount 
   useEffect(() => {
     fetchAllEvents().catch(console.error);
     if (crops.length === 0) {

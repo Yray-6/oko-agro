@@ -1,85 +1,13 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
-
+import { useAdminStore } from "@/app/store/useAdminStore";
 export default function AnalyticsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("Last 30 days");
+  const { dashboardStats, isLoadingDashboard, fetchDashboardStats } = useAdminStore();
 
-  const topUsers = [
-    {
-      rank: 1,
-      name: "Eronini Feed Mills",
-      orders: "24 Orders",
-      revenue: "₦4,850,000",
-      change: "+22.5%",
-    },
-    {
-      rank: 2,
-      name: "Augustus Processing Company",
-      orders: "24 Orders",
-      revenue: "₦2,500,000",
-      change: "+22.5%",
-    },
-    {
-      rank: 3,
-      name: "Pristine Crops &Livestock",
-      orders: "24 Orders",
-      revenue: "₦1,350,000",
-      change: "+22.5%",
-    },
-    {
-      rank: 4,
-      name: "Glorydays Farms",
-      orders: "24 Orders",
-      revenue: "₦1,050,000",
-      change: "+22.5%",
-    },
-    {
-      rank: 5,
-      name: "Sachar Feed Mills",
-      orders: "24 Orders",
-      revenue: "₦750,000",
-      change: "+22.5%",
-    },
-  ];
-
-  const topRegions = [
-    {
-      rank: 1,
-      name: "Lagos State",
-      users: "98 users",
-      revenue: "₦6,850,000",
-      change: "+22.5%",
-    },
-    {
-      rank: 2,
-      name: "Kano State",
-      users: "65 users",
-      revenue: "₦2,500,000",
-      change: "+15.8%",
-    },
-    {
-      rank: 3,
-      name: "Ogun State",
-      users: "32 users",
-      revenue: "₦2,350,000",
-      change: "+15.8%",
-    },
-    {
-      rank: 4,
-      name: "Rivers State",
-      users: "21 users",
-      revenue: "₦2,100,000",
-      change: "+15.8%",
-    },
-    {
-      rank: 5,
-      name: "Kaduna State",
-      users: "28 users",
-      revenue: "₦1,900,000",
-      change: "+15.8%",
-    },
-  ];
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
 
   return (
     <div className="min-h-screen bg-[#F8F8F8]">
@@ -164,84 +92,6 @@ export default function AnalyticsPage() {
           Comprehensive platform insights and performance metrics
         </p>
 
-        {/* Filters and Export */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            {/* Date Filter */}
-            <div className="relative">
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-[13px] py-[9px] pr-[40px] bg-white border border-[#F2F0ED] rounded-[10px] text-[14px] font-normal text-[#2E251F] outline-none appearance-none cursor-pointer h-[40px]"
-                style={{
-                  lineHeight: "1.429em",
-                }}
-              >
-                <option>Last 30 days</option>
-                <option>Last 7 days</option>
-                <option>Last 90 days</option>
-                <option>Last year</option>
-              </select>
-              <div className="absolute right-[13px] top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M4 6L8 10L12 6"
-                    stroke="#2E251F"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* Export Report Button */}
-            <button
-              className="flex items-center gap-2 px-[13px] py-[7.5px] bg-white border border-[#F2F0ED] rounded-[10px] text-[14px] font-medium text-[#2E251F] h-[36px]"
-              style={{
-                lineHeight: "1.429em",
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M2 10L2 14L14 14L14 10"
-                  stroke="#2E251F"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M8 2L8 10"
-                  stroke="#2E251F"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M4 6L8 2L12 6"
-                  stroke="#2E251F"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Export Report
-            </button>
-          </div>
-        </div>
-
         {/* Stats Cards Row */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {/* Total Revenue Card */}
@@ -283,40 +133,8 @@ export default function AnalyticsPage() {
                 className="text-[32px] font-medium text-[#2E251F]"
                 style={{ lineHeight: "1em" }}
               >
-                ₦ 13,250,000
+                {isLoadingDashboard ? "..." : `₦ ${(dashboardStats?.totalTransactionValue || 0).toLocaleString()}`}
               </p>
-              <div className="flex items-center gap-1">
-                <svg
-                  width="16"
-                  height="12"
-                  viewBox="0 0 16 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M8 1L12 5L8 9"
-                    stroke="#16A249"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M4 5L8 9L12 5"
-                    stroke="#16A249"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span
-                  className="text-[12px] font-normal text-[#16A249]"
-                  style={{
-                    lineHeight: "1.333em",
-                  }}
-                >
-                  +18.5%
-                </span>
-              </div>
             </div>
           </div>
 
@@ -358,40 +176,8 @@ export default function AnalyticsPage() {
                 className="text-[32px] font-medium text-[#2E251F]"
                 style={{ lineHeight: "1em" }}
               >
-                603
+                {isLoadingDashboard ? "..." : (dashboardStats?.completedOrders || 0).toLocaleString()}
               </p>
-              <div className="flex items-center gap-1">
-                <svg
-                  width="16"
-                  height="12"
-                  viewBox="0 0 16 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M8 1L12 5L8 9"
-                    stroke="#16A249"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M4 5L8 9L12 5"
-                    stroke="#16A249"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span
-                  className="text-[12px] font-normal text-[#16A249]"
-                  style={{
-                    lineHeight: "1.333em",
-                  }}
-                >
-                  +12.3%
-                </span>
-              </div>
             </div>
           </div>
 
@@ -433,40 +219,8 @@ export default function AnalyticsPage() {
                 className="text-[32px] font-medium text-[#2E251F]"
                 style={{ lineHeight: "1em" }}
               >
-                420
+                {isLoadingDashboard ? "..." : (dashboardStats?.totalUsers || 0).toLocaleString()}
               </p>
-              <div className="flex items-center gap-1">
-                <svg
-                  width="16"
-                  height="12"
-                  viewBox="0 0 16 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M8 1L12 5L8 9"
-                    stroke="#16A249"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M4 5L8 9L12 5"
-                    stroke="#16A249"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span
-                  className="text-[12px] font-normal text-[#16A249]"
-                  style={{
-                    lineHeight: "1.333em",
-                  }}
-                >
-                  +8.7%
-                </span>
-              </div>
             </div>
           </div>
 
@@ -509,53 +263,29 @@ export default function AnalyticsPage() {
                 className="text-[32px] font-medium text-[#2E251F]"
                 style={{ lineHeight: "1em" }}
               >
-                ₦ 108,250
+                {isLoadingDashboard
+                  ? "..."
+                  : (() => {
+                      const val = dashboardStats?.totalTransactionValue ?? 0;
+                      const orders = dashboardStats?.completedOrders ?? 0;
+                      return orders > 0
+                        ? `₦ ${Math.round(val / orders).toLocaleString()}`
+                        : "₦ 0";
+                    })()}
               </p>
-              <div className="flex items-center gap-1">
-                <svg
-                  width="16"
-                  height="12"
-                  viewBox="0 0 16 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M8 11L4 7L8 3"
-                    stroke="#EF4343"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M12 7L8 11L4 7"
-                    stroke="#EF4343"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span
-                  className="text-[12px] font-normal text-[#EF4343]"
-                  style={{
-                    lineHeight: "1.333em",
-                  }}
-                >
-                  -2.1%
-                </span>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Top Performing Users and Regions */}
+        {/* Top Performing Farmers and Processors */}
         <div className="grid grid-cols-2 gap-6">
-          {/* Top Performing Users */}
+          {/* Top Performing Farmers */}
           <div className="bg-white border border-[#E5E1DC] rounded-[12px] p-6 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
             <div className="mb-6">
               <div className="flex items-center gap-[6px] mb-[6px]">
                 <Image
                   src="/icons/user-multiple.svg"
-                  alt="Users"
+                  alt="Farmers"
                   width={24}
                   height={24}
                 />
@@ -566,7 +296,7 @@ export default function AnalyticsPage() {
                     letterSpacing: "-2.5%",
                   }}
                 >
-                  Top Performing Users
+                  Top Performing Farmers
                 </h3>
               </div>
               <p
@@ -575,95 +305,16 @@ export default function AnalyticsPage() {
                   lineHeight: "1.429em",
                 }}
               >
-                Revenue generated by users
+                Revenue generated by farmers
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
-              {topUsers.map((user) => (
-                <div
-                  key={user.rank}
-                  className="flex justify-between items-center"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Rank Badge */}
-                    <div className="w-[32px] h-[32px] rounded-full bg-[rgba(22,162,73,0.1)] flex items-center justify-center flex-shrink-0">
-                      <span
-                        className="text-[14px] font-bold text-[#16A249]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.rank}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <p
-                        className="text-[16px] font-medium text-[#2E251F]"
-                        style={{
-                          lineHeight: "1.5em",
-                        }}
-                      >
-                        {user.name}
-                      </p>
-                      <p
-                        className="text-[14px] font-normal text-[#7E7167]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {user.orders}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <p
-                      className="text-[16px] font-medium text-[#2E251F]"
-                      style={{
-                        lineHeight: "1.5em",
-                      }}
-                    >
-                      {user.revenue}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <svg
-                        width="16"
-                        height="12"
-                        viewBox="0 0 16 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M8 1L12 5L8 9"
-                          stroke="#16A249"
-                          strokeWidth="1"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 5L8 9L12 5"
-                          stroke="#16A249"
-                          strokeWidth="1"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span
-                        className="text-[12px] font-normal text-[#16A249]"
-                        style={{
-                          lineHeight: "1.333em",
-                        }}
-                      >
-                        {user.change}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-center py-16">
+              <p className="text-[18px] font-medium text-[#7E7167]">Coming Soon</p>
             </div>
           </div>
 
-          {/* Top Performing Regions */}
+          {/* Top Performing Processors */}
           <div className="bg-white border border-[#E5E1DC] rounded-[12px] p-6 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
             <div className="mb-6">
               <div className="flex items-center gap-[6px] mb-[6px]">
@@ -697,7 +348,7 @@ export default function AnalyticsPage() {
                     letterSpacing: "-2.5%",
                   }}
                 >
-                  Top Performing Regions
+                  Top Performing Processors
                 </h3>
               </div>
               <p
@@ -706,91 +357,12 @@ export default function AnalyticsPage() {
                   lineHeight: "1.429em",
                 }}
               >
-                Revenue and user growth by state
+                Revenue generated by processors
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
-              {topRegions.map((region) => (
-                <div
-                  key={region.rank}
-                  className="flex justify-between items-center"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Rank Badge */}
-                    <div className="w-[32px] h-[32px] rounded-full bg-[rgba(22,162,73,0.1)] flex items-center justify-center flex-shrink-0">
-                      <span
-                        className="text-[14px] font-bold text-[#16A249]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {region.rank}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <p
-                        className="text-[16px] font-medium text-[#2E251F]"
-                        style={{
-                          lineHeight: "1.5em",
-                        }}
-                      >
-                        {region.name}
-                      </p>
-                      <p
-                        className="text-[14px] font-normal text-[#7E7167]"
-                        style={{
-                          lineHeight: "1.429em",
-                        }}
-                      >
-                        {region.users}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <p
-                      className="text-[16px] font-medium text-[#2E251F]"
-                      style={{
-                        lineHeight: "1.5em",
-                      }}
-                    >
-                      {region.revenue}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <svg
-                        width="16"
-                        height="12"
-                        viewBox="0 0 16 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M8 1L12 5L8 9"
-                          stroke="#16A249"
-                          strokeWidth="1"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 5L8 9L12 5"
-                          stroke="#16A249"
-                          strokeWidth="1"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span
-                        className="text-[12px] font-normal text-[#16A249]"
-                        style={{
-                          lineHeight: "1.333em",
-                        }}
-                      >
-                        {region.change}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-center py-16">
+              <p className="text-[18px] font-medium text-[#7E7167]">Coming Soon</p>
             </div>
           </div>
         </div>
