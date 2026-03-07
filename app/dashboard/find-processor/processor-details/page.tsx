@@ -24,6 +24,7 @@ import ContactProcessorModal from "@/app/components/dashboard/ContactProcessorMo
 import rice from "@/app/assets/images/rice.png";
 import { UserProfile, BuyRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
+import { formatQuantity } from "@/app/helpers";
 
 export default function ProcessorDetailsPage() {
   const router = useRouter();
@@ -363,7 +364,7 @@ export default function ProcessorDetailsPage() {
                           <span className="text-xs text-gray-500 uppercase">Quantity</span>
                         </div>
                         <p className="font-semibold text-gray-900">
-                          {request.productQuantityKg}kg
+                          {formatQuantity(request.productQuantityKg)}kg
                         </p>
                       </div>
 

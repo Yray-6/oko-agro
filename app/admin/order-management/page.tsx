@@ -5,6 +5,7 @@ import Modal from "@/app/components/Modal";
 import { useAdminStore } from "@/app/store/useAdminStore";
 import { BuyRequest, OrderState } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
+import { formatQuantity } from "@/app/helpers";
 
 interface Order {
   id: string;
@@ -78,7 +79,7 @@ export default function OrderManagement() {
       order: {
         product: buyRequest.cropType?.name || buyRequest.product?.name || "Unknown",
         value: `₦${(parseFloat(buyRequest.pricePerKgOffer || "0") * parseFloat(buyRequest.productQuantityKg || "0")).toLocaleString()}`,
-        quantity: `${buyRequest.productQuantityKg} kg`,
+        quantity: `${formatQuantity(buyRequest.productQuantityKg || '0')} kg`,
         certification: buyRequest.qualityStandardType?.name || "N/A",
       },
       deliveryLocation: buyRequest.deliveryLocation || "N/A",

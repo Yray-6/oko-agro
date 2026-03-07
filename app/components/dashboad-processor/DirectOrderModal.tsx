@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { Notification, BuyRequest } from '@/app/types';
+import { formatQuantity } from '@/app/helpers';
 
 interface DirectOrderModalProps {
   isOpen: boolean;
@@ -383,7 +384,7 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({
                     <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
                       <span className="flex items-center gap-1">
                         <Package className="w-3 h-3" />
-                        {requestData.productQuantityKg} kg
+                        {formatQuantity(requestData.productQuantityKg)} kg
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />

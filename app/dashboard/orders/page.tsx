@@ -19,6 +19,7 @@ import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
 import RatingModal from "@/app/components/dashboard/RatingModal";
 import DisputeModal from "@/app/components/dashboard/DisputeModal";
 import { XCircle } from "lucide-react";
+import { formatQuantity } from "@/app/helpers";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -63,7 +64,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     buyRequestId: buyRequest.id, // Store the actual ID for API calls
     productId: buyRequest.product?.id || undefined, // Store productId if available
     productName: buyRequest.cropType?.name || 'Unknown Product',
-    quantity: `${buyRequest.productQuantityKg}kg`,
+    quantity: `${formatQuantity(buyRequest.productQuantityKg || '0')}kg`,
     price: `₦${buyRequest.pricePerKgOffer}/kg`,
     certification: buyRequest.qualityStandardType?.name || 'N/A',
     status: orderStatus,

@@ -2,6 +2,7 @@
 import React from 'react';
 import { X, Calendar, FileText, Package, MapPin, Clock, User, Mail, Phone } from 'lucide-react';
 import { EventDetails } from '@/app/types';
+import { formatQuantity } from '@/app/helpers';
 
 interface EventDetailsModalProps {
   isOpen: boolean;
@@ -150,7 +151,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                     <div>
                       <p className="text-sm text-gray-600">Quantity</p>
                       <p className="font-medium text-gray-900">
-                        {event.cropQuantity} {event.cropQuantityUnit || ''}
+                        {formatQuantity(event.cropQuantity || '0')} {event.cropQuantityUnit || ''}
                       </p>
                     </div>
                   )}

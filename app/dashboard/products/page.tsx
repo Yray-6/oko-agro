@@ -9,7 +9,7 @@ import Modal from "@/app/components/Modal";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { ProductDetails } from "@/app/types";
-import { formatPrice, getInventoryTypeLabel, getInventoryTypeBadgeStyle } from "@/app/helpers";
+import { formatPrice, formatQuantity, getInventoryTypeLabel, getInventoryTypeBadgeStyle } from "@/app/helpers";
 import AnimatedLoading from "@/app/Loading";
 
 export default function Page() {
@@ -79,15 +79,15 @@ export default function Page() {
 
     if (availablePercent === 0) {
       return {
-        status: `0/${total}kg available`,
+        status: `0/${formatQuantity(total)}kg available`,
         percentage: 0,
       };
     }
 
     return {
       status: reserved > 0
-        ? `${available}kg available · ${reserved}kg in transit`
-        : `${available}kg available`,
+        ? `${formatQuantity(available)}kg available · ${formatQuantity(reserved)}kg in transit`
+        : `${formatQuantity(available)}kg available`,
       percentage: availablePercent,
     };
   };
@@ -171,7 +171,7 @@ const handleEditListing = (productId: string) => {
     return {
       id: product.id,
       name: product.name,
-      quantity: `${product.quantityKg}kg`,
+      quantity: `${formatQuantity(product.quantityKg)}kg`,
       price: formatPrice(product.pricePerKg, product.priceCurrency),
       certification: "Grade A", // You might want to derive this from certifications or other fields
       status: status,
@@ -376,7 +376,7 @@ const handleEditListing = (productId: string) => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[14px] text-[#0D3F11]">
-                        {parseFloat(log.quantityKg).toLocaleString()} kg
+                        {formatQuantity(log.quantityKg)} kg
                       </td>
                       <td className="px-4 py-3 text-[14px] text-[#80726B]">
                         {new Date(log.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}

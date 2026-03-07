@@ -8,6 +8,7 @@ import ProductApprovalModal from "../components/admin/ProductApprovalModal";
 import Modal from "../components/Modal";
 import { ProductDetails, BuyRequest, OrderState, UserFile } from "../types";
 import AnimatedLoading from "../Loading";
+import { formatQuantity } from "../helpers";
 
 interface Order {
   id: string;
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
       order: {
         product: buyRequest.cropType?.name || buyRequest.product?.name || "Unknown",
         value: `₦${(parseFloat(buyRequest.pricePerKgOffer || "0") * parseFloat(buyRequest.productQuantityKg || "0")).toLocaleString()}`,
-        quantity: `${buyRequest.productQuantityKg} kg`,
+        quantity: `${formatQuantity(buyRequest.productQuantityKg || '0')} kg`,
         certification: buyRequest.qualityStandardType?.name || "N/A",
       },
       deliveryLocation: buyRequest.deliveryLocation || "N/A",
@@ -1151,7 +1152,7 @@ export default function AdminDashboard() {
                               lineHeight: "1.429em",
                             }}
                           >
-                            {product.quantityKg} kg
+                            {formatQuantity(product.quantityKg)} kg
                           </p>
                         </td>
                         <td className="px-4 py-4">

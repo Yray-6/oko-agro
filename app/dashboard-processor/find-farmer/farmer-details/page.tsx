@@ -21,7 +21,7 @@ import { EventDetailsModal } from "@/app/components/dashboard/EventDetailsModal"
 import rice from "@/app/assets/images/rice.png";
 import { UserProfile, EventDetails, CalendarEvent } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
-import { formatPrice, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
+import { formatPrice, formatQuantity, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
 
 export default function FarmerDetailsPage() {
   const router = useRouter();
@@ -104,7 +104,7 @@ export default function FarmerDetailsPage() {
   const mappedProducts = products.map((product) => ({
     id: product.id,
     name: product.name,
-    quantity: `${product.quantityKg} kg`,
+    quantity: `${formatQuantity(product.quantityKg)} kg`,
     price: formatPrice(product.pricePerKg, product.priceCurrency),
     certification: "Grade A",
     status: product.status || "Active",
@@ -114,7 +114,7 @@ export default function FarmerDetailsPage() {
       year: "numeric",
     }),
     image: product.photos?.[0]?.url || rice.src,
-    inventoryStatus: `${product.quantityKg}/${product.quantityKg}kg`,
+    inventoryStatus: `${formatQuantity(product.quantityKg)}/${formatQuantity(product.quantityKg)}kg`,
     inventoryPercentage: 100,
     slug: product.id,
     sellerId: product.owner?.id,

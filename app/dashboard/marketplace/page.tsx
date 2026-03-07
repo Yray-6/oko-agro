@@ -7,6 +7,7 @@ import DashboardIcon from "@/app/assets/icons/Dashboard";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import { BuyRequest } from "@/app/types";
+import { formatQuantity } from "@/app/helpers";
 
 export default function MarketplacePage() {
   const router = useRouter();
@@ -163,7 +164,7 @@ I'm ${farmerName} from ${farmName}, and I'm interested in your buy request for $
 
 Request Details:
 • Product: ${cropName}
-• Quantity: ${request.productQuantityKg}kg
+• Quantity: ${formatQuantity(request.productQuantityKg)}kg
 • Price Offer: ${formatPrice(request.pricePerKgOffer)}/kg
 ${request.estimatedDeliveryDate ? `• Expected Delivery: ${new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
 • Delivery Location: ${request.deliveryLocation}
@@ -344,7 +345,7 @@ ${farmerName}`;
                           {cropName} {companyName && `- ${companyName}`}
                         </h3>
                         <div className="space-y-1 text-sm font-light text-black">
-                          <p>Quantity: {request.productQuantityKg}kg | {formatPrice(request.pricePerKgOffer)}/kg</p>
+                          <p>Quantity: {formatQuantity(request.productQuantityKg)}kg | {formatPrice(request.pricePerKgOffer)}/kg</p>
                           {request.estimatedDeliveryDate && (
                             <p className="mt-5">Expected Delivery Date: {new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                           )}
@@ -536,7 +537,7 @@ ${farmerName}`;
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
                           <span className="flex items-center gap-1">
                             <Package className="w-3 h-3" />
-                            {selectedRequest.productQuantityKg}kg
+                            {formatQuantity(selectedRequest.productQuantityKg)}kg
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3 h-3" />

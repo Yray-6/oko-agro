@@ -5,7 +5,7 @@ import { EventDetailsModal } from '@/app/components/dashboard/EventDetailsModal'
 import { useEventStore } from '@/app/store/useEventStore';
 import { useDataStore } from '@/app/store/useDataStore';
 import { CalendarEvent, EventDetails } from '@/app/types';
-import { transformEventToCalendarEvent } from '@/app/helpers';
+import { formatQuantity, transformEventToCalendarEvent } from '@/app/helpers';
 import { Calendar, Clock, Package, User, MapPin, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -108,7 +108,7 @@ export default function AdminEventsPage() {
         'Status': event.status || 'upcoming',
         'Is Harvest Event': event.isHarvestEvent ? 'Yes' : 'No',
         'Crop Type': cropName || '',
-        'Crop Quantity': event.cropQuantity || '',
+        'Crop Quantity': event.cropQuantity ? formatQuantity(event.cropQuantity) : '',
         'Crop Quantity Unit': event.cropQuantityUnit || '',
         'Owner Name': event.owner ? `${event.owner.firstName} ${event.owner.lastName}` : '',
         'Owner Role': event.owner?.role || '',
@@ -252,7 +252,7 @@ export default function AdminEventsPage() {
                         <Package className="w-4 h-4" />
                         <span>
                           {cropName && `${cropName} - `}
-                          {event.cropQuantity} {event.cropQuantityUnit || ''}
+                          {formatQuantity(event.cropQuantity || '0')} {event.cropQuantityUnit || ''}
                         </span>
                       </div>
                     )}

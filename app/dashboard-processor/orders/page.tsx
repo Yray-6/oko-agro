@@ -21,6 +21,7 @@ import RatingModal from "@/app/components/dashboard/RatingModal";
 import DisputeModal from "@/app/components/dashboard/DisputeModal";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
+import { formatQuantity } from "@/app/helpers";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -68,7 +69,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     id: buyRequest.requestNumber.toString(),
     buyRequestId: buyRequest.id, // Store the actual ID for API calls
     productName: buyRequest.cropType?.name || 'Unknown Product',
-    quantity: `${buyRequest.productQuantityKg}kg`,
+    quantity: `${formatQuantity(buyRequest.productQuantityKg || '0')}kg`,
     price: `₦${buyRequest.pricePerKgOffer}/kg`,
     certification: buyRequest.qualityStandardType?.name || 'N/A',
     status: status as "Pending" | "Active" | "Completed" | "Rejected",

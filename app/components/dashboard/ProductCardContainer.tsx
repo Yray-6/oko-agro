@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import ProductCard, { Product } from "./ProductCard";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
-import { formatPrice } from "@/app/helpers";
+import { formatPrice, formatQuantity } from "@/app/helpers";
 import { ProductDetails } from "@/app/types";
 import Link from "next/link";
 
@@ -21,10 +21,7 @@ const ProductCardContainer: React.FC = () => {
     }
   }, [user?.id, fetchUserProducts]);
 
-  // Helper function to format quantity display
-  const formatQuantity = (quantityKg: string): string => {
-    return `${quantityKg}kg`;
-  };
+  // Format quantity with commas (uses shared helper)
 
   // Helper function to format price display
 
@@ -57,7 +54,7 @@ const ProductCardContainer: React.FC = () => {
   const transformedProducts: Product[] = products.map(product => ({
     id: parseInt(product.id),
     name: product.name,
-    quantity: formatQuantity(product.quantityKg),
+    quantity: `${formatQuantity(product.quantityKg)}kg`,
     price: formatPrice(product.pricePerKg, product.priceCurrency),
     certification: "Grade A", // You can derive this from certifications if available
     status: getProductStatus(product),

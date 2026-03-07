@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Notification } from '@/app/types';
 import Image from 'next/image';
 import rice from '@/app/assets/images/rice.png';
-import { imageLoader } from '@/app/helpers';
+import { imageLoader, formatQuantity } from '@/app/helpers';
 
 interface ViewFarmerProductsModalProps {
   isOpen: boolean;
@@ -172,7 +172,7 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                           )}
                           {product.quantityKg && (
                             <span>
-                              {product.quantityKg} kg
+                              {formatQuantity(product.quantityKg)} kg
                             </span>
                           )}
                         </div>

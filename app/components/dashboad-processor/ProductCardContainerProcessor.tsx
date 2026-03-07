@@ -3,6 +3,7 @@ import { useState } from "react";
 import ProductCardProcessor, { Product } from "./ProductCardProcessor";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import { BuyRequest } from "@/app/types";
+import { formatQuantity } from "@/app/helpers";
 
 const ProductCardContainerProcessor: React.FC = () => {
   const [showAll, setShowAll] = useState<boolean>(false);
@@ -62,7 +63,7 @@ const ProductCardContainerProcessor: React.FC = () => {
     return {
       id: parseInt(request.id) || 0,
       name: request.cropType?.name || 'Unknown Crop',
-      quantity: `${request.productQuantityKg} kg`,
+      quantity: `${formatQuantity(request.productQuantityKg || '0')} kg`,
       price: `₦${parseFloat(request.pricePerKgOffer || '0').toLocaleString()}/kg`,
       certification: request.qualityStandardType?.name || 'N/A',
       status: getStatusDisplay(request.status, request.orderState) as Product['status'],

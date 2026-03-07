@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import CreateNewRequestModal from "./CreateNewRequest";
 import { ProductDetails } from "@/app/types";
-import { formatPrice, imageLoader } from "@/app/helpers";
+import { formatPrice, formatQuantity, imageLoader } from "@/app/helpers";
 
 export interface Product {
   id: string | number;
@@ -52,7 +52,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
     return {
       id: apiProduct.id,
       name: apiProduct.name,
-      quantity: `${apiProduct.quantityKg} kg`,
+      quantity: `${formatQuantity(apiProduct.quantityKg)} kg`,
       price: formatPrice(apiProduct.pricePerKg, apiProduct.priceCurrency),
       certification: "Grade A",
       status: apiProduct.status || "Active",
@@ -63,7 +63,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
       }),
       image: apiProduct.photos?.[0]?.url || "/placeholder-product.png",
       slug: apiProduct.id,
-      inventoryStatus: `${apiProduct.quantityKg}/${apiProduct.quantityKg}kg`,
+      inventoryStatus: `${formatQuantity(apiProduct.quantityKg)}/${formatQuantity(apiProduct.quantityKg)}kg`,
       inventoryPercentage: 100,
       sellerId: apiProduct.owner?.id,
       cropId: apiProduct.cropId,

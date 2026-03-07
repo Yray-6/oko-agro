@@ -35,6 +35,11 @@ export const imageLoader = ({src}:any) => {
     return  `${src}`
 }
 
+export const formatQuantity = (quantityKg: string | number): string => {
+  const num = typeof quantityKg === 'string' ? parseFloat(quantityKg) || 0 : quantityKg;
+  return num.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+};
+
 export const formatPrice = (price: string, currency: string, _unit?: string): string => {
   const normalizedCurrency = currency.toUpperCase();
   const currencySymbol = normalizedCurrency === 'NGN' ? '₦' : currency;

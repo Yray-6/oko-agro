@@ -5,6 +5,7 @@ import { X, Send, MessageSquare, Package, MapPin, User, Loader2, CheckCircle } f
 import { useAuthStore } from '@/app/store/useAuthStore';
 import { useNotificationStore } from '@/app/store/useNotificationStore';
 import { BuyRequest } from '@/app/types';
+import { formatQuantity } from '@/app/helpers';
 
 interface ContactProcessorModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ I'm ${farmerName} from ${farmName}, and I have ${cropName} available that matche
 
 My Offer:
 • Crop: ${cropName}
-• Quantity Available: ${quantity}kg
+• Quantity Available: ${formatQuantity(quantity)}kg
 • Price Offer: ₦${pricePerKg}/kg
 • Delivery Location: ${deliveryLocation}
 
@@ -163,7 +164,7 @@ ${farmerName}`;
                     <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
                       <span className="flex items-center gap-1">
                         <Package className="w-3 h-3" />
-                        {buyRequest.productQuantityKg}kg
+                        {formatQuantity(buyRequest.productQuantityKg)}kg
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />

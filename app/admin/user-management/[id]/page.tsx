@@ -8,6 +8,7 @@ import { User } from "@/app/types";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import AnimatedLoading from "@/app/Loading";
 import Link from "next/link";
+import { formatQuantity } from "@/app/helpers";
 
 interface OrderDetails {
   id: string;
@@ -180,7 +181,7 @@ export default function UserDetailsPage() {
     order: {
       product: req.cropType?.name || req.description || 'Unknown',
       value: `₦${(parseFloat(req.pricePerKgOffer || '0') * parseFloat(req.productQuantityKg || '0')).toLocaleString()}`,
-      quantity: `${req.productQuantityKg} kg`,
+      quantity: `${formatQuantity(req.productQuantityKg || '0')} kg`,
       certification: req.qualityStandardType?.name || 'N/A',
     },
     deliveryLocation: req.deliveryLocation || 'N/A',
