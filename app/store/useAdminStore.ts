@@ -59,6 +59,14 @@ interface AdminState {
     pageSize: number;
   } | null;
   
+  // Order counts by state (for stats cards - from ongoing-buyrequest API)
+  orderCounts: {
+    total: number;
+    completed: number;
+    awaitingShipping: number;
+  } | null;
+  isLoadingOrderCounts: boolean;
+  
   // Inventories
   inventories: InventoryItem[];
   inventoriesMeta: {
@@ -113,6 +121,7 @@ interface AdminActions {
   
   // Ongoing buy requests
   fetchOngoingBuyRequests: (params?: { search?: string; state?: string; pageNumber?: number; pageSize?: number }) => Promise<void>;
+  fetchOrderCounts: () => Promise<void>;
   updateOrderState: (buyRequestId: string, orderState: OrderState) => Promise<void>;
   
   // Inventories
@@ -166,6 +175,8 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   productListingsMeta: null,
   ongoingBuyRequests: [],
   ongoingBuyRequestsMeta: null,
+  orderCounts: null,
+  isLoadingOrderCounts: false,
   inventories: [],
   inventoriesMeta: null,
   productInventoryLogs: [],
@@ -560,6 +571,30 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     }
   },
 
+  // Fetch order counts for stats (total, completed, awaiting_shipping) via ongoing-buyrequest API
+  fetchOrderCounts: async () => {
+    set({ isLoadingOrderCounts: true });
+    try {
+      const [totalRes, completedRes, awaitingRes] = await Promise.all([
+        apiClient.get<OngoingBuyRequestResponse>(`/requests?action=ongoing-buyrequest&pageNumber=1&pageSize=1`),
+        apiClient.get<OngoingBuyRequestResponse>(`/requests?action=ongoing-buyrequest&pageNumber=1&pageSize=1&state=completed`),
+        apiClient.get<OngoingBuyRequestResponse>(`/requests?action=ongoing-buyrequest&pageNumber=1&pageSize=1&state=awaiting_shipping`),
+      ]);
+      const getTotal = (r: { data?: { data?: { totalRecord?: number } } }) => r.data?.data?.totalRecord ?? 0;
+      set({
+        orderCounts: {
+          total: getTotal(totalRes),
+          completed: getTotal(completedRes),
+          awaitingShipping: getTotal(awaitingRes),
+        },
+        isLoadingOrderCounts: false,
+      });
+    } catch (error) {
+      console.error('Error fetching order counts:', error);
+      set({ isLoadingOrderCounts: false });
+    }
+  },
+
   // Update order state
   updateOrderState: async (buyRequestId: string, orderState: OrderState) => {
     set({ isUpdatingOrderState: true, ongoingBuyRequestsError: null });
@@ -838,7 +873,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   resetProcessors: () => set({ processors: [], processorsMeta: null, processorsError: null }),
   resetAdmins: () => set({ admins: [], adminsMeta: null, adminsError: null }),
   resetProductListings: () => set({ productListings: [], productListingsMeta: null, productListingsError: null }),
-  resetOngoingBuyRequests: () => set({ ongoingBuyRequests: [], ongoingBuyRequestsMeta: null, ongoingBuyRequestsError: null }),
+  resetOngoingBuyRequests: () => set({ ongoingBuyRequests: [], ongoingBuyRequestsMeta: null, ongoingBuyRequestsError: null, orderCounts: null }),
   resetInventories: () => set({ inventories: [], inventoriesMeta: null, productInventoryLogs: [], inventoriesError: null }),
   resetAll: () => set({
     dashboardStats: null,
@@ -854,6 +889,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     productListingsMeta: null,
     ongoingBuyRequests: [],
     ongoingBuyRequestsMeta: null,
+    orderCounts: null,
     inventories: [],
     inventoriesMeta: null,
     productInventoryLogs: [],

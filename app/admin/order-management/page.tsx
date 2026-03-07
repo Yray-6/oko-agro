@@ -46,23 +46,31 @@ export default function OrderManagement() {
   const tabs = ["All Orders", "Awaiting Shipping", "In Transit", "Delivered", "Completed"];
 
   const {
+    dashboardStats,
     ongoingBuyRequests,
+    ongoingBuyRequestsMeta,
+    orderCounts,
+    isLoadingDashboard,
     isLoadingOngoingBuyRequests,
+    isLoadingOrderCounts,
     isUpdatingOrderState,
+    fetchDashboardStats,
     fetchOngoingBuyRequests,
+    fetchOrderCounts,
     updateOrderState,
   } = useAdminStore();
 
   // Map BuyRequest to Order format
+  // Use orderState (order lifecycle) not status (buy request acceptance) - API returns orderState: "completed", "awaiting_shipping", etc.
   const mapBuyRequestToOrder = (buyRequest: BuyRequest): Order => {
-    const orderState = buyRequest.status || "awaiting_shipping";
+    const orderStateValue = buyRequest.orderState || buyRequest.status || "awaiting_shipping";
     const statusMap: Record<string, string> = {
       "awaiting_shipping": "Awaiting Shipping",
       "in_transit": "In Transit",
       "delivered": "Delivered",
       "completed": "Completed",
     };
-    const displayStatus = statusMap[orderState] || orderState;
+    const displayStatus = statusMap[orderStateValue.toLowerCase()] || orderStateValue;
 
     return {
       id: buyRequest.id,
@@ -149,6 +157,12 @@ export default function OrderManagement() {
     });
   }, [activeTab, searchQuery, statusFilter, fetchOngoingBuyRequests]);
 
+  // Fetch dashboard stats (for total transaction value) and order counts
+  useEffect(() => {
+    fetchDashboardStats();
+    fetchOrderCounts();
+  }, [fetchDashboardStats, fetchOrderCounts]);
+
   // Convert ongoing buy requests to orders
   const allOrders = ongoingBuyRequests.map(mapBuyRequestToOrder);
 
@@ -193,7 +207,7 @@ export default function OrderManagement() {
             pageNumber: 1,
             pageSize: 20,
           });
-          
+          await Promise.all([fetchOrderCounts(), fetchDashboardStats()]);
           setShowOrderModal(false);
           setShowSuccessModal(true);
         }
@@ -336,10 +350,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  {isLoadingOngoingBuyRequests ? '...' : `₦ ${allOrders.reduce((sum, order) => {
-                    const value = parseFloat(order.order.value.replace(/[₦,]/g, '')) || 0;
-                    return sum + value;
-                  }, 0).toLocaleString()}`}
+                  {isLoadingDashboard ? '...' : `₦ ${(dashboardStats?.totalTransactionValue ?? 0).toLocaleString()}`}
                 </p>
               </div>
               <Image
@@ -377,7 +388,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  {isLoadingOngoingBuyRequests ? '...' : allOrders.length}
+                  {isLoadingOrderCounts ? '...' : (orderCounts?.total ?? ongoingBuyRequestsMeta?.totalRecord ?? allOrders.length)}
                 </p>
               </div>
               <Image
@@ -415,7 +426,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  {isLoadingOngoingBuyRequests ? '...' : allOrders.filter(order => order.status === "Completed").length}
+                  {isLoadingOrderCounts ? '...' : (orderCounts?.completed ?? allOrders.filter(order => order.status === "Completed").length)}
                 </p>
               </div>
               <Image
@@ -453,7 +464,7 @@ export default function OrderManagement() {
                   className="text-[32px] font-medium text-[#28433D]"
                   style={{ lineHeight: "0.625em" }}
                 >
-                  {isLoadingOngoingBuyRequests ? '...' : allOrders.filter(order => order.status === "Awaiting Shipping").length}
+                  {isLoadingOrderCounts ? '...' : (orderCounts?.awaitingShipping ?? allOrders.filter(order => order.status === "Awaiting Shipping").length)}
                 </p>
               </div>
               <Image
