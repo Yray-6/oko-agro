@@ -8,7 +8,7 @@ import { User } from "@/app/types";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import AnimatedLoading from "@/app/Loading";
 import Link from "next/link";
-import { formatQuantity } from "@/app/helpers";
+import { exportToExcel, formatQuantity } from "@/app/helpers";
 
 interface OrderDetails {
   id: string;
@@ -214,7 +214,20 @@ export default function UserDetailsPage() {
     const value = parseFloat(order.order.value.replace(/[₦,]/g, ''));
     return sum + value;
   }, 0);
-  
+
+  const handleExportOrdersToExcel = () => {
+    const data = orders.map((o) => ({
+      Order: o.order.product,
+      Processor: o.processor.name,
+      "Processor ID": o.processor.id,
+      "Delivery Location": o.deliveryLocation,
+      Value: o.order.value,
+      Status: o.status,
+      "Delivery Date": o.deliveryDate,
+      "Order Date": o.orderDate || "",
+    }));
+    exportToExcel(data, `user_${userData?.firstName || "orders"}_orders`, "Orders");
+  };
 
   if (isLoading) {
     return (
@@ -1269,7 +1282,9 @@ export default function UserDetailsPage() {
               </div>
               {/* Export Data Button */}
               <button
-                className="flex items-center gap-2 px-4 py-2 bg-[#004829] rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)] h-[45px]"
+                onClick={handleExportOrdersToExcel}
+                disabled={orders.length === 0 || isFetchingRequests}
+                className="flex items-center gap-2 px-4 py-2 bg-[#004829] rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)] h-[45px] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   fontSize: "14px",
                   fontWeight: 500,

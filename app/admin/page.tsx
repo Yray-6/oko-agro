@@ -8,7 +8,7 @@ import ProductApprovalModal from "../components/admin/ProductApprovalModal";
 import Modal from "../components/Modal";
 import { ProductDetails, BuyRequest, OrderState, UserFile } from "../types";
 import AnimatedLoading from "../Loading";
-import { formatQuantity } from "../helpers";
+import { exportToExcel, formatQuantity } from "../helpers";
 
 interface Order {
   id: string;
@@ -278,6 +278,45 @@ export default function AdminDashboard() {
       product,
       action,
     });
+  };
+
+  const handleExportToExcel = () => {
+    if (activeTableTab === "Ongoing Orders") {
+      const data = orders.map((o) => ({
+        Farmer: o.farmer.name,
+        "Farmer ID": o.farmer.id,
+        Processor: o.processor.name,
+        Product: o.order.product,
+        Quantity: o.order.quantity || "",
+        Value: o.order.value,
+        "Delivery Location": o.deliveryLocation,
+        Status: o.status,
+        "Delivery Date": o.deliveryDate,
+      }));
+      exportToExcel(data, "admin_ongoing_orders", "Ongoing Orders");
+    } else if (activeTableTab === "Pending Listings") {
+      const data = productListings.map((p) => ({
+        Product: p.name,
+        "Crop Type": p.cropType?.name || "N/A",
+        "Quantity (Kg)": parseFloat(p.quantityKg || "0").toLocaleString(),
+        "Price/Kg": p.pricePerKg || "N/A",
+        Location: p.locationAddress || "N/A",
+        "Approval Status": p.approvalStatus || "pending",
+      }));
+      exportToExcel(data, "admin_pending_listings", "Pending Listings");
+    } else if (activeTableTab === "Disputes") {
+      const data = disputes.map((d) => ({
+        "Order ID": d.buyRequestId,
+        Reason: d.reason,
+        Status: d.status,
+        "Created At": new Date(d.createdAt).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+      }));
+      exportToExcel(data, "admin_disputes", "Disputes");
+    }
   };
 
   const handleConfirmApproval = async () => {
@@ -774,6 +813,18 @@ export default function AdminDashboard() {
                 </select>
               </div>
             )}
+            <button
+              onClick={handleExportToExcel}
+              disabled={
+                (activeTableTab === "Ongoing Orders" && orders.length === 0) ||
+                (activeTableTab === "Pending Listings" && productListings.length === 0) ||
+                (activeTableTab === "Disputes" && disputes.length === 0)
+              }
+              className="flex items-center gap-2 px-4 py-2 bg-[#004829] text-white rounded-[10px] text-[14px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Image src="/icons/download-01.svg" alt="Export" width={18} height={18} />
+              Export to Excel
+            </button>
           </div>
 
           {/* Table */}

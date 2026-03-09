@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useAdminStore } from "../../store/useAdminStore";
 import Modal from "../../components/Modal";
 import { InventoryItem, InventoryType } from "../../types";
-import { getInventoryTypeLabel, getInventoryTypeBadgeStyle } from "../../helpers";
+import { exportToExcel, getInventoryTypeLabel, getInventoryTypeBadgeStyle } from "../../helpers";
 import AnimatedLoading from "../../Loading";
 
 export default function InventoriesPage() {
@@ -22,6 +22,23 @@ export default function InventoriesPage() {
     isLoadingProductInventoryLogs,
     fetchProductInventoryLogs,
   } = useAdminStore();
+
+  const handleExportToExcel = () => {
+    const data = inventories.map((item) => ({
+      Product: item.product.name,
+      "Product ID": item.product.id.substring(0, 8).toUpperCase(),
+      "Crop Type": item.product.cropType?.name || "N/A",
+      "Remaining Stock (Kg)": Math.max(0, parseFloat(item.product.quantityKg) - parseFloat(item.quantityKg)).toLocaleString(),
+      "Product Stock (Kg)": parseFloat(item.product.quantityKg).toLocaleString(),
+      "In Transit (Kg)": parseFloat(item.product.reservedQuantityKg).toLocaleString(),
+      Date: new Date(item.createdAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+    }));
+    exportToExcel(data, "inventories", "Inventory Logs");
+  };
 
   useEffect(() => {
     fetchInventories({
@@ -125,8 +142,17 @@ export default function InventoriesPage() {
             >
               Inventory Logs
             </h2>
-            <div className="flex items-center gap-2 px-[13px] py-[9px] bg-[#FFFFFC] border border-[#F6F4F3] rounded-[10px] h-[40px]">
-              <Image src="/icons/analytics-03.svg" alt="Filter" width={16} height={16} />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportToExcel}
+                disabled={inventories.length === 0 || isLoadingInventories}
+                className="flex items-center gap-2 px-4 py-2 bg-[#004829] text-white rounded-[10px] text-[14px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Image src="/icons/download-01.svg" alt="Export" width={18} height={18} />
+                Export to Excel
+              </button>
+              <div className="flex items-center gap-2 px-[13px] py-[9px] bg-[#FFFFFC] border border-[#F6F4F3] rounded-[10px] h-[40px]">
+                <Image src="/icons/analytics-03.svg" alt="Filter" width={16} height={16} />
               <select
                 value={inventoryTypeFilter}
                 onChange={(e) => setInventoryTypeFilter(e.target.value as InventoryType | "")}
@@ -139,6 +165,7 @@ export default function InventoriesPage() {
                 <option value="release">Released</option>
                 <option value="deduction">Sold</option>
               </select>
+              </div>
             </div>
           </div>
 
@@ -153,7 +180,7 @@ export default function InventoriesPage() {
                     Crop Type
                   </th>
                   <th className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]" style={{ fontFamily: "Effra, sans-serif", lineHeight: "1.429em" }}>
-                    Quantity (Kg)
+                    Remaining Stock
                   </th>
                   <th className="px-4 py-[13.25px] text-left text-[14px] font-medium text-[#80726B]" style={{ fontFamily: "Effra, sans-serif", lineHeight: "1.429em" }}>
                     Product Stock
@@ -199,7 +226,7 @@ export default function InventoriesPage() {
                       </td>
                       <td className="px-4 py-4">
                         <p className="text-[14px] font-medium text-[#0D3F11]" style={{ fontFamily: "Effra, sans-serif", lineHeight: "1.429em" }}>
-                          {parseFloat(item.quantityKg).toLocaleString()} kg
+                          {Math.max(0, parseFloat(item.product.quantityKg) - parseFloat(item.quantityKg)).toLocaleString()} kg
                         </p>
                       </td>
                       <td className="px-4 py-4">

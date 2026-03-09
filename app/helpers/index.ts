@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import { CalendarEvent, EventDetails, InventoryType } from "../types";
 
 export const getInventoryTypeLabel = (type: InventoryType | string): string => {
@@ -152,4 +153,18 @@ export const countEventsByCategory = (events: CalendarEvent[]) => {
     if (event.category === 'crop-harvest') acc.harvests++;
     return acc;
   }, { inspections: 0, deliveries: 0, harvests: 0 });
+};
+
+/** Export array of objects to Excel file. data: array of row objects with string keys. sheetName & filename optional. */
+export const exportToExcel = (
+  data: Record<string, string | number>[],
+  filename = 'export',
+  sheetName = 'Sheet1'
+) => {
+  if (data.length === 0) return;
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  const dateStr = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `${filename}_${dateStr}.xlsx`);
 };

@@ -92,11 +92,23 @@ export async function GET(request: NextRequest) {
         break;
       }
 
+      case 'top-performing-users': {
+        const role = searchParams.get('role') || '';
+        endpoint = role ? `/admin/top-performing-users?role=${encodeURIComponent(role)}` : '/admin/top-performing-users';
+        break;
+      }
+
+      case 'top-performing-regions': {
+        const country = searchParams.get('country') || 'Nigeria';
+        endpoint = `/admin/top-performing-regions?country=${encodeURIComponent(country)}`;
+        break;
+      }
+
       default:
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'Invalid action. Valid actions are: dashboard-overview, all-admins, inventories, product-inventory-logs',
+            message: 'Invalid action. Valid actions are: dashboard-overview, all-admins, inventories, product-inventory-logs, top-performing-users, top-performing-regions',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

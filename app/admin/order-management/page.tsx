@@ -5,7 +5,7 @@ import Modal from "@/app/components/Modal";
 import { useAdminStore } from "@/app/store/useAdminStore";
 import { BuyRequest, OrderState } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
-import { formatQuantity } from "@/app/helpers";
+import { exportToExcel, formatQuantity } from "@/app/helpers";
 
 interface Order {
   id: string;
@@ -216,6 +216,23 @@ export default function OrderManagement() {
         // Keep modal open on error - could add error toast here
       }
     }
+  };
+
+  const handleExportToExcel = () => {
+    const data = orders.map((o) => ({
+      Farmer: o.farmer.name,
+      "Farmer ID": o.farmer.id,
+      Processor: o.processor.name,
+      "Processor ID": o.processor.id,
+      Product: o.order.product,
+      Quantity: o.order.quantity || "",
+      Value: o.order.value,
+      "Delivery Location": o.deliveryLocation,
+      Status: o.status,
+      "Delivery Date": o.deliveryDate,
+      "Order Date": o.orderDate || "",
+    }));
+    exportToExcel(data, "order_management", "Orders");
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -555,7 +572,9 @@ export default function OrderManagement() {
             </div>
             {/* Export Data Button */}
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-[#004829] rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)]"
+              onClick={handleExportToExcel}
+              disabled={orders.length === 0 || isLoadingOngoingBuyRequests}
+              className="flex items-center gap-2 px-4 py-2 bg-[#004829] rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 fontSize: "14px",
                 fontWeight: 500,

@@ -5,6 +5,7 @@ import { useAdminStore } from "../../store/useAdminStore";
 import AnimatedLoading from "../../Loading";
 import apiClient from "../../utils/apiClient";
 import { UserRatingStats } from "../../types";
+import { exportToExcel } from "../../helpers";
 import { Star } from "lucide-react";
 
 export default function UserManagement() {
@@ -173,6 +174,26 @@ export default function UserManagement() {
       return { status: "Active", bg: "rgba(11, 169, 100, 0.2)", color: "#0BA964" };
     }
     return { status: "Pending", bg: "rgba(238, 196, 30, 0.2)", color: "#EEC41E" };
+  };
+
+  const handleExportToExcel = () => {
+    const data = currentUsers.map((user) => {
+      const name = getUserName(user);
+      const status = getUserStatus(user);
+      const avgRating = userRatings[user.id]?.average != null ? userRatings[user.id].average.toFixed(1) : "N/A";
+      return {
+        User: name,
+        "User ID": getUserId(user.id),
+        Role: user.role,
+        Email: user.email,
+        Phone: user.phoneNumber,
+        Location: [user.state, user.country].filter(Boolean).join(", ") || "N/A",
+        "Date of Registration": formatDate(user.createdAt),
+        Status: status.status,
+        "Avg Rating": avgRating,
+      };
+    });
+    exportToExcel(data, `users_${activeTab.toLowerCase().replace(" ", "_")}`, "Users");
   };
 
   // Format date
@@ -493,7 +514,9 @@ export default function UserManagement() {
             </div>
             {/* Export Data Button */}
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-[#004829] rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)]"
+              onClick={handleExportToExcel}
+              disabled={currentUsers.length === 0 || isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-[#004829] rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 fontFamily: "Urbanist, sans-serif",
                 fontSize: "14px",
