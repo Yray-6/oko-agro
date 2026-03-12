@@ -17,6 +17,7 @@ import {
 import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { Notification, BuyRequest } from '@/app/types';
 import { formatQuantity } from '@/app/helpers';
+import { buildPurchaseOrderDataFromBuyRequest, openPurchaseOrderPrint } from '@/app/helpers/purchaseOrderTemplate';
 
 interface DirectOrderModalProps {
   isOpen: boolean;
@@ -470,6 +471,26 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({
               <p className="text-sm text-gray-600 mb-4">
                 Upload a purchase order document to formalize this order with {sellerName}.
               </p>
+              
+              {/* Generate PO Button */}
+              {directedRequest && (
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const data = buildPurchaseOrderDataFromBuyRequest(directedRequest);
+                      openPurchaseOrderPrint(data);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-mainGreen text-mainGreen rounded-lg font-medium hover:bg-mainGreen/5 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Generate Purchase Order
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Generate a PO, print or save as PDF, then upload it below.
+                  </p>
+                </div>
+              )}
               
               {/* File Upload Area */}
               <div 

@@ -458,7 +458,10 @@ export interface EventDetails {
     name: string;
     quantityKg?: string;
     reservedQuantityKg?: string;
+    pricePerKg?: string;
+    priceCurrency?: string;
     locationAddress?: string;
+    approvalStatus?: string;
   };
   createdAt: string;
   updatedAt: string;

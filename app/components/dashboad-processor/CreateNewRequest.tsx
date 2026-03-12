@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
-import { X, Calendar, Upload, FileText } from 'lucide-react';
+import { X, Calendar, Upload, FileText, Printer } from 'lucide-react';
 import { 
   TextField, 
   SelectField, 
@@ -11,6 +11,7 @@ import { useBuyRequestStore } from '@/app/store/useRequestStore';
 import { useDataStore } from '@/app/store/useDataStore';
 import { useAuthStore } from '@/app/store/useAuthStore';
 import { BuyRequest } from '@/app/types';
+import { buildPurchaseOrderDataFromFormValues, openPurchaseOrderPrint, type CreateRequestParty } from '@/app/helpers/purchaseOrderTemplate';
 
 interface CreateRequestFormValues {
   cropType: string;
@@ -95,7 +96,9 @@ interface CreateNewRequestModalProps {
   cropId?: string;
   pricePerKg?: string;
   quantityKg?: string;
-  buyRequest?: BuyRequest | null; 
+  buyRequest?: BuyRequest | null;
+  /** Farmer/seller info for Generate PO (from find farmer Quick Order flow) */
+  sellerInfo?: CreateRequestParty | null;
 }
 
 const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
@@ -108,7 +111,8 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
   cropId,
   pricePerKg: productPricePerKg,
   quantityKg: productQuantityKg,
-  buyRequest
+  buyRequest,
+  sellerInfo,
 }) => {
   const { createBuyRequest, updateBuyRequest, isCreating, isUpdating } = useBuyRequestStore();
   const { user } = useAuthStore();
@@ -530,7 +534,45 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
                               Purchase Order Document <span className="text-red-500">*</span>
                             </label>
                             <p className="text-xs text-gray-500 mb-3">
-                              Upload the purchase order document for this specific request (PDF, DOC, DOCX - Max 10MB)
+                              Generate a purchase order, then print or save as PDF and upload it below.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const productLabel = crops.find(c => c.id === values.cropType)?.name || values.description || productName || 'Product';
+                                const qualityLabel = qualityStandards.find(q => q.id === values.qualityStandard)?.name;
+                                const buyerData: CreateRequestParty = {
+                                  companyName: user?.companyName ?? undefined,
+                                  firstName: user?.firstName || '',
+                                  lastName: user?.lastName || '',
+                                  email: user?.email ?? undefined,
+                                  phoneNumber: user?.phoneNumber ?? undefined,
+                                  farmAddress: user?.farmAddress ?? undefined,
+                                  state: user?.state ?? undefined,
+                                  country: user?.country ?? undefined,
+                                };
+                                const data = buildPurchaseOrderDataFromFormValues(
+                                  {
+                                    productName: productLabel,
+                                    quantityKg: values.requestQuantity,
+                                    pricePerKg: values.pricePerKg,
+                                    deliveryLocation: values.deliveryLocation,
+                                    estimatedDeliveryDate: values.estimatedDeliveryDate,
+                                    paymentTerms: values.preferredPaymentMethod,
+                                    qualitySpec: qualityLabel,
+                                  },
+                                  buyerData,
+                                  sellerInfo || null
+                                );
+                                openPurchaseOrderPrint(data);
+                              }}
+                              className="mb-4 w-full flex items-center justify-center gap-2 px-4 py-3 border border-mainGreen text-mainGreen rounded-lg font-medium hover:bg-mainGreen/5 transition-colors"
+                            >
+                              <Printer className="w-4 h-4" />
+                              Generate Purchase Order
+                            </button>
+                            <p className="text-xs text-gray-500 mb-3">
+                              Upload the purchase order document (PDF, DOC, DOCX - Max 10MB)
                             </p>
                             <input
                               type="file"

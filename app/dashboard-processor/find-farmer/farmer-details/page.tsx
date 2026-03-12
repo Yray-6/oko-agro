@@ -277,7 +277,19 @@ export default function FarmerDetailsPage() {
               {fetchError}
             </div>
           ) : mappedProducts.length > 0 ? (
-            <ProductCardContainerDetailedProcessor products={mappedProducts} />
+            <ProductCardContainerDetailedProcessor
+              products={mappedProducts}
+              sellerInfo={farmerDetails ? {
+                farmName: farmerDetails.farmName ?? undefined,
+                firstName: farmerDetails.firstName || '',
+                lastName: farmerDetails.lastName || '',
+                email: productOwner?.email,
+                phoneNumber: productOwner?.phoneNumber,
+                farmAddress: farmerDetails.farmAddress,
+                state: farmerDetails.state,
+                country: farmerDetails.country,
+              } : undefined}
+            />
           ) : (
             <div className="bg-white rounded-lg p-12 text-center">
               <p className="text-gray-500">No products available at the moment</p>

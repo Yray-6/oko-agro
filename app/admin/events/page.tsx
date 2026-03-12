@@ -26,19 +26,30 @@ export default function AdminEventsPage() {
     }
   }, [fetchAllEvents, fetchCrops, crops.length]);
 
-  // Get crop name helper
+  // Get crop/product name helper - crop for custom events, product.name for product events
   const getCropName = useMemo(() => {
     return (event: EventDetails): string | null => {
       if (event.cropId && crops.length > 0) {
         return crops.find(c => c.id === event.cropId)?.name || null;
       }
-      // Check if event has crop object (from API response)
       if ('crop' in event && event.crop && typeof event.crop === 'object' && 'name' in event.crop) {
         return (event.crop as { name: string }).name;
       }
+      if (event.product?.name) return event.product.name;
       return null;
     };
   }, [crops]);
+
+  // Get display quantity - cropQuantity for custom, product.quantityKg for product events
+  const getDisplayQuantity = (event: EventDetails): { qty: string; unit: string } => {
+    if (event.cropQuantity) {
+      return { qty: formatQuantity(event.cropQuantity), unit: event.cropQuantityUnit || '' };
+    }
+    if (event.product?.quantityKg) {
+      return { qty: formatQuantity(event.product.quantityKg), unit: 'kg' };
+    }
+    return { qty: '0', unit: '' };
+  };
 
   // Filter and sort events by date (earliest to latest)
   const filteredAndSortedEvents = useMemo(() => {
@@ -91,6 +102,7 @@ export default function AdminEventsPage() {
     const exportData = filteredAndSortedEvents.map(event => {
       const eventDate = new Date(event.eventDate);
       const cropName = getCropName(event);
+      const { qty, unit } = getDisplayQuantity(event);
       
       return {
         'Event Name': event.name,
@@ -107,9 +119,13 @@ export default function AdminEventsPage() {
         }),
         'Status': event.status || 'upcoming',
         'Is Harvest Event': event.isHarvestEvent ? 'Yes' : 'No',
-        'Crop Type': cropName || '',
-        'Crop Quantity': event.cropQuantity ? formatQuantity(event.cropQuantity) : '',
-        'Crop Quantity Unit': event.cropQuantityUnit || '',
+        'Crop / Product': cropName || '',
+        'Quantity': qty || '',
+        'Quantity Unit': unit || '',
+        'Product Name': event.product?.name || '',
+        'Product Stock (Kg)': event.product?.quantityKg ? formatQuantity(event.product.quantityKg) : '',
+        'Product Price/Kg': event.product?.pricePerKg ? `₦${parseFloat(event.product.pricePerKg).toLocaleString()}` : '',
+        'Product Location': event.product?.locationAddress || '',
         'Owner Name': event.owner ? `${event.owner.firstName} ${event.owner.lastName}` : '',
         'Owner Role': event.owner?.role || '',
         'Farm Name': event.owner?.farmName || '',
@@ -247,16 +263,48 @@ export default function AdminEventsPage() {
                       <Clock className="w-4 h-4" />
                       <span>{formattedTime}</span>
                     </div>
-                    {event.isHarvestEvent && (
+                    {event.isHarvestEvent && (cropName || event.product) && (
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Package className="w-4 h-4" />
                         <span>
-                          {cropName && `${cropName} - `}
-                          {formatQuantity(event.cropQuantity || '0')} {event.cropQuantityUnit || ''}
+                          {cropName || event.product?.name}
+                          {(() => {
+                            const { qty, unit } = getDisplayQuantity(event);
+                            return qty ? ` - ${qty} ${unit}` : '';
+                          })()}
                         </span>
                       </div>
                     )}
                   </div>
+
+                  {/* Product Details - for product-type events */}
+                  {event.product && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-xs font-medium text-gray-700 mb-2">Product Details</p>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Package className="w-3 h-3" />
+                          <span className="font-medium">{event.product.name}</span>
+                        </div>
+                        {event.product.quantityKg && (
+                          <div className="text-xs text-gray-600 pl-5">
+                            Stock: {formatQuantity(event.product.quantityKg)} kg
+                          </div>
+                        )}
+                        {event.product.locationAddress && (
+                          <div className="flex items-center gap-2 text-xs text-gray-600 pl-5">
+                            <MapPin className="w-3 h-3" />
+                            <span>{event.product.locationAddress}</span>
+                          </div>
+                        )}
+                        {event.product.pricePerKg && (
+                          <div className="text-xs text-gray-600 pl-5">
+                            Price: ₦{parseFloat(event.product.pricePerKg).toLocaleString()}/kg
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Owner/Farmer Details */}
                   {event.owner && (

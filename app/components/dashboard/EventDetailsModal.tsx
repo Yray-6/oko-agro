@@ -60,18 +60,23 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     }
   };
 
-  // Get crop name - check for crop object first (from API), then cropId
+  // Get crop/product name
   const cropName = (() => {
-    // Check if event has crop object (from API response)
     if ('crop' in event && event.crop && typeof event.crop === 'object' && 'name' in event.crop) {
       return (event.crop as { name: string }).name;
     }
-    // Fallback to cropId lookup
     if (event.cropId && crops.length > 0) {
       return crops.find(c => c.id === event.cropId)?.name || null;
     }
-    return null;
+    return event.product?.name || null;
   })();
+
+  // Display quantity - cropQuantity or product.quantityKg
+  const displayQty = event.cropQuantity
+    ? { qty: event.cropQuantity, unit: event.cropQuantityUnit || '' }
+    : event.product?.quantityKg
+      ? { qty: event.product.quantityKg, unit: 'kg' }
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -134,7 +139,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
          
 
             {/* Harvest Event Details */}
-            {event.isHarvestEvent && (
+            {event.isHarvestEvent && (cropName || displayQty) && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-5 h-5 text-green-600" />
@@ -143,16 +148,56 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 <div className="space-y-3">
                   {cropName && (
                     <div>
-                      <p className="text-sm text-gray-600">Crop Type</p>
+                      <p className="text-sm text-gray-600">Crop / Product</p>
                       <p className="font-medium text-gray-900">{cropName}</p>
                     </div>
                   )}
-                  {event.cropQuantity && (
+                  {displayQty && (
                     <div>
                       <p className="text-sm text-gray-600">Quantity</p>
                       <p className="font-medium text-gray-900">
-                        {formatQuantity(event.cropQuantity || '0')} {event.cropQuantityUnit || ''}
+                        {formatQuantity(displayQty.qty)} {displayQty.unit}
                       </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Product Details - for product-type events */}
+            {event.product && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-5 h-5 text-amber-600" />
+                  <h4 className="font-semibold text-amber-900">Product Details</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Product Name</p>
+                    <p className="font-medium text-gray-900">{event.product.name}</p>
+                  </div>
+                  {event.product.quantityKg != null && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Stock (Kg)</p>
+                      <p className="font-medium text-gray-900">{formatQuantity(event.product.quantityKg)}</p>
+                    </div>
+                  )}
+                  {event.product.pricePerKg != null && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Price / Kg</p>
+                      <p className="font-medium text-gray-900">
+                        ₦{parseFloat(event.product.pricePerKg).toLocaleString()}
+                        {event.product.priceCurrency === 'ngn' ? '' : ` ${event.product.priceCurrency || ''}`}
+                      </p>
+                    </div>
+                  )}
+                  {event.product.locationAddress && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-600 mb-1">Location</p>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <p className="font-medium text-gray-900">{event.product.locationAddress}</p>
+                      </div>
                     </div>
                   )}
                 </div>

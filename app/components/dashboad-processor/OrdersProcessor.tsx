@@ -778,7 +778,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </button>
           )} */}
 
-          {/* Purchase Order Download Button - Show if purchaseOrderDoc exists */}
+          {/* Purchase Order - Download only when doc exists */}
           {order.purchaseOrderDoc?.url && (
             <a
               href={order.purchaseOrderDoc.url}

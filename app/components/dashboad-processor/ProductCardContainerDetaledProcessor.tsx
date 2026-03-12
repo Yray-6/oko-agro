@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import CreateNewRequestModal from "./CreateNewRequest";
 import { ProductDetails } from "@/app/types";
+import type { CreateRequestParty } from "@/app/helpers/purchaseOrderTemplate";
 import { formatPrice, formatQuantity, imageLoader } from "@/app/helpers";
 
 export interface Product {
@@ -28,13 +29,15 @@ interface ProductCardContainerDetailedProps {
   products: Product[] | ProductDetails[];
   onRequestSuccess?: () => void;
   showQuickOrder?: boolean;
+  /** Farmer/seller info for Generate PO in Quick Order modal (from find farmer page) */
+  sellerInfo?: CreateRequestParty | null;
 }
 
 type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out";
 
 const ProductCardContainerDetailedProcessor: React.FC<
   ProductCardContainerDetailedProps
-> = ({ products, onRequestSuccess, showQuickOrder = true }) => {
+> = ({ products, onRequestSuccess, showQuickOrder = true, sellerInfo }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | ProductDetails | null>(null);
@@ -323,7 +326,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
         </div>
       )}
 
-      {/* Create New Request Modal - Pass productId and sellerId */}
+      {/* Create New Request Modal - Pass productId, sellerId, and sellerInfo for Generate PO */}
       <CreateNewRequestModal
         isOpen={showCreateRequestModal}
         onClose={() => {
@@ -337,6 +340,7 @@ const ProductCardContainerDetailedProcessor: React.FC<
         cropId={selectedProductDetails.cropId}
         pricePerKg={selectedProductDetails.pricePerKg}
         quantityKg={selectedProductDetails.quantityKg}
+        sellerInfo={sellerInfo}
       />
     </div>
   );

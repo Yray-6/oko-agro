@@ -197,137 +197,6 @@ const Orders: React.FC<OrdersProps> = ({
     );
     const hasUserRated = !!userRating;
 
-    const handleDownloadPurchaseOrder = () => {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
-
-      const purchaseOrderHTML = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Purchase Order - ${order.id}</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.4; color: #333; background: white; padding: 40px; }
-              .po-container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
-              .po-header { text-align: center; padding: 30px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
-              .po-title { font-size: 32px; font-weight: 600; color: #1f2937; margin-bottom: 20px; }
-              .order-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
-              .order-number { font-size: 16px; color: #374151; display: flex; align-items: center; gap: 8px; }
-              .created-date { font-size: 14px; color: #6b7280; }
-              .po-content { padding: 40px; }
-              .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-              .section-title { font-size: 16px; font-weight: 500; color: #374151; margin-bottom: 16px; }
-              .product-info, .buyer-info { display: flex; gap: 16px; align-items: flex-start; }
-              .product-image, .buyer-image { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-              .buyer-image { border-radius: 50%; background: #d1d5db; display: flex; align-items: center; justify-content: center; font-weight: 500; color: #6b7280; }
-              .info-details h3 { font-size: 16px; font-weight: 500; color: #111827; margin-bottom: 8px; }
-              .info-details p { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
-              .order-summary { background: #f0f9ff; border-radius: 8px; padding: 24px; margin-bottom: 40px; }
-              .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-              .summary-item h4 { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
-              .summary-item p { font-size: 16px; font-weight: 600; color: #111827; }
-              .order-value p { color: #059669 !important; font-size: 18px; }
-              .status-section { text-align: center; margin-bottom: 40px; }
-              .status-section h4 { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
-              .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; background: #fef3c7; color: #92400e; }
-              .company-footer { text-align: center; padding: 30px; border-top: 1px solid #e5e7eb; background: #f9fafb; }
-              .company-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
-              .logo-icon { width: 24px; height: 24px; background: #059669; border-radius: 4px; }
-              .company-name { font-size: 18px; font-weight: 600; color: #059669; }
-              .company-tagline { font-size: 14px; color: #059669; font-style: italic; }
-              @media print { body { padding: 0; } }
-            </style>
-          </head>
-          <body>
-            <div class="po-container">
-              <div class="po-header">
-                <h1 class="po-title">Purchase Order</h1>
-                <div class="order-info">
-                  <div class="order-number">
-                    <span>📄</span>
-                    Order: #${order.id}
-                  </div>
-                  <div class="created-date">Created ${order.createdDate}</div>
-                </div>
-              </div>
-
-              <div class="po-content">
-                <div class="section-grid">
-                  <div>
-                    <h3 class="section-title">Product Details</h3>
-                    <div class="product-info">
-                      <div style="width: 60px; height: 60px; background: #d1d5db; border-radius: 8px;"></div>
-                      <div class="info-details">
-                        <h3>${order.productName}</h3>
-                        <p>Quantity: ${order.quantity}</p>
-                        <p>Price: ${order.price}</p>
-                        <p>Certification: ${order.certification}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 class="section-title">Buyer Information</h3>
-                    <div class="buyer-info">
-                      <div class="buyer-image">
-                        ${order.buyerName.charAt(0).toUpperCase()}
-                      </div>
-                      <div class="info-details">
-                        <h3>${order.buyerName}</h3>
-                        <p>${order.buyerLocation}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="order-summary">
-                  <div class="summary-grid">
-                    <div class="summary-item order-value">
-                      <h4>Order Value</h4>
-                      <p>${order.orderValue}</p>
-                    </div>
-                    <div class="summary-item">
-                      <h4>Delivery Location</h4>
-                      <p>${order.deliveryLocation || order.buyerLocation || "N/A"}</p>
-                    </div>
-                    <div class="summary-item">
-                      <h4>Delivery Date</h4>
-                      <p>${order.deliveryDate || "TBD"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="status-section">
-                  <h4>Order Status</h4>
-                  <span class="status-badge">
-                    ${order.originalStatus || order.status}
-                  </span>
-                </div>
-              </div>
-
-              <div class="company-footer">
-                <div class="company-logo">
-                  <div class="logo-icon"></div>
-                  <span class="company-name">Oko Agro</span>
-                </div>
-                <p class="company-tagline">Bridging the Gap Between Harvest and Industry</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
-
-      printWindow.document.write(purchaseOrderHTML);
-      printWindow.document.close();
-      
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-      };
-    };
-
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between mb-4">
@@ -503,7 +372,7 @@ const Orders: React.FC<OrdersProps> = ({
             )}
           </div>
           
-          {order.purchaseOrderDoc?.url ? (
+          {order.purchaseOrderDoc?.url && (
             <a
               href={order.purchaseOrderDoc.url}
               download={order.purchaseOrderDoc.name}
@@ -514,14 +383,6 @@ const Orders: React.FC<OrdersProps> = ({
               <Download className="w-4 h-4" />
               Download Purchase Order
             </a>
-          ) : (
-            <button
-              onClick={handleDownloadPurchaseOrder}
-              className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
-            >
-              <Download className="w-4 h-4" />
-              View Purchase Order
-            </button>
           )}
         </div>
 
