@@ -299,20 +299,8 @@ export async function GET(request: NextRequest) {
 
       case 'crops':
         try {
-          const authHeader = request.headers.get('authorization');
-          if (!authHeader) {
-            return NextResponse.json(
-              {
-                statusCode: 401,
-                message: 'Authorization header is required',
-                error: 'Unauthorized'
-              } as ApiResponse,
-              { status: 401 }
-            );
-          }
-          const response = await apiClient.get<CropResponse[]>('/crops', {
-            headers: { 'Authorization': authHeader }
-          });
+          // Public endpoint — no auth required
+          const response = await apiClient.get<CropResponse[]>('/crops');
           
           return NextResponse.json(
             {
