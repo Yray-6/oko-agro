@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
 import https from 'https';
 import { ApiResponse, CreateRatingRequest, CreateRatingResponse } from '@/app/types';
+import { config } from '@/app/config';
 
-const baseUrl = process.env.BASE_URL || 'https://oko-agro-nestjs.onrender.com';
+const baseUrl = config.baseUrl;
 
 // Create HTTPS agent with proper SSL configuration
 const httpsAgent = new https.Agent({

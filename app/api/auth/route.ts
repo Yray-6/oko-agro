@@ -15,8 +15,9 @@ import {
   QualityResponse,
   CertificationResponse
 } from '@/app/types';
+import { config } from '@/app/config';
 
-const baseUrl = process.env.BASE_URL || 'https://oko-agro-nestjs.onrender.com'
+const baseUrl = config.baseUrl
 
 // Create HTTPS agent with proper SSL configuration
 // This fixes SSL/TLS "bad record mac" errors that can occur due to connection reuse issues
