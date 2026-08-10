@@ -668,6 +668,8 @@ export interface BuyRequest {
   paymentAmount?: string;
   paymentConfirmed?: boolean;
   paymentConfirmedAt?: string;
+  /** Linked AgroTrack tracking number (Phase 2). */
+  agroTrackTrackingNumber?: string | null;
   purchaseOrderDoc?: UserFile | null; // Purchase order document
   ratings?: BuyRequestRating[]; // Ratings for this buy request
 }
@@ -796,6 +798,12 @@ export interface OngoingBuyRequestResponse {
 export interface UpdateOrderStateRequest {
   buyRequestId: string;
   orderState: OrderState;
+}
+
+// Link AgroTrack tracking (Phase 2) — does not change orderState
+export interface UpdateTrackingRequest {
+  buyRequestId: string;
+  agroTrackTrackingNumber: string;
 }
 
 // Admin Management Types

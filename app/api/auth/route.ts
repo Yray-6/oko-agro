@@ -11,7 +11,6 @@ import {
   ResendOtpRequest,
   CropResponse,
   User,
-  Tokens,
   QualityResponse,
   CertificationResponse
 } from '@/app/types';
@@ -151,19 +150,6 @@ export async function POST(request: NextRequest) {
     
     const response = await apiClient.post(endpoint, requestData);
 
-    // For refresh token response, ensure we return the correct format
-    if (action === 'refresh') {
-      console.log('[Auth API] Handling refresh token response');
-      return NextResponse.json(
-        {
-          statusCode: 200,
-          message: 'Token refreshed successfully',
-          data: response.data // This should contain the new tokens
-        } as ApiResponse<Tokens>,
-        { status: 200 }
-      );
-    }
-
     // For forgot password and reset password, return standardized response
     if (action === 'forgot-password' || action === 'reset-password') {
       return NextResponse.json(
@@ -176,7 +162,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return the response from the backend for other actions
+    // Return the response from the backend as-is (including refresh)
+    // so clients get { statusCode, data: { accessToken } } without double-wrapping
     return NextResponse.json(response.data as ApiResponse, {
       status: response.status,
     });
@@ -332,20 +319,8 @@ export async function GET(request: NextRequest) {
 
       case 'quality-standards':
         try {
-          const authHeader = request.headers.get('authorization');
-          if (!authHeader) {
-            return NextResponse.json(
-              {
-                statusCode: 401,
-                message: 'Authorization header is required',
-                error: 'Unauthorized'
-              } as ApiResponse,
-              { status: 401 }
-            );
-          }
-          const response = await apiClient.get<QualityResponse[]>('/quality-standards', {
-            headers: { 'Authorization': authHeader }
-          });
+          // Public endpoint — no auth required
+          const response = await apiClient.get<QualityResponse[]>('/quality-standards');
           
           return NextResponse.json(
             {
@@ -377,20 +352,8 @@ export async function GET(request: NextRequest) {
 
       case 'certifications':
         try {
-          const authHeader = request.headers.get('authorization');
-          if (!authHeader) {
-            return NextResponse.json(
-              {
-                statusCode: 401,
-                message: 'Authorization header is required',
-                error: 'Unauthorized'
-              } as ApiResponse,
-              { status: 401 }
-            );
-          }
-          const response = await apiClient.get<CertificationResponse[]>('/certifications', {
-            headers: { 'Authorization': authHeader }
-          });
+          // Public endpoint — no auth required
+          const response = await apiClient.get<CertificationResponse[]>('/certifications');
           
           return NextResponse.json(
             {

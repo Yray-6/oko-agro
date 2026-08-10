@@ -57,6 +57,7 @@ export interface Order {
   } | null;
   ratings?: OrderRating[]; // Ratings for this order
   currentUserRole?: 'farmer' | 'processor'; // Current user's role to determine if they can rate
+  agroTrackTrackingNumber?: string | null;
 }
 
 interface InvoiceData {
@@ -427,6 +428,7 @@ interface OrdersProps {
   onMakePayment?: (orderId: string) => void;
   onEditRequest?: (orderId: string) => void;
   onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
+  onTrackShipment?: (orderId: string, buyRequestId: string, trackingNumber: string) => void;
   onRate?: (orderId: string, buyRequestId: string) => void;
   onDispute?: (orderId: string, buyRequestId: string) => void;
 }
@@ -440,6 +442,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   onMakePayment,
   onEditRequest,
   onUpdateOrderState,
+  onTrackShipment,
   onRate,
   onDispute,
 }) => {
@@ -727,6 +730,22 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               className="px-6 py-2 flex items-center gap-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
             >
               Mark as Delivered
+            </button>
+          )}
+
+          {order.agroTrackTrackingNumber && onTrackShipment && order.buyRequestId && (
+            <button
+              type="button"
+              onClick={() =>
+                onTrackShipment(
+                  order.id,
+                  order.buyRequestId!,
+                  order.agroTrackTrackingNumber!,
+                )
+              }
+              className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
+            >
+              Track Shipment
             </button>
           )}
 

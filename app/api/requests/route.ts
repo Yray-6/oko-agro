@@ -271,7 +271,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     console.log(`📥 [Buy Requests API ${requestId}] Parsing request body...`);
-    const body: { action: 'update' | 'update-status' | 'update-order-state' | 'direct'; [key: string]: any } = await request.json();
+    const body: { action: 'update' | 'update-status' | 'update-order-state' | 'update-tracking' | 'direct'; [key: string]: any } = await request.json();
     const { action, ...data } = body;
     
     console.log(`📊 [Buy Requests API ${requestId}] Request Details:`, {
@@ -312,6 +312,11 @@ export async function PUT(request: NextRequest) {
         console.log(`🌐 [Buy Requests API ${requestId}] Updating order state (admin & buyer only)`);
         break;
 
+      case 'update-tracking':
+        endpoint = '/buy-requests/update-tracking';
+        console.log(`🌐 [Buy Requests API ${requestId}] Linking AgroTrack tracking number`);
+        break;
+
       case 'direct':
         if (!data.buyRequestId) {
           console.warn(`⚠️ [Buy Requests API ${requestId}] Missing buyRequestId for direct action`);
@@ -349,7 +354,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'PUT method only supports update, update-status, update-order-state, and direct actions',
+            message: 'PUT method only supports update, update-status, update-order-state, update-tracking, and direct actions',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

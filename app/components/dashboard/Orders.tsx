@@ -55,6 +55,7 @@ export interface Order {
   } | null;
   ratings?: OrderRating[]; // Ratings for this order
   currentUserRole?: 'farmer' | 'processor'; // Current user's role to determine if they can rate
+  agroTrackTrackingNumber?: string | null;
 }
 
 interface OrdersProps {
@@ -64,6 +65,9 @@ interface OrdersProps {
   onViewProfile?: (orderId: string) => void;
   onMessage?: (orderId: string) => void;
   onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
+  onArrangeTransit?: (orderId: string, buyRequestId: string) => void;
+  onTrackShipment?: (orderId: string, buyRequestId: string, trackingNumber: string) => void;
+  onLinkTracking?: (orderId: string, buyRequestId: string) => void;
   onRate?: (orderId: string, buyRequestId: string) => void;
   onDispute?: (orderId: string, buyRequestId: string) => void;
 }
@@ -75,6 +79,9 @@ const Orders: React.FC<OrdersProps> = ({
   onAcceptOrder,
   onDeclineOrder,
   onUpdateOrderState,
+  onArrangeTransit,
+  onTrackShipment,
+  onLinkTracking,
   onRate,
   onDispute,
 }) => {
@@ -316,14 +323,71 @@ const Orders: React.FC<OrdersProps> = ({
                 )}
               </>
             )}
-            {isAwaitingShipping && onUpdateOrderState && order.buyRequestId && (
-              <button
-                onClick={() => onUpdateOrderState(order.id, order.buyRequestId!, 'in_transit')}
-                className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
-              >
-                Ship Order
-              </button>
+            {isAwaitingShipping && order.buyRequestId && (
+              <>
+                {onArrangeTransit && (
+                  <button
+                    type="button"
+                    onClick={() => onArrangeTransit(order.id, order.buyRequestId!)}
+                    className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-md hover:bg-mainGreen/5 transition-colors font-medium"
+                  >
+                    Arrange Transit
+                  </button>
+                )}
+                {order.agroTrackTrackingNumber && onTrackShipment ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onTrackShipment(
+                        order.id,
+                        order.buyRequestId!,
+                        order.agroTrackTrackingNumber!,
+                      )
+                    }
+                    className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
+                  >
+                    Track Shipment
+                  </button>
+                ) : (
+                  onLinkTracking && (
+                    <button
+                      type="button"
+                      onClick={() => onLinkTracking(order.id, order.buyRequestId!)}
+                      className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      Link Tracking
+                    </button>
+                  )
+                )}
+                {onUpdateOrderState && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdateOrderState(order.id, order.buyRequestId!, 'in_transit')}
+                    className="px-6 py-2 flex items-center gap-2 bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
+                  >
+                    Ship Order
+                  </button>
+                )}
+              </>
             )}
+            {!isAwaitingShipping &&
+              order.agroTrackTrackingNumber &&
+              onTrackShipment &&
+              order.buyRequestId && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onTrackShipment(
+                      order.id,
+                      order.buyRequestId!,
+                      order.agroTrackTrackingNumber!,
+                    )
+                  }
+                  className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
+                >
+                  Track Shipment
+                </button>
+              )}
             {/* Display rating if exists, otherwise show rate button */}
             {isCompleted && (
               <>

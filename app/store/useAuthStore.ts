@@ -119,14 +119,20 @@ export const useAuthStore = create<AuthStore>()(
           try {
             console.log('Attempting to refresh token...');
             
-            const response = await apiClient.post<ApiResponse<{ accessToken: string }>>('', {
+            const response = await apiClient.post<ApiResponse<{ accessToken: string } | { data?: { accessToken: string } }>>('', {
               action: 'refresh',
               refreshToken: tokens.refreshToken
             });
 
-            if (response.data.statusCode === 200 && response.data.data?.accessToken) {
-              const newAccessToken = response.data.data.accessToken;
-              
+            const payload = response.data?.data as
+              | { accessToken?: string; data?: { accessToken?: string } }
+              | undefined;
+            const newAccessToken =
+              payload?.accessToken ||
+              payload?.data?.accessToken ||
+              (response.data as { accessToken?: string })?.accessToken;
+
+            if (response.data.statusCode === 200 && newAccessToken) {
               // Update tokens in store - keep the existing refresh token, update access token
               const updatedTokens: Tokens = {
                 accessToken: newAccessToken,

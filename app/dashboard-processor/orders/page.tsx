@@ -22,6 +22,7 @@ import DisputeModal from "@/app/components/dashboard/DisputeModal";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
 import { formatQuantity } from "@/app/helpers";
+import { openAgroTrackTrack } from "@/app/utils/agrotrackHandoff";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -97,6 +98,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     purchaseOrderDoc: buyRequest.purchaseOrderDoc || undefined,
     ratings: buyRequest.ratings || [], // Include ratings from buy request
     currentUserRole: 'processor', // Processor viewing their orders
+    agroTrackTrackingNumber: buyRequest.agroTrackTrackingNumber || null,
   };
 };
 
@@ -335,6 +337,14 @@ export default function Page() {
     }
   };
 
+  const handleTrackShipment = (
+    _orderId: string,
+    _buyRequestId: string,
+    trackingNumber: string,
+  ) => {
+    openAgroTrackTrack(trackingNumber);
+  };
+
   // Handle rate order
   const handleRate = (orderId: string, buyRequestId: string) => {
     const buyRequest = myRequests.find(req => req.id === buyRequestId);
@@ -427,6 +437,7 @@ export default function Page() {
               onMessage={handleMessage}
               onMakePayment={handleMakePayment}
               onUpdateOrderState={handleUpdateOrderState}
+              onTrackShipment={handleTrackShipment}
               onRate={handleRate}
               onDispute={handleDispute}
             />

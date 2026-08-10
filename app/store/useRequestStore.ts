@@ -15,6 +15,7 @@ import {
   ApiResponse,
   UserBuyRequestsListResponse,
   UpdateOrderStateRequest,
+  UpdateTrackingRequest,
   DirectBuyRequestRequest,
   UploadPurchaseOrderRequest,
 } from '@/app/types';
@@ -101,6 +102,7 @@ interface BuyRequestActions {
   updateBuyRequest: (data: UpdateBuyRequestRequest) => Promise<BuyRequest>;
   updateBuyRequestStatus: (data: UpdateBuyRequestStatusRequest) => Promise<BuyRequest>;
   updateOrderState: (data: UpdateOrderStateRequest) => Promise<BuyRequest>;
+  updateTracking: (data: UpdateTrackingRequest) => Promise<BuyRequest>;
   deleteBuyRequest: (buyRequestId: string) => Promise<void>;
   
   // Direct buy request and purchase order
@@ -434,6 +436,72 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
       console.error('❌ [Buy Request Store] Update order state error:', error);
       const errorMessage = handleApiError(error, 'Failed to update order state');
       
+      set({
+        updateError: errorMessage,
+        isUpdating: false,
+      });
+      throw error;
+    }
+  },
+
+  // Link AgroTrack tracking number (Phase 2 — no orderState / payment change)
+  updateTracking: async (data: UpdateTrackingRequest) => {
+    const { setUpdating, setUpdateError } = get();
+    setUpdating(true);
+    setUpdateError(null);
+
+    try {
+      const requestData = {
+        action: 'update-tracking',
+        buyRequestId: data.buyRequestId,
+        agroTrackTrackingNumber: data.agroTrackTrackingNumber,
+      };
+
+      const response = await apiClient.put<BuyRequestResponse>('/requests', requestData);
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        const updatedRequest = response.data.data;
+
+        set((state) => {
+          const mergeRequest = (existing: BuyRequest | undefined, updated: BuyRequest): BuyRequest => {
+            if (!existing) return updated;
+            return {
+              ...existing,
+              ...updated,
+              cropType: updated.cropType || existing.cropType,
+              qualityStandardType: updated.qualityStandardType || existing.qualityStandardType,
+              buyer: updated.buyer || existing.buyer,
+              seller: updated.seller || existing.seller,
+              product: updated.product || existing.product,
+            };
+          };
+
+          return {
+            buyRequests: state.buyRequests.map((r) =>
+              r.id === updatedRequest.id ? mergeRequest(r, updatedRequest) : r,
+            ),
+            myRequests: state.myRequests.map((r) =>
+              r.id === updatedRequest.id ? mergeRequest(r, updatedRequest) : r,
+            ),
+            generalRequests: state.generalRequests.map((r) =>
+              r.id === updatedRequest.id ? mergeRequest(r, updatedRequest) : r,
+            ),
+            currentRequest:
+              state.currentRequest?.id === updatedRequest.id
+                ? mergeRequest(state.currentRequest, updatedRequest)
+                : state.currentRequest,
+            isUpdating: false,
+            updateError: null,
+          };
+        });
+
+        return updatedRequest;
+      }
+
+      throw new Error(response.data.message || 'Failed to link tracking number');
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Update tracking error:', error);
+      const errorMessage = handleApiError(error, 'Failed to link tracking number');
       set({
         updateError: errorMessage,
         isUpdating: false,
