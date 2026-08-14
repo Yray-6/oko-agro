@@ -21,7 +21,7 @@ import { EventDetailsModal } from "@/app/components/dashboard/EventDetailsModal"
 import rice from "@/app/assets/images/rice.png";
 import { UserProfile, EventDetails, CalendarEvent } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
-import { formatPrice, formatQuantity, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
+import { formatAvailableInventory, formatPrice, formatQuantity, getProductDisplayStatus, getTodaysEvents, transformEventToCalendarEvent } from "@/app/helpers";
 
 export default function FarmerDetailsPage() {
   const router = useRouter();
@@ -101,27 +101,36 @@ export default function FarmerDetailsPage() {
   const todaysCount = todaysEvents.length;
 
   // Map products to the format expected by ProductCardContainer
-  const mappedProducts = products.map((product) => ({
-    id: product.id,
-    name: product.name,
-    quantity: `${formatQuantity(product.quantityKg)} kg`,
-    price: formatPrice(product.pricePerKg, product.priceCurrency),
-    certification: "Grade A",
-    status: product.status || "Active",
-    listedDate: new Date(product.createdAt).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
-    image: product.photos?.[0]?.url || rice.src,
-    inventoryStatus: `${formatQuantity(product.quantityKg)}/${formatQuantity(product.quantityKg)}kg`,
-    inventoryPercentage: 100,
-    slug: product.id,
-    sellerId: product.owner?.id,
-    cropId: product.cropType?.id,
-    rawPricePerKg: product.pricePerKg,
-    rawQuantityKg: product.quantityKg,
-  }));
+  const mappedProducts = products.map((product) => {
+    const inventory = formatAvailableInventory(
+      product.quantityKg,
+      product.reservedQuantityKg,
+    );
+    const available = inventory.available;
+
+    return {
+      id: product.id,
+      name: product.name,
+      quantity: `${formatQuantity(available)} kg available`,
+      price: formatPrice(product.pricePerKg, product.priceCurrency),
+      certification: "Grade A",
+      status: getProductDisplayStatus(product),
+      listedDate: new Date(product.createdAt).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+      image: product.photos?.[0]?.url || rice.src,
+      inventoryStatus: inventory.status,
+      inventoryPercentage: inventory.percentage,
+      slug: product.id,
+      sellerId: product.owner?.id,
+      cropId: product.cropType?.id,
+      rawPricePerKg: product.pricePerKg,
+      rawQuantityKg: String(available),
+      availableQuantityKg: available,
+    };
+  });
 
   const handleBack = () => {
     router.back();

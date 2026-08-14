@@ -41,6 +41,77 @@ export const formatQuantity = (quantityKg: string | number): string => {
   return num.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
 };
 
+export const getAvailableQuantityKg = (
+  quantityKg: string | number | null | undefined,
+  reservedQuantityKg: string | number | null | undefined,
+): number => {
+  const total = typeof quantityKg === 'string' ? parseFloat(quantityKg) || 0 : quantityKg || 0;
+  const reserved =
+    typeof reservedQuantityKg === 'string'
+      ? parseFloat(reservedQuantityKg) || 0
+      : reservedQuantityKg || 0;
+  return Math.max(total - reserved, 0);
+};
+
+export type ProductDisplayStatus =
+  | 'Active'
+  | 'Pending Inspection'
+  | 'Sold Out';
+
+/** Display status from approval + available stock (quantityKg - reservedQuantityKg). */
+export const getProductDisplayStatus = (product: {
+  approvalStatus?: string | null;
+  quantityKg?: string | number | null;
+  reservedQuantityKg?: string | number | null;
+}): ProductDisplayStatus => {
+  const approvalStatus = product.approvalStatus?.toLowerCase();
+
+  if (approvalStatus === 'pending') {
+    return 'Pending Inspection';
+  }
+
+  if (approvalStatus === 'rejected') {
+    return 'Sold Out';
+  }
+
+  if (getAvailableQuantityKg(product.quantityKg, product.reservedQuantityKg) <= 0) {
+    return 'Sold Out';
+  }
+
+  return 'Active';
+};
+
+export const formatAvailableInventory = (
+  quantityKg: string | number | null | undefined,
+  reservedQuantityKg: string | number | null | undefined,
+): { status: string; percentage: number; available: number } => {
+  const total =
+    typeof quantityKg === 'string' ? parseFloat(quantityKg) || 0 : quantityKg || 0;
+  const reserved =
+    typeof reservedQuantityKg === 'string'
+      ? parseFloat(reservedQuantityKg) || 0
+      : reservedQuantityKg || 0;
+  const available = Math.max(total - reserved, 0);
+  const percentage = total > 0 ? Math.round((available / total) * 100) : 0;
+
+  if (percentage === 0) {
+    return {
+      status: `0/${formatQuantity(total)}kg available`,
+      percentage: 0,
+      available,
+    };
+  }
+
+  return {
+    status:
+      reserved > 0
+        ? `${formatQuantity(available)}kg available · ${formatQuantity(reserved)}kg in transit`
+        : `${formatQuantity(available)}kg available`,
+    percentage,
+    available,
+  };
+};
+
 export const formatPrice = (price: string, currency: string, _unit?: string): string => {
   const normalizedCurrency = currency.toUpperCase();
   const currencySymbol = normalizedCurrency === 'NGN' ? '₦' : currency;

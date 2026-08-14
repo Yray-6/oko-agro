@@ -12,6 +12,7 @@ import { useDataStore } from '@/app/store/useDataStore';
 import { useAuthStore } from '@/app/store/useAuthStore';
 import { BuyRequest } from '@/app/types';
 import { buildPurchaseOrderDataFromFormValues, openPurchaseOrderPrint, type CreateRequestParty } from '@/app/helpers/purchaseOrderTemplate';
+import { formatQuantity, getAvailableQuantityKg } from '@/app/helpers';
 
 interface CreateRequestFormValues {
   cropType: string;
@@ -65,24 +66,46 @@ const mapPaymentMethodToBackend = (paymentMethod: string): string => {
 
 // Validation schema with conditional validation for purchaseOrderDoc
 // purchaseOrderDoc is only required when creating a specific request (sellerId or productId provided)
-const createValidationSchema = (isSpecificRequest: boolean) => Yup.object({
-  cropType: Yup.string().required('Crop type is required'),
-  qualityStandard: Yup.string().required('Quality standard is required'),
-  requestQuantity: Yup.string().required('Request quantity is required'),
-  pricePerKg: Yup.string().required('Price per kg is required'),
-  estimatedDeliveryDate: Yup.string().required('Estimated delivery date is required'),
-  deliveryLocation: Yup.string().required('Delivery location is required'),
-  preferredPaymentMethod: Yup.string().required('Preferred payment method is required'),
-  description: Yup.string().required('Description is required'),
-  purchaseOrderDoc: isSpecificRequest
-    ? Yup.mixed()
-        .required('Purchase order document is required for specific requests')
-        .test('fileSize', 'File size must be less than 10MB', (value) => {
-          if (!value) return false;
-          return (value as File).size <= 10 * 1024 * 1024;
-        })
-    : Yup.mixed().nullable(),
-});
+const createValidationSchema = (
+  isSpecificRequest: boolean,
+  availableQuantityKg?: number | null,
+) =>
+  Yup.object({
+    cropType: Yup.string().required('Crop type is required'),
+    qualityStandard: Yup.string().required('Quality standard is required'),
+    requestQuantity: Yup.string()
+      .required('Request quantity is required')
+      .test('positive', 'Quantity must be greater than 0', (value) => {
+        if (!value) return false;
+        const qty = parseFloat(value);
+        return !Number.isNaN(qty) && qty > 0;
+      })
+      .test(
+        'within-available',
+        availableQuantityKg != null
+          ? `Only ${formatQuantity(availableQuantityKg)} kg available`
+          : 'Insufficient available stock',
+        (value) => {
+          if (availableQuantityKg == null || !value) return true;
+          const qty = parseFloat(value);
+          if (Number.isNaN(qty)) return false;
+          return qty <= availableQuantityKg;
+        },
+      ),
+    pricePerKg: Yup.string().required('Price per kg is required'),
+    estimatedDeliveryDate: Yup.string().required('Estimated delivery date is required'),
+    deliveryLocation: Yup.string().required('Delivery location is required'),
+    preferredPaymentMethod: Yup.string().required('Preferred payment method is required'),
+    description: Yup.string().required('Description is required'),
+    purchaseOrderDoc: isSpecificRequest
+      ? Yup.mixed()
+          .required('Purchase order document is required for specific requests')
+          .test('fileSize', 'File size must be less than 10MB', (value) => {
+            if (!value) return false;
+            return (value as File).size <= 10 * 1024 * 1024;
+          })
+      : Yup.mixed().nullable(),
+  });
 
 
 
@@ -234,6 +257,24 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
   // Determine if this is a specific request (from farmer-details page)
   const isSpecificRequest = !!(productId || sellerId);
 
+  const availableQuantityKg = (() => {
+    // quantityKg prop is available stock when passed from Quick Order
+    if (productId && productQuantityKg != null && productQuantityKg !== '') {
+      const parsed = parseFloat(productQuantityKg);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    if (buyRequest?.product?.quantityKg != null) {
+      return getAvailableQuantityKg(
+        buyRequest.product.quantityKg,
+        buyRequest.product.reservedQuantityKg,
+      );
+    }
+    return null;
+  })();
+
+  const shouldValidateAvailable =
+    !!productId || !!(isEditMode && buyRequest?.product?.id);
+
   // Get initial values - handles both create and edit modes
   const getInitialValues = (): CreateRequestFormValues => {
     // If editing, populate from buyRequest
@@ -264,12 +305,17 @@ const CreateNewRequestModal: React.FC<CreateNewRequestModalProps> = ({
       baseValues.description = `Request for ${productName}`;
     }
 
-    // Pre-fill price and quantity from product
+    // Pre-fill price and quantity from product (quantityKg is available stock)
     if (productPricePerKg) {
       baseValues.pricePerKg = productPricePerKg;
     }
     if (productQuantityKg) {
-      baseValues.requestQuantity = productQuantityKg;
+      const available = parseFloat(productQuantityKg);
+      if (!Number.isNaN(available) && available > 0) {
+        baseValues.requestQuantity = String(available);
+      } else {
+        baseValues.requestQuantity = '';
+      }
     }
 
     // Pre-fill delivery location from user's address
@@ -401,7 +447,10 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
             <div className="flex-1 overflow-y-auto py-6 px-12">
               <Formik
                 initialValues={getInitialValues()}
-                validationSchema={createValidationSchema(isSpecificRequest)}
+                validationSchema={createValidationSchema(
+                  isSpecificRequest,
+                  shouldValidateAvailable ? availableQuantityKg : null,
+                )}
                 onSubmit={handleSubmit}
                 enableReinitialize={true}
               >
@@ -447,13 +496,20 @@ const handleSubmit = async (values: CreateRequestFormValues) => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <TextField
-                            name="requestQuantity"
-                            label="Request Quantity (kg)"
-                            placeholder="Enter request quantity in kg"
-                            type="number"
-                            required
-                          />
+                          <div>
+                            <TextField
+                              name="requestQuantity"
+                              label="Request Quantity (kg)"
+                              placeholder="Enter request quantity in kg"
+                              type="number"
+                              required
+                            />
+                            {shouldValidateAvailable && availableQuantityKg != null && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                Available: {formatQuantity(availableQuantityKg)} kg
+                              </p>
+                            )}
+                          </div>
                           
                           <TextField
                             name="pricePerKg"

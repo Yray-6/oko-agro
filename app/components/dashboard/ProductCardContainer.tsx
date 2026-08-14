@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import ProductCard, { Product } from "./ProductCard";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
-import { formatPrice, formatQuantity } from "@/app/helpers";
+import { formatPrice, formatQuantity, getProductDisplayStatus } from "@/app/helpers";
 import { ProductDetails } from "@/app/types";
 import Link from "next/link";
 
@@ -26,29 +26,7 @@ const ProductCardContainer: React.FC = () => {
   // Helper function to format price display
 
 
-  // Helper function to determine product status
-  const getProductStatus = (product: ProductDetails): 'Active' | 'Pending Inspection' | 'Sold Out' => {
-    // Map approvalStatus from API to display status
-    const approvalStatus = product.approvalStatus?.toLowerCase();
-    
-    if (approvalStatus === 'pending') {
-      return 'Pending Inspection';
-    }
-    if (approvalStatus === 'approved') {
-      return 'Active';
-    }
-    if (approvalStatus === 'rejected') {
-      return 'Sold Out';
-    }
-    
-    // Fallback: check status field if approvalStatus is not available
-    if (product.status === 'Pending Inspection' || product.status === 'Sold Out') {
-      return product.status as 'Active' | 'Pending Inspection' | 'Sold Out';
-    }
-    
-    // Default to Active if no status is found
-    return 'Active';
-  };
+  const getProductStatus = (product: ProductDetails) => getProductDisplayStatus(product);
 
   // Transform ProductDetails to Product format for the card
   const transformedProducts: Product[] = products.map(product => ({

@@ -5,7 +5,13 @@ import Link from "next/link";
 import CreateNewRequestModal from "./CreateNewRequest";
 import { ProductDetails } from "@/app/types";
 import type { CreateRequestParty } from "@/app/helpers/purchaseOrderTemplate";
-import { formatPrice, formatQuantity, imageLoader } from "@/app/helpers";
+import {
+  formatAvailableInventory,
+  formatPrice,
+  formatQuantity,
+  getProductDisplayStatus,
+  imageLoader,
+} from "@/app/helpers";
 
 export interface Product {
   id: string | number;
@@ -23,6 +29,7 @@ export interface Product {
   cropId?: string;
   rawPricePerKg?: string;
   rawQuantityKg?: string;
+  availableQuantityKg?: number;
 }
 
 interface ProductCardContainerDetailedProps {
@@ -44,21 +51,32 @@ const ProductCardContainerDetailedProcessor: React.FC<
 
   // Helper function to normalize product data from API response
   const normalizeProduct = (product: Product | ProductDetails): Product => {
-    // Check if it's already in Product format
-    if ('price' in product && 'certification' in product) {
-      return product as Product;
+    // Already in Product card format (e.g. from farmer-details mapping)
+    if ("price" in product && "certification" in product) {
+      const mapped = product as Product;
+      const available =
+        mapped.availableQuantityKg ??
+        (mapped.rawQuantityKg != null ? parseFloat(mapped.rawQuantityKg) || 0 : 0);
+      if (available <= 0) {
+        return { ...mapped, status: "Sold Out" };
+      }
+      return mapped;
     }
 
-  const apiProduct = product as ProductDetails;
-  
-        console.log("apiProduct",apiProduct)
+    const apiProduct = product as ProductDetails;
+    const inventory = formatAvailableInventory(
+      apiProduct.quantityKg,
+      apiProduct.reservedQuantityKg,
+    );
+    const available = inventory.available;
+
     return {
       id: apiProduct.id,
       name: apiProduct.name,
-      quantity: `${formatQuantity(apiProduct.quantityKg)} kg`,
+      quantity: `${formatQuantity(available)} kg available`,
       price: formatPrice(apiProduct.pricePerKg, apiProduct.priceCurrency),
       certification: "Grade A",
-      status: apiProduct.status || "Active",
+      status: getProductDisplayStatus(apiProduct),
       listedDate: new Date(apiProduct.createdAt).toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
@@ -66,15 +84,14 @@ const ProductCardContainerDetailedProcessor: React.FC<
       }),
       image: apiProduct.photos?.[0]?.url || "/placeholder-product.png",
       slug: apiProduct.id,
-      inventoryStatus: `${formatQuantity(apiProduct.quantityKg)}/${formatQuantity(apiProduct.quantityKg)}kg`,
-      inventoryPercentage: 100,
+      inventoryStatus: inventory.status,
+      inventoryPercentage: inventory.percentage,
       sellerId: apiProduct.owner?.id,
       cropId: apiProduct.cropId,
       rawPricePerKg: apiProduct.pricePerKg,
-      rawQuantityKg: apiProduct.quantityKg,
+      rawQuantityKg: String(available),
+      availableQuantityKg: available,
     };
-
-
   };
 
 
@@ -173,6 +190,10 @@ const ProductCardContainerDetailedProcessor: React.FC<
   // Individual Product Card Component
   const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     const productUrl = `/products/${product.slug || product.id}`;
+    const available =
+      product.availableQuantityKg ??
+      (product.rawQuantityKg != null ? parseFloat(product.rawQuantityKg) || 0 : 0);
+    const canQuickOrder = showQuickOrder && available > 0;
 
     return (
       <div className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
@@ -213,10 +234,9 @@ const ProductCardContainerDetailedProcessor: React.FC<
             <p className="text-sm text-gray-600">
               Listed: {product.listedDate}
             </p>
-            {/* Quick Order Button */}
-            {showQuickOrder && (
+            {canQuickOrder && (
               <div className="flex justify-end mt-4">
-                <button 
+                <button
                   onClick={() => handleQuickOrder(product)}
                   className="border border-mainGreen rounded-lg px-6 py-2 text-sm text-mainGreen hover:bg-mainGreen hover:text-white transition-colors"
                 >

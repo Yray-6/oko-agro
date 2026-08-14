@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Notification } from '@/app/types';
 import Image from 'next/image';
 import rice from '@/app/assets/images/rice.png';
-import { imageLoader, formatQuantity } from '@/app/helpers';
+import { imageLoader, formatQuantity, getAvailableQuantityKg, getProductDisplayStatus } from '@/app/helpers';
 
 interface ViewFarmerProductsModalProps {
   isOpen: boolean;
@@ -158,9 +158,16 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 mb-1 truncate">
-                          {product.name}
-                        </h3>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-semibold text-gray-900 truncate">
+                            {product.name}
+                          </h3>
+                          {getProductDisplayStatus(product) === 'Sold Out' && (
+                            <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-500 text-white">
+                              Sold Out
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600 mb-2">
                           {product.cropType?.name || 'N/A'}
                         </p>
@@ -172,7 +179,13 @@ const ViewFarmerProductsModal: React.FC<ViewFarmerProductsModalProps> = ({
                           )}
                           {product.quantityKg && (
                             <span>
-                              {formatQuantity(product.quantityKg)} kg
+                              {formatQuantity(
+                                getAvailableQuantityKg(
+                                  product.quantityKg,
+                                  product.reservedQuantityKg,
+                                ),
+                              )}{' '}
+                              kg available
                             </span>
                           )}
                         </div>

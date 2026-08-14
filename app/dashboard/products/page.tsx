@@ -9,7 +9,7 @@ import Modal from "@/app/components/Modal";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { ProductDetails } from "@/app/types";
-import { formatPrice, formatQuantity, getInventoryTypeLabel, getInventoryTypeBadgeStyle } from "@/app/helpers";
+import { formatPrice, formatQuantity, getInventoryTypeLabel, getInventoryTypeBadgeStyle, getProductDisplayStatus } from "@/app/helpers";
 import AnimatedLoading from "@/app/Loading";
 
 export default function Page() {
@@ -48,28 +48,7 @@ export default function Page() {
   }, [user?.id, fetchUserProducts]);
 
   // Helper function to determine product status
-  const getProductStatus = (product: ProductDetails): 'Active' | 'Pending Inspection' | 'Sold Out' | 'Suspended' => {
-    // Map approvalStatus from API to display status
-    const approvalStatus = product.approvalStatus?.toLowerCase();
-    
-    if (approvalStatus === 'pending') {
-      return 'Pending Inspection';
-    }
-    if (approvalStatus === 'approved') {
-      return 'Active';
-    }
-    if (approvalStatus === 'rejected') {
-      return 'Sold Out';
-    }
-    
-    // Fallback: check status field if approvalStatus is not available
-    if (product.status === 'Pending Inspection' || product.status === 'Sold Out' || product.status === 'Suspended') {
-      return product.status as 'Active' | 'Pending Inspection' | 'Sold Out' | 'Suspended';
-    }
-    
-    // Default to Active if no status is found
-    return 'Active';
-  };
+  const getProductStatus = (product: ProductDetails) => getProductDisplayStatus(product);
 
   const getInventoryStatus = (product: ProductDetails): { status: string; percentage: number } => {
     const total = parseFloat(product.quantityKg) || 0;
