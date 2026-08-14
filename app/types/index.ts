@@ -628,7 +628,8 @@ export interface BuyRequestBuyerFull extends BuyRequestUser {
 export interface ProductReference {
   id: string;
   name: string;
-  // Add other product fields as needed
+  quantityKg?: string;
+  reservedQuantityKg?: string;
 }
 
 // Main Buy Request Interface
