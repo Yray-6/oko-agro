@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Download, Star, XCircle } from "lucide-react";
 import Image from "next/image";
+import { canCancelAgroTrackTransit } from "@/app/utils/agrotrackHandoff";
 
 // Mock icons
 const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
@@ -56,6 +57,7 @@ export interface Order {
   ratings?: OrderRating[]; // Ratings for this order
   currentUserRole?: 'farmer' | 'processor'; // Current user's role to determine if they can rate
   agroTrackTrackingNumber?: string | null;
+  agroTrackStatus?: string | null;
 }
 
 interface OrdersProps {
@@ -66,6 +68,7 @@ interface OrdersProps {
   onMessage?: (orderId: string) => void;
   onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
   onArrangeTransit?: (orderId: string, buyRequestId: string) => void;
+  onCancelTransit?: (orderId: string, buyRequestId: string) => void;
   onTrackShipment?: (orderId: string, buyRequestId: string, trackingNumber: string) => void;
   onLinkTracking?: (orderId: string, buyRequestId: string) => void;
   onRate?: (orderId: string, buyRequestId: string) => void;
@@ -80,6 +83,7 @@ const Orders: React.FC<OrdersProps> = ({
   onDeclineOrder,
   onUpdateOrderState,
   onArrangeTransit,
+  onCancelTransit,
   onTrackShipment,
   onLinkTracking,
   onRate,
@@ -243,6 +247,14 @@ const Orders: React.FC<OrdersProps> = ({
                     Quantity: {order.quantity} | {order.price}
                   </p>
                   <p>Certification: {order.certification}</p>
+                  {order.agroTrackTrackingNumber ? (
+                    <p>
+                      Tracking:{" "}
+                      <span className="font-medium text-gray-800">
+                        {order.agroTrackTrackingNumber}
+                      </span>
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -359,6 +371,17 @@ const Orders: React.FC<OrdersProps> = ({
                     </button>
                   )
                 )}
+                {order.agroTrackTrackingNumber &&
+                  onCancelTransit &&
+                  canCancelAgroTrackTransit(order.agroTrackStatus) && (
+                    <button
+                      type="button"
+                      onClick={() => onCancelTransit(order.id, order.buyRequestId!)}
+                      className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
+                    >
+                      Cancel Transit
+                    </button>
+                  )}
                 {onUpdateOrderState && (
                   <button
                     type="button"
@@ -372,21 +395,36 @@ const Orders: React.FC<OrdersProps> = ({
             )}
             {!isAwaitingShipping &&
               order.agroTrackTrackingNumber &&
-              onTrackShipment &&
               order.buyRequestId && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onTrackShipment(
-                      order.id,
-                      order.buyRequestId!,
-                      order.agroTrackTrackingNumber!,
-                    )
-                  }
-                  className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
-                >
-                  Track Shipment
-                </button>
+                <>
+                  {onTrackShipment && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onTrackShipment(
+                          order.id,
+                          order.buyRequestId!,
+                          order.agroTrackTrackingNumber!,
+                        )
+                      }
+                      className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
+                    >
+                      Track Shipment
+                    </button>
+                  )}
+                  {onCancelTransit &&
+                    canCancelAgroTrackTransit(order.agroTrackStatus) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onCancelTransit(order.id, order.buyRequestId!)
+                        }
+                        className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
+                      >
+                        Cancel Transit
+                      </button>
+                    )}
+                </>
               )}
             {/* Display rating if exists, otherwise show rate button */}
             {isCompleted && (

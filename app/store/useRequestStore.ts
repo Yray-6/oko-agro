@@ -16,6 +16,9 @@ import {
   UserBuyRequestsListResponse,
   UpdateOrderStateRequest,
   UpdateTrackingRequest,
+  ArrangeTransitRequest,
+  ArrangeTransitResult,
+  SsoHandoffToken,
   DirectBuyRequestRequest,
   UploadPurchaseOrderRequest,
 } from '@/app/types';
@@ -103,6 +106,9 @@ interface BuyRequestActions {
   updateBuyRequestStatus: (data: UpdateBuyRequestStatusRequest) => Promise<BuyRequest>;
   updateOrderState: (data: UpdateOrderStateRequest) => Promise<BuyRequest>;
   updateTracking: (data: UpdateTrackingRequest) => Promise<BuyRequest>;
+  arrangeTransit: (data: ArrangeTransitRequest) => Promise<ArrangeTransitResult>;
+  cancelTransit: (buyRequestId: string) => Promise<BuyRequest>;
+  fetchSsoHandoffToken: () => Promise<SsoHandoffToken | null>;
   deleteBuyRequest: (buyRequestId: string) => Promise<void>;
   
   // Direct buy request and purchase order
@@ -139,6 +145,42 @@ interface BuyRequestActions {
 }
 
 type BuyRequestStore = BuyRequestState & BuyRequestActions;
+
+function mergeBuyRequest(existing: BuyRequest | undefined, updated: BuyRequest): BuyRequest {
+  if (!existing) return updated;
+  return {
+    ...existing,
+    ...updated,
+    cropType: updated.cropType || existing.cropType,
+    qualityStandardType: updated.qualityStandardType || existing.qualityStandardType,
+    buyer: updated.buyer || existing.buyer,
+    seller: updated.seller || existing.seller,
+    product: updated.product || existing.product,
+  };
+}
+
+function mergeUpdatedBuyRequest(
+  set: (partial: Partial<BuyRequestStore> | ((state: BuyRequestStore) => Partial<BuyRequestStore>)) => void,
+  updatedRequest: BuyRequest,
+) {
+  set((state) => ({
+    buyRequests: state.buyRequests.map((r) =>
+      r.id === updatedRequest.id ? mergeBuyRequest(r, updatedRequest) : r,
+    ),
+    myRequests: state.myRequests.map((r) =>
+      r.id === updatedRequest.id ? mergeBuyRequest(r, updatedRequest) : r,
+    ),
+    generalRequests: state.generalRequests.map((r) =>
+      r.id === updatedRequest.id ? mergeBuyRequest(r, updatedRequest) : r,
+    ),
+    currentRequest:
+      state.currentRequest?.id === updatedRequest.id
+        ? mergeBuyRequest(state.currentRequest, updatedRequest)
+        : state.currentRequest,
+    isUpdating: false,
+    updateError: null,
+  }));
+}
 
 export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
   // Initial state
@@ -507,6 +549,94 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
         isUpdating: false,
       });
       throw error;
+    }
+  },
+
+  arrangeTransit: async (data: ArrangeTransitRequest) => {
+    const { setUpdating, setUpdateError } = get();
+    setUpdating(true);
+    setUpdateError(null);
+
+    try {
+      const response = await apiClient.put<{
+        statusCode: number;
+        message: string;
+        data: BuyRequest;
+        requiresManualFallback?: boolean;
+      }>('/requests', {
+        action: 'arrange-transit',
+        ...data,
+      });
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        const updatedRequest = response.data.data;
+        mergeUpdatedBuyRequest(set, updatedRequest);
+        return {
+          buyRequest: updatedRequest,
+          requiresManualFallback: Boolean(response.data.requiresManualFallback),
+          message: response.data.message,
+        };
+      }
+
+      throw new Error(response.data.message || 'Failed to arrange transit');
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Arrange transit error:', error);
+      const errorMessage = handleApiError(error, 'Failed to arrange transit');
+      set({
+        updateError: errorMessage,
+        isUpdating: false,
+      });
+      throw error;
+    }
+  },
+
+  cancelTransit: async (buyRequestId: string) => {
+    const { setUpdating, setUpdateError } = get();
+    setUpdating(true);
+    setUpdateError(null);
+
+    try {
+      const response = await apiClient.put<BuyRequestResponse>('/requests', {
+        action: 'cancel-transit',
+        buyRequestId,
+      });
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        const updatedRequest = response.data.data;
+        mergeUpdatedBuyRequest(set, updatedRequest);
+        return updatedRequest;
+      }
+
+      throw new Error(response.data.message || 'Failed to cancel transit');
+    } catch (error) {
+      console.error('❌ [Buy Request Store] Cancel transit error:', error);
+      const errorMessage = handleApiError(error, 'Failed to cancel transit');
+      set({
+        updateError: errorMessage,
+        isUpdating: false,
+      });
+      throw error;
+    }
+  },
+
+  fetchSsoHandoffToken: async () => {
+    try {
+      const response = await apiClient.get<{
+        statusCode: number;
+        message: string;
+        data?: SsoHandoffToken;
+      }>('/integrations/agrotrack/sso-handoff-token');
+
+      if (response.data.statusCode === 200 && response.data.data?.token) {
+        return response.data.data;
+      }
+      return null;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        return null;
+      }
+      console.error('❌ [Buy Request Store] SSO handoff token error:', error);
+      return null;
     }
   },
 

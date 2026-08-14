@@ -1,5 +1,6 @@
-import type { BuyRequest } from "@/app/types";
+import type { ArrangeTransitRequest, BuyRequest } from "@/app/types";
 import { config } from "@/app/config";
+import { useBuyRequestStore } from "@/app/store/useRequestStore";
 
 const NIGERIAN_STATES = [
   "Abia",
@@ -41,6 +42,10 @@ const NIGERIAN_STATES = [
   "Yobe",
   "Zamfara",
 ] as const;
+
+export const NIGERIAN_STATE_OPTIONS = NIGERIAN_STATES.filter(
+  (state) => state !== "Federal Capital Territory",
+);
 
 const CARGO_TYPE_BY_CROP: Array<{ match: RegExp; cargo: string }> = [
   { match: /rice|maize|corn|wheat|sorghum|millet|grain|cereal/i, cargo: "Grains & Cereals" },
@@ -148,6 +153,49 @@ function buildNotes(request: BuyRequest): string {
   return parts.join(" | ");
 }
 
+export function buildArrangeTransitPrefill(request: BuyRequest): ArrangeTransitRequest {
+  const delivery = parseDeliveryLocation(request.deliveryLocation);
+  const pickupState = normalizeStateName(request.seller?.state || "");
+  const qty = parseFloat(request.productQuantityKg || "0");
+  const price = parseFloat(request.pricePerKgOffer || "0");
+  const cargoValue =
+    Number.isFinite(qty) && Number.isFinite(price) && qty > 0 && price > 0
+      ? Math.round(qty * price)
+      : 0;
+
+  return {
+    buyRequestId: request.id,
+    pickupState,
+    pickupLga: "",
+    pickupStreetAddress: request.seller?.farmAddress || "",
+    pickupContactName: sellerDisplayName(request),
+    pickupPhone: request.seller?.phoneNumber || "",
+    deliveryState: delivery.state,
+    deliveryLga: delivery.lga,
+    deliveryStreetAddress: request.deliveryLocation || "",
+    deliveryName: buyerDisplayName(request),
+    deliveryPhone: request.buyer.phoneNumber || "",
+    deliveryEmail: request.buyer.email || "",
+    cargoType: mapCropToCargoType(request.cropType?.name),
+    cargoWeight: Number.isFinite(qty) ? qty : 0,
+    cargoValue,
+    cargoPriority: "standard",
+    consentAcknowledged: false,
+  };
+}
+
+const NON_CANCELLABLE_AGROTRACK_STATUSES = new Set([
+  "in_transit",
+  "delivered",
+  "completed",
+  "cancelled",
+]);
+
+export function canCancelAgroTrackTransit(status?: string | null): boolean {
+  if (!status) return true;
+  return !NON_CANCELLABLE_AGROTRACK_STATUSES.has(status.toLowerCase());
+}
+
 export function getAgroTrackBaseUrl(): string {
   return config.agroTrackUrl;
 }
@@ -212,9 +260,22 @@ export function buildAgroTrackHandoffUrl(request: BuyRequest): string {
   return `${base}/dashboard/new-shipment?${params.toString()}`;
 }
 
-export function openAgroTrackHandoff(request: BuyRequest): void {
-  const url = buildAgroTrackHandoffUrl(request);
-  window.open(url, "_blank", "noopener,noreferrer");
+export async function openAgroTrackUrlWithOptionalSso(targetUrl: string): Promise<void> {
+  const parsed = new URL(targetUrl);
+  const nextPath = `${parsed.pathname}${parsed.search}`;
+  const sso = await useBuyRequestStore.getState().fetchSsoHandoffToken();
+  if (sso?.token) {
+    const consume = new URL(`${getAgroTrackBaseUrl()}/auth/sso/consume`);
+    consume.searchParams.set("token", sso.token);
+    consume.searchParams.set("next", nextPath);
+    window.open(consume.toString(), "_blank", "noopener,noreferrer");
+    return;
+  }
+  window.open(targetUrl, "_blank", "noopener,noreferrer");
+}
+
+export async function openAgroTrackHandoff(request: BuyRequest): Promise<void> {
+  await openAgroTrackUrlWithOptionalSso(buildAgroTrackHandoffUrl(request));
 }
 
 /** Public AgroTrack track page for a linked tracking number. */

@@ -1,6 +1,7 @@
 "use client";
 import { Plus, XCircle } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import rice from "@/app/assets/images/rice.png";
 import cassava from "@/app/assets/images/yam.png";
 import maize from "@/app/assets/images/maize.png";
@@ -19,10 +20,11 @@ import { SuccessModal } from "@/app/components/dashboard/ProductModal";
 import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
 import RatingModal from "@/app/components/dashboard/RatingModal";
 import DisputeModal from "@/app/components/dashboard/DisputeModal";
+import LinkTrackingModal from "@/app/components/dashboard/LinkTrackingModal";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
 import { formatQuantity } from "@/app/helpers";
-import { openAgroTrackTrack } from "@/app/utils/agrotrackHandoff";
+import { normalizeTrackingNumber, openAgroTrackTrack } from "@/app/utils/agrotrackHandoff";
 
 // Helper function to get product image based on crop type
 const getProductImage = (cropName: string): string => {
@@ -103,6 +105,18 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
 };
 
 export default function Page() {
+  return (
+    <Suspense fallback={<AnimatedLoading />}>
+      <OrdersPageInner />
+    </Suspense>
+  );
+}
+
+function OrdersPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkTrackingHandled = useRef(false);
+
   const { 
     myRequests, 
     fetchMyRequests, 
@@ -111,6 +125,7 @@ export default function Page() {
     isDeleting,
     updateBuyRequest,
     updateOrderState,
+    updateTracking,
     isUpdating
   } = useBuyRequestStore();
 
@@ -155,10 +170,60 @@ export default function Page() {
     buyRequest: null,
   });
 
+  const [linkTrackingModal, setLinkTrackingModal] = useState<{
+    isOpen: boolean;
+    buyRequest: BuyRequest | null;
+  }>({
+    isOpen: false,
+    buyRequest: null,
+  });
+
   // Fetch buy requests on component mount
   useEffect(() => {
     fetchMyRequests();
   }, [fetchMyRequests]);
+
+  const clearLinkTrackingParams = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("linkTracking");
+    params.delete("okoRequestId");
+    params.delete("tracking");
+    const qs = params.toString();
+    router.replace(
+      qs ? `/dashboard-processor/orders?${qs}` : "/dashboard-processor/orders",
+    );
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    if (linkTrackingHandled.current) return;
+    if (searchParams.get("linkTracking") !== "1") return;
+
+    const okoRequestId = searchParams.get("okoRequestId")?.trim();
+    const tracking = normalizeTrackingNumber(searchParams.get("tracking") || "");
+    if (!okoRequestId || !tracking) {
+      linkTrackingHandled.current = true;
+      clearLinkTrackingParams();
+      showToast("Could not link tracking from AgroTrack. Use Link Tracking to paste it.", "error");
+      return;
+    }
+
+    linkTrackingHandled.current = true;
+    void (async () => {
+      try {
+        showToast("Linking AgroTrack tracking…", "info");
+        await updateTracking({
+          buyRequestId: okoRequestId,
+          agroTrackTrackingNumber: tracking,
+        });
+        showToast(`Tracking ${tracking} linked to this order.`, "success");
+        await fetchMyRequests();
+      } catch {
+        showToast("Failed to link tracking. You can paste it with Link Tracking.", "error");
+      } finally {
+        clearLinkTrackingParams();
+      }
+    })();
+  }, [searchParams, updateTracking, fetchMyRequests, clearLinkTrackingParams]);
 
   // Convert buy requests to orders format and calculate stats
   useEffect(() => {
@@ -345,6 +410,36 @@ export default function Page() {
     openAgroTrackTrack(trackingNumber);
   };
 
+  const handleLinkTracking = (_orderId: string, buyRequestId: string) => {
+    const buyRequest = myRequests.find((req) => req.id === buyRequestId);
+    if (!buyRequest) {
+      showToast("Could not find this order. Please refresh and try again.", "error");
+      return;
+    }
+    setLinkTrackingModal({
+      isOpen: true,
+      buyRequest,
+    });
+  };
+
+  const handleLinkTrackingSubmit = async (trackingNumber: string) => {
+    const buyRequest = linkTrackingModal.buyRequest;
+    if (!buyRequest) return;
+
+    try {
+      showToast("Linking tracking…", "info");
+      await updateTracking({
+        buyRequestId: buyRequest.id,
+        agroTrackTrackingNumber: trackingNumber,
+      });
+      showToast(`Tracking ${trackingNumber} linked.`, "success");
+      setLinkTrackingModal({ isOpen: false, buyRequest: null });
+      await fetchMyRequests();
+    } catch {
+      showToast("Failed to link tracking. Please try again.", "error");
+    }
+  };
+
   // Handle rate order
   const handleRate = (orderId: string, buyRequestId: string) => {
     const buyRequest = myRequests.find(req => req.id === buyRequestId);
@@ -438,6 +533,7 @@ export default function Page() {
               onMakePayment={handleMakePayment}
               onUpdateOrderState={handleUpdateOrderState}
               onTrackShipment={handleTrackShipment}
+              onLinkTracking={handleLinkTracking}
               onRate={handleRate}
               onDispute={handleDispute}
             />
@@ -530,6 +626,17 @@ export default function Page() {
           onDisputeCreated={handleDisputeCreated}
         />
       )}
+      <LinkTrackingModal
+        isOpen={linkTrackingModal.isOpen}
+        onClose={() => setLinkTrackingModal({ isOpen: false, buyRequest: null })}
+        onSubmit={handleLinkTrackingSubmit}
+        orderLabel={
+          linkTrackingModal.buyRequest
+            ? `Order #${linkTrackingModal.buyRequest.requestNumber}`
+            : undefined
+        }
+        isLoading={isUpdating}
+      />
     </div>
   );
 }

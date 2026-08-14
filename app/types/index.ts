@@ -645,6 +645,15 @@ export interface BuyRequestRating {
   updatedAt: string;
 }
 
+export type AgroTrackStatus =
+  | 'new_request'
+  | 'assigned'
+  | 'pending_pickup'
+  | 'in_transit'
+  | 'delivered'
+  | 'completed'
+  | 'cancelled';
+
 export interface BuyRequest {
   id: string;
   requestNumber: number | string;
@@ -671,6 +680,8 @@ export interface BuyRequest {
   paymentConfirmedAt?: string;
   /** Linked AgroTrack tracking number (Phase 2). */
   agroTrackTrackingNumber?: string | null;
+  agroTrackOrderId?: number | null;
+  agroTrackStatus?: AgroTrackStatus | null;
   purchaseOrderDoc?: UserFile | null; // Purchase order document
   ratings?: BuyRequestRating[]; // Ratings for this buy request
 }
@@ -805,6 +816,37 @@ export interface UpdateOrderStateRequest {
 export interface UpdateTrackingRequest {
   buyRequestId: string;
   agroTrackTrackingNumber: string;
+}
+
+export interface ArrangeTransitRequest {
+  buyRequestId: string;
+  pickupState: string;
+  pickupLga: string;
+  pickupStreetAddress: string;
+  pickupContactName: string;
+  pickupPhone: string;
+  deliveryState: string;
+  deliveryLga: string;
+  deliveryStreetAddress: string;
+  deliveryName: string;
+  deliveryPhone: string;
+  deliveryEmail?: string;
+  cargoType: string;
+  cargoWeight: number;
+  cargoValue: number;
+  cargoPriority?: 'standard' | 'express' | 'same_day';
+  consentAcknowledged?: boolean;
+}
+
+export interface ArrangeTransitResult {
+  buyRequest: BuyRequest;
+  requiresManualFallback: boolean;
+  message: string;
+}
+
+export interface SsoHandoffToken {
+  token: string;
+  expiresAt: string;
 }
 
 // Admin Management Types

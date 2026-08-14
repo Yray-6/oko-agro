@@ -271,7 +271,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     console.log(`📥 [Buy Requests API ${requestId}] Parsing request body...`);
-    const body: { action: 'update' | 'update-status' | 'update-order-state' | 'update-tracking' | 'direct'; [key: string]: any } = await request.json();
+    const body: { action: 'update' | 'update-status' | 'update-order-state' | 'update-tracking' | 'arrange-transit' | 'cancel-transit' | 'direct'; [key: string]: any } = await request.json();
     const { action, ...data } = body;
     
     console.log(`📊 [Buy Requests API ${requestId}] Request Details:`, {
@@ -317,6 +317,57 @@ export async function PUT(request: NextRequest) {
         console.log(`🌐 [Buy Requests API ${requestId}] Linking AgroTrack tracking number`);
         break;
 
+      case 'arrange-transit': {
+        if (!data.buyRequestId) {
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'buyRequestId is required for arrange-transit',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        const { buyRequestId, ...arrangePayload } = data;
+        endpoint = `/buy-requests/${buyRequestId}/arrange-transit`;
+        console.log(`🌐 [Buy Requests API ${requestId}] Arranging AgroTrack transit`);
+
+        const arrangeResponse = await apiClient.put(endpoint, arrangePayload, {
+          headers: {
+            'Authorization': authHeader
+          }
+        });
+
+        return NextResponse.json(arrangeResponse.data as ApiResponse, {
+          status: arrangeResponse.status,
+        });
+      }
+
+      case 'cancel-transit': {
+        if (!data.buyRequestId) {
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'buyRequestId is required for cancel-transit',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+        endpoint = `/buy-requests/${data.buyRequestId}/cancel-transit`;
+        console.log(`🌐 [Buy Requests API ${requestId}] Cancelling AgroTrack transit`);
+
+        const cancelResponse = await apiClient.put(endpoint, {}, {
+          headers: {
+            'Authorization': authHeader
+          }
+        });
+
+        return NextResponse.json(cancelResponse.data as ApiResponse, {
+          status: cancelResponse.status,
+        });
+      }
+
       case 'direct':
         if (!data.buyRequestId) {
           console.warn(`⚠️ [Buy Requests API ${requestId}] Missing buyRequestId for direct action`);
@@ -354,7 +405,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'PUT method only supports update, update-status, update-order-state, update-tracking, and direct actions',
+            message: 'PUT method only supports update, update-status, update-order-state, update-tracking, arrange-transit, cancel-transit, and direct actions',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

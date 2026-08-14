@@ -429,6 +429,7 @@ interface OrdersProps {
   onEditRequest?: (orderId: string) => void;
   onUpdateOrderState?: (orderId: string, buyRequestId: string, newState: string) => void;
   onTrackShipment?: (orderId: string, buyRequestId: string, trackingNumber: string) => void;
+  onLinkTracking?: (orderId: string, buyRequestId: string) => void;
   onRate?: (orderId: string, buyRequestId: string) => void;
   onDispute?: (orderId: string, buyRequestId: string) => void;
 }
@@ -443,6 +444,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   onEditRequest,
   onUpdateOrderState,
   onTrackShipment,
+  onLinkTracking,
   onRate,
   onDispute,
 }) => {
@@ -658,6 +660,14 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
                     Quantity: {order.quantity} | {order.price}
                   </p>
                   <p>Certification: {order.certification}</p>
+                  {order.agroTrackTrackingNumber ? (
+                    <p>
+                      Tracking:{" "}
+                      <span className="font-medium text-gray-800">
+                        {order.agroTrackTrackingNumber}
+                      </span>
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -748,6 +758,20 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               Track Shipment
             </button>
           )}
+          {!order.agroTrackTrackingNumber &&
+            onLinkTracking &&
+            order.buyRequestId &&
+            !isMyRequest &&
+            order.status !== "Pending" &&
+            order.status !== "Rejected" && (
+              <button
+                type="button"
+                onClick={() => onLinkTracking(order.id, order.buyRequestId!)}
+                className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+              >
+                Link Tracking
+              </button>
+            )}
 
           {/* Display rating if exists, otherwise show rate button */}
           {isCompleted && (

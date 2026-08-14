@@ -13,13 +13,14 @@ import Tick from "@/app/assets/icons/Tick";
 import Truck from "@/app/assets/icons/Truck";
 import Package from "@/app/assets/icons/Package";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
-import { BuyRequest, OrderState } from "@/app/types";
+import { BuyRequest, OrderState, ArrangeTransitRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 import { showToast } from "@/app/hooks/useToast";
 import ConfirmationModal from "@/app/components/dashboard/ConfirmationModal";
 import RatingModal from "@/app/components/dashboard/RatingModal";
 import DisputeModal from "@/app/components/dashboard/DisputeModal";
 import LinkTrackingModal from "@/app/components/dashboard/LinkTrackingModal";
+import ArrangeTransitModal from "@/app/components/dashboard/ArrangeTransitModal";
 import { XCircle } from "lucide-react";
 import { formatQuantity } from "@/app/helpers";
 import {
@@ -97,6 +98,7 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     ratings: buyRequest.ratings || [], // Include ratings from buy request
     currentUserRole: 'farmer', // Farmer viewing their orders
     agroTrackTrackingNumber: buyRequest.agroTrackTrackingNumber || null,
+    agroTrackStatus: buyRequest.agroTrackStatus || null,
   };
 };
 
@@ -119,6 +121,8 @@ function OrdersPageInner() {
     updateBuyRequestStatus,
     updateOrderState,
     updateTracking,
+    arrangeTransit,
+    cancelTransit,
     isFetching,
     isUpdating
   } = useBuyRequestStore();
@@ -172,6 +176,22 @@ function OrdersPageInner() {
   }>({
     isOpen: false,
     buyRequest: null,
+  });
+
+  const [arrangeTransitModal, setArrangeTransitModal] = useState<{
+    isOpen: boolean;
+    buyRequest: BuyRequest | null;
+  }>({
+    isOpen: false,
+    buyRequest: null,
+  });
+
+  const [cancelTransitModal, setCancelTransitModal] = useState<{
+    isOpen: boolean;
+    buyRequestId: string | null;
+  }>({
+    isOpen: false,
+    buyRequestId: null,
   });
 
   // Fetch buy requests on component mount
@@ -396,7 +416,57 @@ function OrdersPageInner() {
       showToast('Could not find this order. Please refresh and try again.', 'error');
       return;
     }
-    openAgroTrackHandoff(buyRequest);
+    setArrangeTransitModal({ isOpen: true, buyRequest });
+  };
+
+  const handleArrangeTransitSubmit = async (payload: ArrangeTransitRequest) => {
+    try {
+      showToast('Arranging transit with AgroTrack…', 'info');
+      const result = await arrangeTransit(payload);
+      if (result.requiresManualFallback) {
+        showToast(result.message || 'Could not arrange automatically. Opening AgroTrack…', 'info');
+        setArrangeTransitModal({ isOpen: false, buyRequest: null });
+        const buyRequest = myRequests.find((req) => req.id === payload.buyRequestId);
+        if (buyRequest) {
+          await openAgroTrackHandoff(buyRequest);
+        }
+        return;
+      }
+      showToast(
+        result.buyRequest.agroTrackTrackingNumber
+          ? `Shipment arranged. Tracking ${result.buyRequest.agroTrackTrackingNumber}.`
+          : 'Shipment arranged with AgroTrack.',
+        'success',
+      );
+      setArrangeTransitModal({ isOpen: false, buyRequest: null });
+      await fetchMyRequests();
+    } catch {
+      const buyRequest = myRequests.find((req) => req.id === payload.buyRequestId);
+      if (buyRequest) {
+        showToast('Could not arrange automatically. Opening AgroTrack…', 'info');
+        setArrangeTransitModal({ isOpen: false, buyRequest: null });
+        await openAgroTrackHandoff(buyRequest);
+        return;
+      }
+      showToast('Failed to arrange transit. Please try again.', 'error');
+    }
+  };
+
+  const handleCancelTransit = (_orderId: string, buyRequestId: string) => {
+    setCancelTransitModal({ isOpen: true, buyRequestId });
+  };
+
+  const handleConfirmCancelTransit = async () => {
+    if (!cancelTransitModal.buyRequestId) return;
+    try {
+      showToast('Cancelling AgroTrack shipment…', 'info');
+      await cancelTransit(cancelTransitModal.buyRequestId);
+      showToast('AgroTrack shipment cancelled.', 'success');
+      setCancelTransitModal({ isOpen: false, buyRequestId: null });
+      await fetchMyRequests();
+    } catch {
+      // Store already surfaced the Nest error (including 409 in-transit).
+    }
   };
 
   const handleTrackShipment = (
@@ -499,6 +569,7 @@ function OrdersPageInner() {
               onMessage={handleMessage}
               onUpdateOrderState={handleUpdateOrderState}
               onArrangeTransit={handleArrangeTransit}
+              onCancelTransit={handleCancelTransit}
               onTrackShipment={handleTrackShipment}
               onLinkTracking={handleLinkTracking}
               onRate={handleRate}
@@ -599,6 +670,26 @@ function OrdersPageInner() {
         }
         isLoading={isUpdating}
       />
+      <ArrangeTransitModal
+        isOpen={arrangeTransitModal.isOpen}
+        onClose={() => setArrangeTransitModal({ isOpen: false, buyRequest: null })}
+        onSubmit={handleArrangeTransitSubmit}
+        buyRequest={arrangeTransitModal.buyRequest}
+        isLoading={isUpdating}
+      />
+      {cancelTransitModal.isOpen && (
+        <ConfirmationModal
+          isOpen={cancelTransitModal.isOpen}
+          onClose={() => setCancelTransitModal({ isOpen: false, buyRequestId: null })}
+          onConfirm={handleConfirmCancelTransit}
+          title="Cancel Transit"
+          message="Cancel this AgroTrack shipment? You can only do this before pickup. If a driver is already en route, call the dispatcher instead."
+          confirmText="Cancel Transit"
+          cancelText="Keep Shipment"
+          type="danger"
+          isLoading={isUpdating}
+        />
+      )}
     </div>
   );
 }
