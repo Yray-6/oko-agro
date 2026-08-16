@@ -12,7 +12,8 @@ import {
   CropResponse,
   User,
   QualityResponse,
-  CertificationResponse
+  CertificationResponse,
+  LocationState,
 } from '@/app/types';
 import { config } from '@/app/config';
 
@@ -380,6 +381,67 @@ export async function GET(request: NextRequest) {
             );
           }
           
+          throw error;
+        }
+
+      case 'locations':
+        try {
+          // Public endpoint — no auth required
+          const state = searchParams.get('state');
+          const path = state?.trim()
+            ? `/locations?state=${encodeURIComponent(state.trim())}`
+            : '/locations';
+          const response = await apiClient.get<LocationState | LocationState[]>(path);
+
+          if (response.status >= 400) {
+            const errorBody = response.data as unknown as {
+              message?: string | string[];
+              error?: string;
+            };
+            const message = Array.isArray(errorBody?.message)
+              ? errorBody.message.join(', ')
+              : errorBody?.message || 'Failed to fetch locations';
+
+            return NextResponse.json(
+              {
+                statusCode: response.status,
+                message,
+                error: errorBody?.error || 'Error',
+              } as ApiResponse,
+              { status: response.status }
+            );
+          }
+
+          return NextResponse.json(
+            {
+              statusCode: 200,
+              message: state?.trim()
+                ? 'State locations fetched successfully'
+                : 'Locations fetched successfully',
+              data: response.data,
+            } as ApiResponse<LocationState | LocationState[]>,
+            { status: 200 }
+          );
+        } catch (error) {
+          console.error('Locations API Error:', error);
+
+          if (error instanceof AxiosError) {
+            const statusCode = error.response?.status || 500;
+            const errorMessage =
+              error.response?.data?.message ||
+              error.message ||
+              'Failed to fetch locations';
+
+            return NextResponse.json(
+              {
+                statusCode,
+                message: errorMessage,
+                error: error.response?.data?.error || 'Internal Server Error',
+              } as ApiResponse,
+              { status: statusCode }
+            );
+          }
+
           throw error;
         }
 

@@ -323,6 +323,11 @@ export interface CertificationResponse {
   name: string;
 }
 
+export type LocationState = {
+  state: string;
+  lgas: string[];
+};
+
 
 
 export interface CreateProduct {

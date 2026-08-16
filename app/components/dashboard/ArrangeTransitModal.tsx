@@ -3,10 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { Truck, X } from "lucide-react";
 import type { ArrangeTransitRequest, BuyRequest } from "@/app/types";
-import {
-  buildArrangeTransitPrefill,
-  NIGERIAN_STATE_OPTIONS,
-} from "@/app/utils/agrotrackHandoff";
+import { buildArrangeTransitPrefill } from "@/app/utils/agrotrackHandoff";
+import { useDataStore } from "@/app/store/useDataStore";
 
 interface ArrangeTransitModalProps {
   isOpen: boolean;
@@ -29,11 +27,29 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
   const [form, setForm] = useState<ArrangeTransitRequest | null>(null);
   const [error, setError] = useState("");
 
+  const {
+    locations,
+    locationsLoading,
+    fetchLocations,
+    getLgasForState,
+  } = useDataStore();
+
+  const stateOptions = locations.map((item) => item.state);
+  const pickupLgas = form ? getLgasForState(form.pickupState) : [];
+  const deliveryLgas = form ? getLgasForState(form.deliveryState) : [];
+
   useEffect(() => {
     if (!isOpen || !buyRequest) return;
     setForm(buildArrangeTransitPrefill(buyRequest));
     setError("");
   }, [isOpen, buyRequest]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (locations.length === 0) {
+      fetchLocations().catch(console.error);
+    }
+  }, [isOpen, locations.length, fetchLocations]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -65,6 +81,24 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
     value: ArrangeTransitRequest[K],
   ) => {
     setForm((current) => (current ? { ...current, [key]: value } : current));
+    setError("");
+  };
+
+  const handlePickupStateChange = (value: string) => {
+    setForm((current) =>
+      current
+        ? { ...current, pickupState: value, pickupLga: "" }
+        : current,
+    );
+    setError("");
+  };
+
+  const handleDeliveryStateChange = (value: string) => {
+    setForm((current) =>
+      current
+        ? { ...current, deliveryState: value, deliveryLga: "" }
+        : current,
+    );
     setError("");
   };
 
@@ -174,12 +208,20 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                   State <span className="text-red-500">*</span>
                   <select
                     value={form.pickupState}
-                    onChange={(e) => update("pickupState", e.target.value)}
-                    disabled={isLoading}
+                    onChange={(e) => handlePickupStateChange(e.target.value)}
+                    disabled={isLoading || locationsLoading}
                     className={`${inputClass} mt-1`}
                   >
-                    <option value="">Select state</option>
-                    {NIGERIAN_STATE_OPTIONS.map((state) => (
+                    <option value="">
+                      {locationsLoading ? "Loading states..." : "Select state"}
+                    </option>
+                    {form.pickupState &&
+                    !stateOptions.includes(form.pickupState) ? (
+                      <option value={form.pickupState}>
+                        {form.pickupState}
+                      </option>
+                    ) : null}
+                    {stateOptions.map((state) => (
                       <option key={state} value={state}>
                         {state}
                       </option>
@@ -188,12 +230,31 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                 </label>
                 <label className="text-sm font-medium text-gray-700">
                   LGA <span className="text-red-500">*</span>
-                  <input
+                  <select
                     value={form.pickupLga}
                     onChange={(e) => update("pickupLga", e.target.value)}
-                    disabled={isLoading}
+                    disabled={
+                      isLoading || locationsLoading || !form.pickupState
+                    }
                     className={`${inputClass} mt-1`}
-                  />
+                  >
+                    <option value="">
+                      {locationsLoading
+                        ? "Loading LGAs..."
+                        : form.pickupState
+                          ? "Select LGA"
+                          : "Select state first"}
+                    </option>
+                    {form.pickupLga &&
+                    !pickupLgas.includes(form.pickupLga) ? (
+                      <option value={form.pickupLga}>{form.pickupLga}</option>
+                    ) : null}
+                    {pickupLgas.map((lga) => (
+                      <option key={lga} value={lga}>
+                        {lga}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="sm:col-span-2 text-sm font-medium text-gray-700">
                   Street address <span className="text-red-500">*</span>
@@ -232,12 +293,20 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                   State <span className="text-red-500">*</span>
                   <select
                     value={form.deliveryState}
-                    onChange={(e) => update("deliveryState", e.target.value)}
-                    disabled={isLoading}
+                    onChange={(e) => handleDeliveryStateChange(e.target.value)}
+                    disabled={isLoading || locationsLoading}
                     className={`${inputClass} mt-1`}
                   >
-                    <option value="">Select state</option>
-                    {NIGERIAN_STATE_OPTIONS.map((state) => (
+                    <option value="">
+                      {locationsLoading ? "Loading states..." : "Select state"}
+                    </option>
+                    {form.deliveryState &&
+                    !stateOptions.includes(form.deliveryState) ? (
+                      <option value={form.deliveryState}>
+                        {form.deliveryState}
+                      </option>
+                    ) : null}
+                    {stateOptions.map((state) => (
                       <option key={state} value={state}>
                         {state}
                       </option>
@@ -246,12 +315,33 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                 </label>
                 <label className="text-sm font-medium text-gray-700">
                   LGA <span className="text-red-500">*</span>
-                  <input
+                  <select
                     value={form.deliveryLga}
                     onChange={(e) => update("deliveryLga", e.target.value)}
-                    disabled={isLoading}
+                    disabled={
+                      isLoading || locationsLoading || !form.deliveryState
+                    }
                     className={`${inputClass} mt-1`}
-                  />
+                  >
+                    <option value="">
+                      {locationsLoading
+                        ? "Loading LGAs..."
+                        : form.deliveryState
+                          ? "Select LGA"
+                          : "Select state first"}
+                    </option>
+                    {form.deliveryLga &&
+                    !deliveryLgas.includes(form.deliveryLga) ? (
+                      <option value={form.deliveryLga}>
+                        {form.deliveryLga}
+                      </option>
+                    ) : null}
+                    {deliveryLgas.map((lga) => (
+                      <option key={lga} value={lga}>
+                        {lga}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="sm:col-span-2 text-sm font-medium text-gray-700">
                   Street address <span className="text-red-500">*</span>
