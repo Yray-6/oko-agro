@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Download, FileText, CreditCard, Star, XCircle } from "lucide-react";
 import Image from "next/image";
 import Logo from "@/app/assets/icons/Logo";
+import AgroTrackShippingInfo from "@/app/components/shared/AgroTrackShippingInfo";
 
 // Mock icons
 const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
@@ -58,6 +59,10 @@ export interface Order {
   ratings?: OrderRating[]; // Ratings for this order
   currentUserRole?: 'farmer' | 'processor'; // Current user's role to determine if they can rate
   agroTrackTrackingNumber?: string | null;
+  agroTrackStatus?: string | null;
+  agroTrackBaseRate?: string | null;
+  agroTrackDistanceSurcharge?: string | null;
+  agroTrackTotalCost?: string | null;
 }
 
 interface InvoiceData {
@@ -660,14 +665,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
                     Quantity: {order.quantity} | {order.price}
                   </p>
                   <p>Certification: {order.certification}</p>
-                  {order.agroTrackTrackingNumber ? (
-                    <p>
-                      Tracking:{" "}
-                      <span className="font-medium text-gray-800">
-                        {order.agroTrackTrackingNumber}
-                      </span>
-                    </p>
-                  ) : null}
                 </div>
               </div>
             </div>
@@ -709,6 +706,14 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </p>
           </div>
         </div>
+
+        <AgroTrackShippingInfo
+          agroTrackTrackingNumber={order.agroTrackTrackingNumber}
+          agroTrackStatus={order.agroTrackStatus}
+          agroTrackBaseRate={order.agroTrackBaseRate}
+          agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
+          agroTrackTotalCost={order.agroTrackTotalCost}
+        />
 
         <div className="flex items-center flex-wrap gap-3 mt-6 pt-6 border-t border-gray-100">
           {/* Make Payment Button - Only for Active orders (processor side) */}

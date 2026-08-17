@@ -99,6 +99,9 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     currentUserRole: 'farmer', // Farmer viewing their orders
     agroTrackTrackingNumber: buyRequest.agroTrackTrackingNumber || null,
     agroTrackStatus: buyRequest.agroTrackStatus || null,
+    agroTrackBaseRate: buyRequest.agroTrackBaseRate || null,
+    agroTrackDistanceSurcharge: buyRequest.agroTrackDistanceSurcharge || null,
+    agroTrackTotalCost: buyRequest.agroTrackTotalCost || null,
   };
 };
 

@@ -196,6 +196,50 @@ export function canCancelAgroTrackTransit(status?: string | null): boolean {
   return !NON_CANCELLABLE_AGROTRACK_STATUSES.has(status.toLowerCase());
 }
 
+export function formatAgroTrackStatus(status?: string | null): string {
+  if (!status) return "Not linked";
+  return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function formatAgroTrackAmount(amount?: string | null): string | null {
+  if (!amount) return null;
+  const num = parseFloat(amount);
+  if (!Number.isFinite(num)) return null;
+  return `₦${num.toLocaleString("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+export function getAgroTrackStatusBadgeClass(status?: string | null): string {
+  switch (status?.toLowerCase()) {
+    case "assigned":
+    case "pending_pickup":
+      return "bg-amber-100 text-amber-800";
+    case "in_transit":
+      return "bg-purple-100 text-purple-800";
+    case "delivered":
+    case "completed":
+      return "bg-green-100 text-green-800";
+    case "cancelled":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-sky-100 text-sky-800";
+  }
+}
+
+export function hasAgroTrackShippingInfo(order: {
+  agroTrackTrackingNumber?: string | null;
+  agroTrackStatus?: string | null;
+  agroTrackTotalCost?: string | null;
+}): boolean {
+  return !!(
+    order.agroTrackTrackingNumber ||
+    order.agroTrackStatus ||
+    order.agroTrackTotalCost
+  );
+}
+
 export function getAgroTrackBaseUrl(): string {
   return config.agroTrackUrl;
 }

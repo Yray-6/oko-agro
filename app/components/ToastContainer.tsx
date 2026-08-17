@@ -1,61 +1,138 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// components/ToastContainer.tsx
-'use client'
+'use client';
+
 import React from 'react';
-import { X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
-import { useToast,ToastType } from '../hooks/useToast';
+import { AlertCircle, CheckCircle, Info, LucideIcon, X, XCircle } from 'lucide-react';
+import {
+  Toast,
+  ToastType,
+  TOAST_DURATION_MS,
+  useToast,
+} from '../hooks/useToast';
+
+interface ToastStyle {
+  label: string;
+  accent: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  progress: string;
+  labelColor: string;
+}
+
+const toastStyles: Record<ToastType, ToastStyle> = {
+  success: {
+    label: 'Success',
+    accent: 'border-l-green',
+    icon: CheckCircle,
+    iconBg: 'bg-green',
+    iconColor: 'text-white',
+    progress: 'bg-green',
+    labelColor: 'text-green',
+  },
+  error: {
+    label: 'Error',
+    accent: 'border-l-red',
+    icon: XCircle,
+    iconBg: 'bg-red',
+    iconColor: 'text-white',
+    progress: 'bg-red',
+    labelColor: 'text-red',
+  },
+  warning: {
+    label: 'Warning',
+    accent: 'border-l-yellow',
+    icon: AlertCircle,
+    iconBg: 'bg-orange',
+    iconColor: 'text-white',
+    progress: 'bg-yellow',
+    labelColor: 'text-orange',
+  },
+  info: {
+    label: 'Info',
+    accent: 'border-l-blue',
+    icon: Info,
+    iconBg: 'bg-blue',
+    iconColor: 'text-white',
+    progress: 'bg-blue',
+    labelColor: 'text-blue',
+  },
+};
+
+const ToastItem: React.FC<{
+  toast: Toast;
+  onDismiss: (id: string) => void;
+  onPause: (id: string) => void;
+  onResume: (id: string) => void;
+}> = ({ toast, onDismiss, onPause, onResume }) => {
+  const style = toastStyles[toast.type];
+  const Icon = style.icon;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      onMouseEnter={() => {
+        if (!toast.exiting) onPause(toast.id);
+      }}
+      onMouseLeave={() => {
+        if (!toast.exiting) onResume(toast.id);
+      }}
+      className={`group pointer-events-auto relative overflow-hidden rounded-lg border border-gray-100 border-l-4 bg-white shadow-xl ${style.accent} ${
+        toast.exiting ? 'animate-slide-out' : 'animate-slide-in'
+      }`}
+    >
+      <div className="flex items-start gap-3 p-4">
+        <div
+          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${style.iconBg}`}
+        >
+          <Icon className={`h-4 w-4 ${style.iconColor}`} aria-hidden="true" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className={`text-xs font-semibold tracking-wide ${style.labelColor}`}>
+            {style.label}
+          </p>
+          <p className="mt-0.5 text-sm leading-relaxed text-gray">{toast.message}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onDismiss(toast.id)}
+          className="flex-shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          aria-label="Dismiss notification"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {!toast.exiting && (
+        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gray-100">
+          <div
+            className={`h-full origin-left ${style.progress} animate-toast-progress group-hover:[animation-play-state:paused]`}
+            style={{ animationDuration: `${TOAST_DURATION_MS}ms` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ToastContainer: React.FC = () => {
-  const { toasts, removeToast } = useToast();
-
-  const getIcon = (type: ToastType) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'error':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
-      case 'info':
-        return <Info className="w-5 h-5 text-blue-500" />;
-    }
-  };
-
-  const getStyles = (type: ToastType) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-50 border-green-200';
-      case 'error':
-        return 'bg-red-50 border-red-200';
-      case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
-      case 'info':
-        return 'bg-blue-50 border-blue-200';
-    }
-  };
+  const { toasts, removeToast, pauseToast, resumeToast } = useToast();
 
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-md w-full pointer-events-none">
-      {toasts.map((toast:any) => (
-        <div
+    <div className="pointer-events-none fixed top-4 right-4 z-[100] w-full max-w-sm space-y-3">
+      {toasts.map((toast) => (
+        <ToastItem
           key={toast.id}
-          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg pointer-events-auto animate-slide-in ${getStyles(toast.type)}`}
-        >
-          <div className="flex-shrink-0 mt-0.5">
-            {getIcon(toast.type)}
-          </div>
-          <p className="flex-1 text-sm text-gray-800 leading-relaxed">
-            {toast.message}
-          </p>
-          <button
-            onClick={() => removeToast(toast.id)}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+          toast={toast}
+          onDismiss={removeToast}
+          onPause={pauseToast}
+          onResume={resumeToast}
+        />
       ))}
     </div>
   );

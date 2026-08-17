@@ -101,6 +101,10 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     ratings: buyRequest.ratings || [], // Include ratings from buy request
     currentUserRole: 'processor', // Processor viewing their orders
     agroTrackTrackingNumber: buyRequest.agroTrackTrackingNumber || null,
+    agroTrackStatus: buyRequest.agroTrackStatus || null,
+    agroTrackBaseRate: buyRequest.agroTrackBaseRate || null,
+    agroTrackDistanceSurcharge: buyRequest.agroTrackDistanceSurcharge || null,
+    agroTrackTotalCost: buyRequest.agroTrackTotalCost || null,
   };
 };
 

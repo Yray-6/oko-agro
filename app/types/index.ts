@@ -687,6 +687,10 @@ export interface BuyRequest {
   agroTrackTrackingNumber?: string | null;
   agroTrackOrderId?: number | null;
   agroTrackStatus?: AgroTrackStatus | null;
+  agroTrackSyncedAt?: string | null;
+  agroTrackBaseRate?: string | null;
+  agroTrackDistanceSurcharge?: string | null;
+  agroTrackTotalCost?: string | null;
   purchaseOrderDoc?: UserFile | null; // Purchase order document
   ratings?: BuyRequestRating[]; // Ratings for this buy request
 }
