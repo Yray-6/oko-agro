@@ -196,6 +196,15 @@ export function canCancelAgroTrackTransit(status?: string | null): boolean {
   return !NON_CANCELLABLE_AGROTRACK_STATUSES.has(status.toLowerCase());
 }
 
+/** True when no live AgroTrack shipment is linked (or the last one was cancelled). */
+export function canArrangeAgroTrackTransit(
+  trackingNumber?: string | null,
+  status?: string | null,
+): boolean {
+  if (!trackingNumber) return true;
+  return status?.toLowerCase() === "cancelled";
+}
+
 export function formatAgroTrackStatus(status?: string | null): string {
   if (!status) return "Not linked";
   return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());

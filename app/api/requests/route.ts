@@ -82,7 +82,7 @@ const extractAuthToken = (request: NextRequest): string | null => {
 };
 
 // Define action types
-type BuyRequestAction = 'create' | 'upload-purchase-order';
+type BuyRequestAction = 'create' | 'upload-purchase-order' | 'estimate-shipping-cost';
 
 interface BuyRequestApiRequest {
   action: BuyRequestAction;
@@ -199,13 +199,52 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(uploadResponse.data as ApiResponse, {
           status: uploadResponse.status,
         });
+
+      case 'estimate-shipping-cost': {
+        const estimatePayload = {
+          pickupState: data.pickupState,
+          pickupLga: data.pickupLga,
+          deliveryState: data.deliveryState,
+          deliveryLga: data.deliveryLga,
+          ...(data.cargoPriority ? { cargoPriority: data.cargoPriority } : {}),
+        };
+
+        if (
+          !estimatePayload.pickupState ||
+          !estimatePayload.pickupLga ||
+          !estimatePayload.deliveryState ||
+          !estimatePayload.deliveryLga
+        ) {
+          return NextResponse.json(
+            {
+              statusCode: 400,
+              message: 'pickupState, pickupLga, deliveryState, and deliveryLga are required',
+              error: 'Bad Request'
+            } as ApiResponse,
+            { status: 400 }
+          );
+        }
+
+        endpoint = '/buy-requests/estimate-shipping-cost';
+        console.log(`🌐 [Buy Requests API ${requestId}] Estimating shipping cost`);
+
+        const estimateResponse = await apiClient.post(endpoint, estimatePayload, {
+          headers: {
+            'Authorization': authHeader
+          }
+        });
+
+        return NextResponse.json(estimateResponse.data as ApiResponse, {
+          status: estimateResponse.status,
+        });
+      }
         
       default:
         console.warn(`⚠️ [Buy Requests API ${requestId}] Invalid action for POST: ${action}`);
         return NextResponse.json(
           {
             statusCode: 400,
-            message: 'POST method only supports create and upload-purchase-order actions',
+            message: 'POST method only supports create, upload-purchase-order, and estimate-shipping-cost actions',
             error: 'Bad Request'
           } as ApiResponse,
           { status: 400 }

@@ -1,10 +1,44 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { AxiosError, isCancel } from "axios";
 import { Truck, X } from "lucide-react";
-import type { ArrangeTransitRequest, BuyRequest } from "@/app/types";
-import { buildArrangeTransitPrefill } from "@/app/utils/agrotrackHandoff";
+import type {
+  ArrangeTransitRequest,
+  BuyRequest,
+  ShippingCostEstimate,
+} from "@/app/types";
+import {
+  buildArrangeTransitPrefill,
+  formatAgroTrackAmount,
+} from "@/app/utils/agrotrackHandoff";
 import { useDataStore } from "@/app/store/useDataStore";
+import { useBuyRequestStore } from "@/app/store/useRequestStore";
+
+const CARGO_PRIORITY_OPTIONS: Array<{
+  value: NonNullable<ArrangeTransitRequest["cargoPriority"]>;
+  label: string;
+}> = [
+  { value: "standard", label: "Standard" },
+  { value: "express", label: "Express" },
+  { value: "same_day", label: "Same day" },
+];
+
+function estimateErrorMessage(error: unknown): string {
+  if (isCancel(error)) return "";
+  if (error instanceof AxiosError) {
+    const status = error.response?.status;
+    const data = error.response?.data as { message?: string | string[] } | undefined;
+    const message = Array.isArray(data?.message)
+      ? data.message.join(", ")
+      : data?.message;
+    if (status === 400) {
+      return message || "Could not resolve this pickup/delivery pair.";
+    }
+    return message || "Could not load a shipping-cost preview.";
+  }
+  return "Could not load a shipping-cost preview.";
+}
 
 interface ArrangeTransitModalProps {
   isOpen: boolean;
@@ -26,6 +60,13 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
 }) => {
   const [form, setForm] = useState<ArrangeTransitRequest | null>(null);
   const [error, setError] = useState("");
+  const [estimate, setEstimate] = useState<ShippingCostEstimate | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState("");
+
+  const estimateShippingCost = useBuyRequestStore(
+    (state) => state.estimateShippingCost,
+  );
 
   const {
     locations,
@@ -38,11 +79,73 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
   const pickupLgas = form ? getLgasForState(form.pickupState) : [];
   const deliveryLgas = form ? getLgasForState(form.deliveryState) : [];
 
+  const pickupState = form?.pickupState?.trim() ?? "";
+  const pickupLga = form?.pickupLga?.trim() ?? "";
+  const deliveryState = form?.deliveryState?.trim() ?? "";
+  const deliveryLga = form?.deliveryLga?.trim() ?? "";
+  const cargoPriority = form?.cargoPriority || "standard";
+
   useEffect(() => {
     if (!isOpen || !buyRequest) return;
     setForm(buildArrangeTransitPrefill(buyRequest));
     setError("");
+    setEstimate(null);
+    setEstimateError("");
+    setEstimateLoading(false);
   }, [isOpen, buyRequest]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (!pickupState || !pickupLga || !deliveryState || !deliveryLga) {
+      setEstimate(null);
+      setEstimateError("");
+      setEstimateLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setEstimateLoading(true);
+    setEstimateError("");
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const result = await estimateShippingCost(
+          {
+            pickupState,
+            pickupLga,
+            deliveryState,
+            deliveryLga,
+            cargoPriority,
+          },
+          controller.signal,
+        );
+        setEstimate(result);
+        setEstimateError("");
+      } catch (err) {
+        if (isCancel(err)) return;
+        setEstimate(null);
+        setEstimateError(estimateErrorMessage(err));
+      } finally {
+        if (!controller.signal.aborted) {
+          setEstimateLoading(false);
+        }
+      }
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [
+    isOpen,
+    pickupState,
+    pickupLga,
+    deliveryState,
+    deliveryLga,
+    cargoPriority,
+    estimateShippingCost,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -384,8 +487,8 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                 </label>
               </section>
 
-              <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <h3 className="sm:col-span-3 text-sm font-semibold text-gray-900">
+              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <h3 className="sm:col-span-2 text-sm font-semibold text-gray-900">
                   Cargo
                 </h3>
                 <label className="text-sm font-medium text-gray-700">
@@ -396,6 +499,28 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                     disabled={isLoading}
                     className={`${inputClass} mt-1`}
                   />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Priority
+                  <select
+                    value={form.cargoPriority || "standard"}
+                    onChange={(e) =>
+                      update(
+                        "cargoPriority",
+                        e.target.value as NonNullable<
+                          ArrangeTransitRequest["cargoPriority"]
+                        >,
+                      )
+                    }
+                    disabled={isLoading}
+                    className={`${inputClass} mt-1`}
+                  >
+                    {CARGO_PRIORITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="text-sm font-medium text-gray-700">
                   Weight (kg) <span className="text-red-500">*</span>
@@ -425,6 +550,65 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                     className={`${inputClass} mt-1`}
                   />
                 </label>
+              </section>
+
+              <section className="rounded-lg border border-sky-100 bg-sky-50 p-4">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Shipping cost preview
+                </h3>
+                {estimateLoading && !estimate ? (
+                  <p className="mt-2 text-sm text-sky-900">Estimating…</p>
+                ) : null}
+                {estimateError ? (
+                  <p className="mt-2 text-sm text-amber-800">{estimateError}</p>
+                ) : null}
+                {estimate ? (
+                  <div className="mt-3 space-y-3">
+                    <p className="font-semibold text-green text-lg">
+                      {formatAgroTrackAmount(String(estimate.estimatedCost)) ??
+                        "—"}
+                      {estimateLoading ? (
+                        <span className="ml-2 text-xs font-normal text-sky-800">
+                          Updating…
+                        </span>
+                      ) : null}
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <p className="text-xs text-sky-800">Base rate</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatAgroTrackAmount(String(estimate.baseRate)) ??
+                            "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-sky-800">Distance charge</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatAgroTrackAmount(
+                            String(estimate.distanceCharge),
+                          ) ?? "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-sky-800">Distance</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {Number.isFinite(estimate.distanceKm)
+                            ? `${estimate.distanceKm.toFixed(1)} km`
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-sky-800">
+                      Preview only. Final price is set when the shipment is
+                      created.
+                    </p>
+                  </div>
+                ) : !estimateLoading && !estimateError ? (
+                  <p className="mt-2 text-sm text-sky-900">
+                    Select pickup and delivery state and LGA to see an
+                    estimate.
+                  </p>
+                ) : null}
               </section>
 
               <label className="flex items-start gap-2 text-sm text-gray-700">

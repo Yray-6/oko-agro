@@ -18,6 +18,8 @@ import {
   UpdateTrackingRequest,
   ArrangeTransitRequest,
   ArrangeTransitResult,
+  EstimateShippingCostRequest,
+  ShippingCostEstimate,
   SsoHandoffToken,
   DirectBuyRequestRequest,
   UploadPurchaseOrderRequest,
@@ -107,6 +109,10 @@ interface BuyRequestActions {
   updateOrderState: (data: UpdateOrderStateRequest) => Promise<BuyRequest>;
   updateTracking: (data: UpdateTrackingRequest) => Promise<BuyRequest>;
   arrangeTransit: (data: ArrangeTransitRequest) => Promise<ArrangeTransitResult>;
+  estimateShippingCost: (
+    data: EstimateShippingCostRequest,
+    signal?: AbortSignal,
+  ) => Promise<ShippingCostEstimate>;
   cancelTransit: (buyRequestId: string) => Promise<BuyRequest>;
   fetchSsoHandoffToken: () => Promise<SsoHandoffToken | null>;
   deleteBuyRequest: (buyRequestId: string) => Promise<void>;
@@ -588,6 +594,27 @@ export const useBuyRequestStore = create<BuyRequestStore>((set, get) => ({
       });
       throw error;
     }
+  },
+
+  estimateShippingCost: async (data: EstimateShippingCostRequest, signal?: AbortSignal) => {
+    const response = await apiClient.post<{
+      statusCode: number;
+      message: string;
+      data: ShippingCostEstimate;
+    }>(
+      '/requests',
+      {
+        action: 'estimate-shipping-cost',
+        ...data,
+      },
+      signal ? { signal } : undefined,
+    );
+
+    if (response.data.statusCode === 200 && response.data.data) {
+      return response.data.data;
+    }
+
+    throw new Error(response.data.message || 'Failed to estimate shipping cost');
   },
 
   cancelTransit: async (buyRequestId: string) => {

@@ -2,7 +2,10 @@
 import React, { useState } from "react";
 import { Download, Star, XCircle } from "lucide-react";
 import Image from "next/image";
-import { canCancelAgroTrackTransit } from "@/app/utils/agrotrackHandoff";
+import {
+  canArrangeAgroTrackTransit,
+  canCancelAgroTrackTransit,
+} from "@/app/utils/agrotrackHandoff";
 import AgroTrackShippingInfo from "@/app/components/shared/AgroTrackShippingInfo";
 
 // Mock icons
@@ -341,15 +344,19 @@ const Orders: React.FC<OrdersProps> = ({
             )}
             {isAwaitingShipping && order.buyRequestId && (
               <>
-                {onArrangeTransit && (
-                  <button
-                    type="button"
-                    onClick={() => onArrangeTransit(order.id, order.buyRequestId!)}
-                    className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-md hover:bg-mainGreen/5 transition-colors font-medium"
-                  >
-                    Arrange Transit
-                  </button>
-                )}
+                {onArrangeTransit &&
+                  canArrangeAgroTrackTransit(
+                    order.agroTrackTrackingNumber,
+                    order.agroTrackStatus,
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => onArrangeTransit(order.id, order.buyRequestId!)}
+                      className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-md hover:bg-mainGreen/5 transition-colors font-medium"
+                    >
+                      Arrange Transit
+                    </button>
+                  )}
                 {order.agroTrackTrackingNumber && onTrackShipment ? (
                   <button
                     type="button"

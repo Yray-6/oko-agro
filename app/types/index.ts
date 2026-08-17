@@ -853,6 +853,23 @@ export interface ArrangeTransitResult {
   message: string;
 }
 
+export interface EstimateShippingCostRequest {
+  pickupState: string;
+  pickupLga: string;
+  deliveryState: string;
+  deliveryLga: string;
+  cargoPriority?: 'standard' | 'express' | 'same_day';
+}
+
+export interface ShippingCostEstimate {
+  estimatedCost: number;
+  baseRate: number;
+  distanceCharge: number;
+  distanceKm: number;
+  priorityMultiplier: number;
+  distanceMethod: string;
+}
+
 export interface SsoHandoffToken {
   token: string;
   expiresAt: string;
