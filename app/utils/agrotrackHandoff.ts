@@ -220,6 +220,25 @@ export function formatAgroTrackAmount(amount?: string | null): string | null {
   })}`;
 }
 
+/** Matches AgroTrack CargoDetailsForm: ₦43/kg on top of OSRM distance estimate. */
+export const AGROTRACK_RATE_PER_KG = 43;
+
+export function getAgroTrackKgCharge(weightKg?: number | null): number {
+  const weight = typeof weightKg === "number" && Number.isFinite(weightKg) ? weightKg : 0;
+  if (weight <= 0) return 0;
+  return Math.round(weight * AGROTRACK_RATE_PER_KG);
+}
+
+/** Live distance estimate plus the per-kg charge (same as AgroTrack getEstimateTotalWithKgCharge). */
+export function getAgroTrackEstimateTotalWithKgCharge(
+  estimatedCost: number | null | undefined,
+  weightKg?: number | null,
+): number {
+  const kgCharge = getAgroTrackKgCharge(weightKg);
+  if (estimatedCost == null || !Number.isFinite(estimatedCost)) return kgCharge;
+  return Math.round(estimatedCost + kgCharge);
+}
+
 export function getAgroTrackStatusBadgeClass(status?: string | null): string {
   switch (status?.toLowerCase()) {
     case "assigned":

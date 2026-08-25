@@ -9,8 +9,11 @@ import type {
   ShippingCostEstimate,
 } from "@/app/types";
 import {
+  AGROTRACK_RATE_PER_KG,
   buildArrangeTransitPrefill,
   formatAgroTrackAmount,
+  getAgroTrackEstimateTotalWithKgCharge,
+  getAgroTrackKgCharge,
 } from "@/app/utils/agrotrackHandoff";
 import { useDataStore } from "@/app/store/useDataStore";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
@@ -172,6 +175,14 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
   }, [isOpen, isLoading, onClose]);
 
   if (!isOpen || !form) return null;
+
+  const kgCharge = getAgroTrackKgCharge(form.cargoWeight);
+  const totalEstimate = estimate
+    ? getAgroTrackEstimateTotalWithKgCharge(
+        estimate.estimatedCost,
+        form.cargoWeight,
+      )
+    : null;
 
   const handleClose = () => {
     if (isLoading) return;
@@ -554,7 +565,7 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
 
               <section className="rounded-lg border border-sky-100 bg-sky-50 p-4">
                 <h3 className="text-sm font-semibold text-gray-900">
-                  Shipping cost preview
+                  Estimated Pricing
                 </h3>
                 {estimateLoading && !estimate ? (
                   <p className="mt-2 text-sm text-sky-900">Estimating…</p>
@@ -562,18 +573,16 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                 {estimateError ? (
                   <p className="mt-2 text-sm text-amber-800">{estimateError}</p>
                 ) : null}
-                {estimate ? (
+                {estimate && totalEstimate != null ? (
                   <div className="mt-3 space-y-3">
-                    <p className="font-semibold text-green text-lg">
-                      {formatAgroTrackAmount(String(estimate.estimatedCost)) ??
-                        "—"}
+                    <p className="text-xs text-sky-800">
+                      Estimated from road distance via{" "}
+                      {estimate.distanceMethod} + ₦{AGROTRACK_RATE_PER_KG}/kg
                       {estimateLoading ? (
-                        <span className="ml-2 text-xs font-normal text-sky-800">
-                          Updating…
-                        </span>
+                        <span className="ml-2 font-normal">Updating…</span>
                       ) : null}
                     </p>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <p className="text-xs text-sky-800">Base rate</p>
                         <p className="text-sm font-medium text-gray-900">
@@ -590,11 +599,27 @@ const ArrangeTransitModal: React.FC<ArrangeTransitModalProps> = ({
                         </p>
                       </div>
                       <div>
+                        <p className="text-xs text-sky-800">Kg charge</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatAgroTrackAmount(String(kgCharge)) ?? "—"}
+                        </p>
+                      </div>
+                      <div>
                         <p className="text-xs text-sky-800">Distance</p>
                         <p className="text-sm font-medium text-gray-900">
                           {Number.isFinite(estimate.distanceKm)
-                            ? `${estimate.distanceKm.toFixed(1)} km`
+                            ? `~${estimate.distanceKm.toLocaleString("en-NG")} km`
                             : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-t border-sky-200 pt-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-900">
+                          Total Estimate
+                        </p>
+                        <p className="font-semibold text-green text-lg">
+                          {formatAgroTrackAmount(String(totalEstimate)) ?? "—"}
                         </p>
                       </div>
                     </div>

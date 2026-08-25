@@ -2,11 +2,12 @@
 import React, { useState } from "react";
 import { Download, Star, XCircle } from "lucide-react";
 import Image from "next/image";
+import { canArrangeAgroTrackTransit } from "@/app/utils/agrotrackHandoff";
 import {
-  canArrangeAgroTrackTransit,
-  canCancelAgroTrackTransit,
-} from "@/app/utils/agrotrackHandoff";
-import AgroTrackShippingInfo from "@/app/components/shared/AgroTrackShippingInfo";
+  AgroTrackShippingChip,
+  AgroTrackShippingPanel,
+  shouldShowAgroTrackShipping,
+} from "@/app/components/shared/AgroTrackShippingInfo";
 
 // Mock icons
 const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
@@ -156,7 +157,7 @@ const Orders: React.FC<OrdersProps> = ({
       
       // For orderState values (only if not rejected)
       if (displayLower.includes('awaiting_shipping') || displayLower.includes('awaiting shipping')) {
-        return "bg-blue-500 text-white";
+        return "bg-[#2E82F1] text-white";
       }
       if (displayLower.includes('in_transit') || displayLower.includes('in transit')) {
         return "bg-purple-500 text-white";
@@ -205,9 +206,18 @@ const Orders: React.FC<OrdersProps> = ({
   };
 
   const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
+    const [shippingExpanded, setShippingExpanded] = useState(false);
     const isPending = order.status === "Pending";
     const isAwaitingShipping = order.orderState?.toLowerCase() === 'awaiting_shipping';
     const isCompleted = order.status === "Completed" || order.orderState?.toLowerCase() === 'completed';
+    const showShipping = shouldShowAgroTrackShipping(order);
+    const canArrange =
+      !!onArrangeTransit &&
+      !!order.buyRequestId &&
+      canArrangeAgroTrackTransit(
+        order.agroTrackTrackingNumber,
+        order.agroTrackStatus,
+      );
     
     // Check if current user (farmer/seller) has already rated
     const userRating = order.ratings?.find(rating => 
@@ -216,13 +226,13 @@ const Orders: React.FC<OrdersProps> = ({
     const hasUserRated = !!userRating;
 
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-[0_0_2px_rgba(0,0,0,0.25)] hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-start space-x-2">
             <ViewOrders color="black" className="pt-1" />
             <div>
-              <span className="font-medium">Order: #{order.id}</span>
-              <div className="text-sm text-gray-600">
+              <span className="font-semibold text-base">Order: #{order.id}</span>
+              <div className="text-sm text-gray-600 font-light">
                 Created {order.createdDate}
               </div>
             </div>
@@ -249,7 +259,7 @@ const Orders: React.FC<OrdersProps> = ({
               </div>
               <div className="flex-1">
                 <h5 className="font-medium mb-2">{order.productName}</h5>
-                <div className="text-sm text-gray-600 space-y-1">
+                <div className="text-sm text-gray-600 space-y-1 font-light">
                   <p>
                     Quantity: {order.quantity} | {order.price}
                   </p>
@@ -262,66 +272,89 @@ const Orders: React.FC<OrdersProps> = ({
           <div>
             <h4 className="font-medium text-gray-900 mb-4">Buyer Information</h4>
             <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-gray-300 rounded-xl flex items-center justify-center flex-shrink-0">
                 <span className="text-sm font-medium text-gray-600">
                   {order.buyerName.charAt(0)}
                 </span>
               </div>
               <div className="flex-1">
                 <h5 className="font-medium text-gray-900">{order.buyerName}</h5>
-                <p className="text-sm text-gray-600">{order.buyerLocation}</p>
-                {/* <div className="flex items-center space-x-4 mt-4">
-                  {onMessage && (
-                    <button
-                      onClick={() => onMessage(order.id)}
-                      className="text-sm text-mainGreen hover:text-mainGreen/90"
-                    >
-                      Message
-                    </button>
-                  )}
-                  {onViewProfile && (
-                    <button
-                      onClick={() => onViewProfile(order.id)}
-                      className="text-sm text-mainGreen hover:text-mainGreen/90"
-                    >
-                      View profile
-                    </button>
-                  )}
-                </div> */}
+                <p className="text-sm text-gray-600 font-light">{order.buyerLocation}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-6 pt-6 bg-sky-50 p-4 rounded-lg">
-          <div>
-            <p className="text-sm text-gray-600 mb-3">Order Value</p>
-            <p className="font-semibold text-green text-lg">
-              {order.orderValue}
-            </p>
+        <div className="mt-6">
+          <div
+            className={`flex flex-col gap-4 bg-[#ECF9F7] px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-10 ${
+              showShipping && shippingExpanded
+                ? "rounded-t-[20px]"
+                : "rounded-[20px]"
+            }`}
+          >
+            <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-8">
+              <div>
+                <p className="mb-2 text-sm text-[#5C5C5C]">Order Value</p>
+                <p className="text-base font-medium text-green">
+                  {order.orderValue}
+                </p>
+              </div>
+              <div>
+                <p className="mb-2 text-sm text-[#5C5C5C]">Payment Terms</p>
+                <p className="text-base text-black">
+                  {order.paymentTerms || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="mb-2 text-sm text-[#5C5C5C]">Delivery Date</p>
+                <p className="text-base text-black">
+                  {order.deliveryDate || "TBD"}
+                </p>
+              </div>
+            </div>
+            {showShipping ? (
+              <AgroTrackShippingChip
+                expanded={shippingExpanded}
+                onToggle={() => setShippingExpanded((prev) => !prev)}
+              />
+            ) : null}
           </div>
-          <div>
-            <p className="text-sm text-gray-600 mb-3">Delivery Location</p>
-            <p className="font-medium text-gray-900">{order.deliveryLocation || order.buyerLocation || "N/A"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600 mb-3">Delivery Date</p>
-            <p className="font-medium text-gray-900">
-              {order.deliveryDate || "TBD"}
-            </p>
-          </div>
+
+          {showShipping ? (
+            <AgroTrackShippingPanel
+              expanded={shippingExpanded}
+              agroTrackTrackingNumber={order.agroTrackTrackingNumber}
+              agroTrackStatus={order.agroTrackStatus}
+              agroTrackBaseRate={order.agroTrackBaseRate}
+              agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
+              agroTrackTotalCost={order.agroTrackTotalCost}
+              onRequestShipment={
+                canArrange
+                  ? () => onArrangeTransit!(order.id, order.buyRequestId!)
+                  : undefined
+              }
+              onTrackShipment={
+                order.agroTrackTrackingNumber && onTrackShipment && order.buyRequestId
+                  ? () =>
+                      onTrackShipment(
+                        order.id,
+                        order.buyRequestId!,
+                        order.agroTrackTrackingNumber!,
+                      )
+                  : undefined
+              }
+              onCancelShipment={
+                onCancelTransit && order.buyRequestId
+                  ? () => onCancelTransit(order.id, order.buyRequestId!)
+                  : undefined
+              }
+            />
+          ) : null}
         </div>
 
-        <AgroTrackShippingInfo
-          agroTrackTrackingNumber={order.agroTrackTrackingNumber}
-          agroTrackStatus={order.agroTrackStatus}
-          agroTrackBaseRate={order.agroTrackBaseRate}
-          agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
-          agroTrackTotalCost={order.agroTrackTotalCost}
-        />
-
         <div className="flex items-center justify-between space-x-3 mt-6 pt-6 border-t border-gray-100">
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-3">
             {isPending && (onAcceptOrder || onDeclineOrder) && (
               <>
                 {onAcceptOrder && (
@@ -344,55 +377,15 @@ const Orders: React.FC<OrdersProps> = ({
             )}
             {isAwaitingShipping && order.buyRequestId && (
               <>
-                {onArrangeTransit &&
-                  canArrangeAgroTrackTransit(
-                    order.agroTrackTrackingNumber,
-                    order.agroTrackStatus,
-                  ) && (
-                    <button
-                      type="button"
-                      onClick={() => onArrangeTransit(order.id, order.buyRequestId!)}
-                      className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-md hover:bg-mainGreen/5 transition-colors font-medium"
-                    >
-                      Arrange Transit
-                    </button>
-                  )}
-                {order.agroTrackTrackingNumber && onTrackShipment ? (
+                {!order.agroTrackTrackingNumber && onLinkTracking && (
                   <button
                     type="button"
-                    onClick={() =>
-                      onTrackShipment(
-                        order.id,
-                        order.buyRequestId!,
-                        order.agroTrackTrackingNumber!,
-                      )
-                    }
-                    className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
+                    onClick={() => onLinkTracking(order.id, order.buyRequestId!)}
+                    className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
                   >
-                    Track Shipment
+                    Link Tracking
                   </button>
-                ) : (
-                  onLinkTracking && (
-                    <button
-                      type="button"
-                      onClick={() => onLinkTracking(order.id, order.buyRequestId!)}
-                      className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
-                    >
-                      Link Tracking
-                    </button>
-                  )
                 )}
-                {order.agroTrackTrackingNumber &&
-                  onCancelTransit &&
-                  canCancelAgroTrackTransit(order.agroTrackStatus) && (
-                    <button
-                      type="button"
-                      onClick={() => onCancelTransit(order.id, order.buyRequestId!)}
-                      className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
-                    >
-                      Cancel Transit
-                    </button>
-                  )}
                 {onUpdateOrderState && (
                   <button
                     type="button"
@@ -404,39 +397,6 @@ const Orders: React.FC<OrdersProps> = ({
                 )}
               </>
             )}
-            {!isAwaitingShipping &&
-              order.agroTrackTrackingNumber &&
-              order.buyRequestId && (
-                <>
-                  {onTrackShipment && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onTrackShipment(
-                          order.id,
-                          order.buyRequestId!,
-                          order.agroTrackTrackingNumber!,
-                        )
-                      }
-                      className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
-                    >
-                      Track Shipment
-                    </button>
-                  )}
-                  {onCancelTransit &&
-                    canCancelAgroTrackTransit(order.agroTrackStatus) && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onCancelTransit(order.id, order.buyRequestId!)
-                        }
-                        className="px-6 py-2 flex items-center gap-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors font-medium"
-                      >
-                        Cancel Transit
-                      </button>
-                    )}
-                </>
-              )}
             {/* Display rating if exists, otherwise show rate button */}
             {isCompleted && (
               <>
@@ -466,7 +426,7 @@ const Orders: React.FC<OrdersProps> = ({
                 ) : onRate && order.buyRequestId ? (
                   <button
                     onClick={() => onRate(order.id, order.buyRequestId!)}
-                    className="px-6 py-2 flex items-center gap-2 bg-[#004829] text-white rounded-md hover:bg-[#003d20] transition-colors font-medium"
+                    className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-[10px] hover:bg-mainGreen/5 transition-colors font-medium"
                   >
                     <Star className="w-4 h-4" />
                     Rate {order.buyerName ? 'Processor' : 'Farmer'}
@@ -491,16 +451,13 @@ const Orders: React.FC<OrdersProps> = ({
               download={order.purchaseOrderDoc.name}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+              className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-[10px] hover:bg-mainGreen/5 transition-colors font-medium"
             >
               <Download className="w-4 h-4" />
               Download Purchase Order
             </a>
           )}
         </div>
-
-
- 
       </div>
     );
   };

@@ -4,7 +4,11 @@ import React, { useState, useEffect } from "react";
 import { X, Download, FileText, CreditCard, Star, XCircle } from "lucide-react";
 import Image from "next/image";
 import Logo from "@/app/assets/icons/Logo";
-import AgroTrackShippingInfo from "@/app/components/shared/AgroTrackShippingInfo";
+import {
+  AgroTrackShippingChip,
+  AgroTrackShippingPanel,
+  shouldShowAgroTrackShipping,
+} from "@/app/components/shared/AgroTrackShippingInfo";
 
 // Mock icons
 const ViewOrders = ({ color = "black", size = 24, className = "" }) => (
@@ -561,7 +565,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
       
       // For orderState values (only if not rejected)
       if (displayLower.includes('awaiting_shipping') || displayLower.includes('awaiting shipping')) {
-        return "bg-blue-500 text-white";
+        return "bg-[#2E82F1] text-white";
       }
       if (displayLower.includes('in_transit') || displayLower.includes('in transit')) {
         return "bg-purple-500 text-white";
@@ -612,6 +616,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
   };
 
  const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
+    const [shippingExpanded, setShippingExpanded] = useState(false);
     const isMyRequest = order.isGeneral === true;
     const isActive = order.status === "Active";
     const canEdit = order.status === "Pending" || isMyRequest;
@@ -619,6 +624,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
     const canMakePayment = isActive && !isMyRequest && onMakePayment;
     const isInTransit = order.orderState?.toLowerCase() === 'in_transit';
     const isCompleted = order.status === "Completed" || order.orderState?.toLowerCase() === 'completed';
+    const showShipping = !isMyRequest && shouldShowAgroTrackShipping(order);
     
     // Check if current user (processor/buyer) has already rated
     const userRating = order.ratings?.find(rating => 
@@ -688,38 +694,66 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-6 pt-6 bg-sky-50 p-4 rounded-lg">
-          <div>
-            <p className="text-sm text-gray-600 mb-3">Order Value</p>
-            <p className="font-semibold text-green text-lg">
-              {order.orderValue}
-            </p>
+        <div className="mt-6">
+          <div
+            className={`flex flex-col gap-4 bg-[#ECF9F7] px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-10 ${
+              showShipping && shippingExpanded
+                ? "rounded-t-[20px]"
+                : "rounded-[20px]"
+            }`}
+          >
+            <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-8">
+              <div>
+                <p className="mb-2 text-sm text-[#5C5C5C]">Order Value</p>
+                <p className="text-base font-medium text-green">
+                  {order.orderValue}
+                </p>
+              </div>
+              <div>
+                <p className="mb-2 text-sm text-[#5C5C5C]">Payment Terms</p>
+                <p className="text-base text-black">
+                  {order.paymentTerms || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="mb-2 text-sm text-[#5C5C5C]">Delivery Date</p>
+                <p className="text-base text-black">
+                  {order.deliveryDate || "TBD"}
+                </p>
+              </div>
+            </div>
+            {showShipping ? (
+              <AgroTrackShippingChip
+                expanded={shippingExpanded}
+                onToggle={() => setShippingExpanded((prev) => !prev)}
+              />
+            ) : null}
           </div>
-          <div>
-            <p className="text-sm text-gray-600 mb-3">Delivery Location</p>
-            <p className="font-medium text-gray-900">{order.deliveryLocation || order.buyerLocation || "N/A"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600 mb-3">Delivery Date</p>
-            <p className="font-medium text-gray-900">
-              {order.deliveryDate || "TBD"}
-            </p>
-          </div>
+
+          {showShipping ? (
+            <AgroTrackShippingPanel
+              expanded={shippingExpanded}
+              agroTrackTrackingNumber={order.agroTrackTrackingNumber}
+              agroTrackStatus={order.agroTrackStatus}
+              agroTrackBaseRate={order.agroTrackBaseRate}
+              agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
+              agroTrackTotalCost={order.agroTrackTotalCost}
+              onTrackShipment={
+                order.agroTrackTrackingNumber && onTrackShipment && order.buyRequestId
+                  ? () =>
+                      onTrackShipment(
+                        order.id,
+                        order.buyRequestId!,
+                        order.agroTrackTrackingNumber!,
+                      )
+                  : undefined
+              }
+            />
+          ) : null}
         </div>
 
-        <AgroTrackShippingInfo
-          agroTrackTrackingNumber={order.agroTrackTrackingNumber}
-          agroTrackStatus={order.agroTrackStatus}
-          agroTrackBaseRate={order.agroTrackBaseRate}
-          agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
-          agroTrackTotalCost={order.agroTrackTotalCost}
-        />
-
         <div className="flex items-center flex-wrap gap-3 mt-6 pt-6 border-t border-gray-100">
-          {/* Make Payment Button - Only for Active orders (processor side) */}
-      
-
-                {canEdit && order?.isGeneral && onEditRequest && (
+          {canEdit && order?.isGeneral && onEditRequest && (
             <button
               onClick={() => onEditRequest(order.id)}
               className="px-6 py-2 border bg-mainGreen text-white rounded-md hover:bg-mainGreen/90 transition-colors font-medium"
@@ -748,21 +782,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </button>
           )}
 
-          {order.agroTrackTrackingNumber && onTrackShipment && order.buyRequestId && (
-            <button
-              type="button"
-              onClick={() =>
-                onTrackShipment(
-                  order.id,
-                  order.buyRequestId!,
-                  order.agroTrackTrackingNumber!,
-                )
-              }
-              className="px-6 py-2 flex items-center gap-2 border border-sky-600 text-sky-700 rounded-md hover:bg-sky-50 transition-colors font-medium"
-            >
-              Track Shipment
-            </button>
-          )}
           {!order.agroTrackTrackingNumber &&
             onLinkTracking &&
             order.buyRequestId &&
@@ -807,7 +826,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               ) : onRate && order.buyRequestId ? (
                 <button
                   onClick={() => onRate(order.id, order.buyRequestId!)}
-                  className="px-6 py-2 flex items-center gap-2 bg-[#004829] text-white rounded-md hover:bg-[#003d20] transition-colors font-medium"
+                  className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-[10px] hover:bg-mainGreen/5 transition-colors font-medium"
                 >
                   <Star className="w-4 h-4" />
                   Rate Farmer
@@ -816,16 +835,6 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
             </>
           )}
 
-          {/* View Invoice Button - For non-pending orders */}
-          {/* {canViewInvoice && (
-            <button 
-              onClick={() => handleViewInvoice(order.id)}
-              className="px-6 py-2 flex items-center gap-2 border-mainGreen text-mainGreen border rounded-md hover:bg-green-50 transition-colors font-medium"
-            >
-              <ViewOrders color="#004829" size={20} /> View Invoice
-            </button>
-          )} */}
-
           {/* Purchase Order - Download only when doc exists */}
           {order.purchaseOrderDoc?.url && (
             <a
@@ -833,7 +842,7 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               download={order.purchaseOrderDoc.name}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-2 flex items-center gap-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+              className="px-6 py-2 flex items-center gap-2 border border-mainGreen text-mainGreen rounded-[10px] hover:bg-mainGreen/5 transition-colors font-medium"
             >
               <Download className="w-4 h-4" />
               Download Purchase Order
