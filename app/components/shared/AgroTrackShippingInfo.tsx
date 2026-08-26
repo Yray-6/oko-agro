@@ -16,6 +16,19 @@ export interface AgroTrackShippingFields {
   agroTrackBaseRate?: string | null;
   agroTrackDistanceSurcharge?: string | null;
   agroTrackTotalCost?: string | null;
+  /** Dispatcher-set ETA from AgroTrack (not the buyer commercial target). */
+  agroTrackEstimatedDeliveryDate?: string | null;
+}
+
+function formatAgroTrackEta(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 interface AgroTrackShippingChipProps {
@@ -60,6 +73,7 @@ export const AgroTrackShippingPanel: React.FC<AgroTrackShippingPanelProps> = ({
   agroTrackBaseRate,
   agroTrackDistanceSurcharge,
   agroTrackTotalCost,
+  agroTrackEstimatedDeliveryDate,
   onRequestShipment,
   onTrackShipment,
   onCancelShipment,
@@ -74,6 +88,7 @@ export const AgroTrackShippingPanel: React.FC<AgroTrackShippingPanelProps> = ({
   const baseRate = formatAgroTrackAmount(agroTrackBaseRate);
   const distanceSurcharge = formatAgroTrackAmount(agroTrackDistanceSurcharge);
   const showBreakdown = !!(baseRate || distanceSurcharge);
+  const agroTrackEta = formatAgroTrackEta(agroTrackEstimatedDeliveryDate);
   const canCancel =
     !!agroTrackTrackingNumber &&
     !!onCancelShipment &&
@@ -87,7 +102,7 @@ export const AgroTrackShippingPanel: React.FC<AgroTrackShippingPanelProps> = ({
 
       {isAssigned ? (
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="mb-2 text-sm text-[#5C5C5C]">Status</p>
               {agroTrackStatus ? (
@@ -124,6 +139,11 @@ export const AgroTrackShippingPanel: React.FC<AgroTrackShippingPanelProps> = ({
               <p className="text-base text-black">
                 {agroTrackTrackingNumber ?? "—"}
               </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm text-[#5C5C5C]">AgroTrack ETA</p>
+              <p className="text-base text-black">{agroTrackEta ?? "—"}</p>
             </div>
           </div>
 

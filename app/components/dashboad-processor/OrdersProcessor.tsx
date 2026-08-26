@@ -67,6 +67,7 @@ export interface Order {
   agroTrackBaseRate?: string | null;
   agroTrackDistanceSurcharge?: string | null;
   agroTrackTotalCost?: string | null;
+  agroTrackEstimatedDeliveryDate?: string | null;
 }
 
 interface InvoiceData {
@@ -738,6 +739,9 @@ const OrdersProcessorWithInvoice: React.FC<OrdersProps> = ({
               agroTrackBaseRate={order.agroTrackBaseRate}
               agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
               agroTrackTotalCost={order.agroTrackTotalCost}
+              agroTrackEstimatedDeliveryDate={
+                order.agroTrackEstimatedDeliveryDate
+              }
               onTrackShipment={
                 order.agroTrackTrackingNumber && onTrackShipment && order.buyRequestId
                   ? () =>

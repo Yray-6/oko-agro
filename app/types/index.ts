@@ -691,6 +691,8 @@ export interface BuyRequest {
   agroTrackBaseRate?: string | null;
   agroTrackDistanceSurcharge?: string | null;
   agroTrackTotalCost?: string | null;
+  /** Dispatcher-set ETA from AgroTrack; separate from buyer `estimatedDeliveryDate`. */
+  agroTrackEstimatedDeliveryDate?: string | null;
   purchaseOrderDoc?: UserFile | null; // Purchase order document
   ratings?: BuyRequestRating[]; // Ratings for this buy request
 }

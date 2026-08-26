@@ -66,6 +66,7 @@ export interface Order {
   agroTrackBaseRate?: string | null;
   agroTrackDistanceSurcharge?: string | null;
   agroTrackTotalCost?: string | null;
+  agroTrackEstimatedDeliveryDate?: string | null;
 }
 
 interface OrdersProps {
@@ -329,6 +330,9 @@ const Orders: React.FC<OrdersProps> = ({
               agroTrackBaseRate={order.agroTrackBaseRate}
               agroTrackDistanceSurcharge={order.agroTrackDistanceSurcharge}
               agroTrackTotalCost={order.agroTrackTotalCost}
+              agroTrackEstimatedDeliveryDate={
+                order.agroTrackEstimatedDeliveryDate
+              }
               onRequestShipment={
                 canArrange
                   ? () => onArrangeTransit!(order.id, order.buyRequestId!)

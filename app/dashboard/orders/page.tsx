@@ -102,6 +102,8 @@ const convertBuyRequestToOrder = (buyRequest: BuyRequest) => {
     agroTrackBaseRate: buyRequest.agroTrackBaseRate || null,
     agroTrackDistanceSurcharge: buyRequest.agroTrackDistanceSurcharge || null,
     agroTrackTotalCost: buyRequest.agroTrackTotalCost || null,
+    agroTrackEstimatedDeliveryDate:
+      buyRequest.agroTrackEstimatedDeliveryDate || null,
   };
 };
 
