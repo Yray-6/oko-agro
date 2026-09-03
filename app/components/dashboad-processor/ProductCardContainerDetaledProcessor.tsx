@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import CreateNewRequestModal from "./CreateNewRequest";
@@ -38,16 +38,30 @@ interface ProductCardContainerDetailedProps {
   showQuickOrder?: boolean;
   /** Farmer/seller info for Generate PO in Quick Order modal (from find farmer page) */
   sellerInfo?: CreateRequestParty | null;
+  /** Product ID to highlight and scroll into view (from notification deep-link) */
+  highlightProductId?: string;
 }
 
 type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out";
 
 const ProductCardContainerDetailedProcessor: React.FC<
   ProductCardContainerDetailedProps
-> = ({ products, onRequestSuccess, showQuickOrder = true, sellerInfo }) => {
+> = ({ products, onRequestSuccess, showQuickOrder = true, sellerInfo, highlightProductId }) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | ProductDetails | null>(null);
+  const [highlightFading, setHighlightFading] = useState(!!highlightProductId);
+  const highlightRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to and highlight the target product
+  useEffect(() => {
+    if (highlightProductId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightFading(true);
+      const timer = setTimeout(() => setHighlightFading(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightProductId]);
 
   // Helper function to normalize product data from API response
   const normalizeProduct = (product: Product | ProductDetails): Product => {
@@ -194,9 +208,17 @@ const ProductCardContainerDetailedProcessor: React.FC<
       product.availableQuantityKg ??
       (product.rawQuantityKg != null ? parseFloat(product.rawQuantityKg) || 0 : 0);
     const canQuickOrder = showQuickOrder && available > 0;
+    const isHighlighted = highlightProductId === String(product.id);
 
     return (
-      <div className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+      <div
+        ref={isHighlighted ? highlightRef : undefined}
+        className={`p-4 bg-white rounded-lg border hover:shadow-md transition-all duration-500 ${
+          isHighlighted && highlightFading
+            ? 'border-mainGreen ring-2 ring-mainGreen/30 bg-green-50/40'
+            : 'border-gray-200'
+        }`}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4 flex-1">
             <Link href={productUrl} className="flex-shrink-0 self-start">

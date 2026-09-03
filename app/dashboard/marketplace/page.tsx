@@ -1,11 +1,12 @@
 'use client'
 import React, { useState, useRef, useEffect } from "react";
-import { Search, ChevronDown, X, Send, MessageSquare, Package, MapPin, User, Loader2, CheckCircle, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Search, ChevronDown, Loader2, ChevronLeft, ChevronRight, Eye, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DashboardIcon from "@/app/assets/icons/Dashboard";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
+import ContactProcessorModal from "@/app/components/dashboard/ContactProcessorModal";
 import { BuyRequest } from "@/app/types";
 import { formatQuantity } from "@/app/helpers";
 
@@ -144,41 +145,10 @@ export default function MarketplacePage() {
 
   const [selectedRequest, setSelectedRequest] = useState<BuyRequest | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [isSent, setIsSent] = useState(false);
 
   const handleSendMessage = (request: BuyRequest) => {
     setSelectedRequest(request);
     setShowContactModal(true);
-    // Generate message template
-    const farmerName = user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer';
-    const farmName = user?.farmName || 'My Farm';
-    const farmLocation = user ? `${user.state}, ${user.country}` : 'Unknown Location';
-    const companyName = request.buyer?.companyName || `${request.buyer?.firstName} ${request.buyer?.lastName}` || 'Processor';
-    const cropName = request.cropType?.name || request.description || 'Product';
-    
-    const template = `Hi ${companyName},
-
-I'm ${farmerName} from ${farmName}, and I'm interested in your buy request for ${cropName}.
-
-Request Details:
-• Product: ${cropName}
-• Quantity: ${formatQuantity(request.productQuantityKg)}kg
-• Price Offer: ${formatPrice(request.pricePerKgOffer)}/kg
-${request.estimatedDeliveryDate ? `• Expected Delivery: ${new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
-• Delivery Location: ${request.deliveryLocation}
-
-I would like to discuss this request further. Please let me know if you're still looking for this product and we can proceed.
-
-My farm is located in ${farmLocation}.
-
-Looking forward to hearing from you!
-
-Best regards,
-${farmerName}`;
-    
-    setMessage(template);
   };
 
   const handleViewProcessor = (request: BuyRequest) => {
@@ -199,30 +169,6 @@ ${farmerName}`;
   const handleCloseContactModal = () => {
     setShowContactModal(false);
     setSelectedRequest(null);
-    setMessage('');
-    setIsSent(false);
-  };
-
-  const handleSendContactMessage = async () => {
-    if (!selectedRequest) return;
-    
-    setIsSending(true);
-    try {
-      // TODO: Implement API call to send message
-      // await sendContactMessage({ buyRequestId: selectedRequest.id, processorId: selectedRequest.buyer?.id, message });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setIsSent(true);
-      setTimeout(() => {
-        handleCloseContactModal();
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    } finally {
-      setIsSending(false);
-    }
   };
 
   return (
@@ -477,143 +423,15 @@ ${farmerName}`;
         </div>
       </div>
 
-      {/* Contact Processor Modal */}
-      {showContactModal && selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={handleCloseContactModal}
-          />
-          
-          {/* Modal */}
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[70vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="flex-shrink-0 bg-gradient-to-r from-mainGreen to-green-700 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">Contact Processor</h2>
-                    <p className="text-white/80 text-sm">Send interest message</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCloseContactModal}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-white" />
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Success State */}
-              {isSent ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Message Sent!</h3>
-                  <p className="text-gray-600">
-                    Your interest has been sent to {selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'the processor'}. They will receive a notification.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Product Info */}
-                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900">
-                          {selectedRequest.cropType?.name || selectedRequest.description}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'Processor'}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Package className="w-3 h-3" />
-                            {formatQuantity(selectedRequest.productQuantityKg)}kg
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {selectedRequest.deliveryLocation}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sender Info */}
-                  <div className="px-6 py-3 border-b border-gray-200 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        Sending as: {user ? `${user.firstName} ${user.lastName}` : 'Unknown Farmer'}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {user?.farmName || 'My Farm'} • {user ? `${user.state}, ${user.country}` : 'Unknown Location'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Message Editor */}
-                  <div className="p-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Message to Processor (Edit message to match your offer)
-                    </label>
-                    <textarea
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent resize-none"
-                      placeholder="Your message will be generated automatically..."
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      You can edit the message above. The product details will be included automatically.
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Fixed Actions Footer */}
-            {!isSent && (
-              <div className="flex-shrink-0 px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
-                <button
-                  onClick={handleCloseContactModal}
-                  disabled={isSending}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSendContactMessage}
-                  disabled={isSending}
-                  className="flex-1 px-4 py-2.5 bg-mainGreen text-white rounded-lg font-medium hover:bg-green-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isSending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Send Message
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Contact Processor Modal — shared component */}
+      {selectedRequest && (
+        <ContactProcessorModal
+          isOpen={showContactModal}
+          onClose={handleCloseContactModal}
+          buyRequest={selectedRequest}
+          processorId={selectedRequest.buyer?.id || ''}
+          processorName={selectedRequest.buyer?.companyName || `${selectedRequest.buyer?.firstName} ${selectedRequest.buyer?.lastName}` || 'Processor'}
+        />
       )}
     </div>
   );

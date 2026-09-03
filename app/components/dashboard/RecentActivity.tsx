@@ -2,14 +2,17 @@
 import { TrendingUp, Bell, RefreshCw, CheckCheck, Mail, Filter } from 'lucide-react';
 import ActivityItemComponent, { ActivityItem, notificationToActivityItem } from './ActivityItems';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useNotificationStore } from '@/app/store/useNotificationStore';
 import { useAuthStore } from '@/app/store/useAuthStore';
+import { resolveNotificationRoute, UserRole } from '@/app/utils/notificationRouting';
 import Link from 'next/link';
 
 type FilterType = 'all' | 'unread' | 'contact_message' | 'buy_request' | 'order_status';
 
 
 const RecentActivity: React.FC = () => {
+  const router = useRouter();
   const { user } = useAuthStore();
   const { 
     notifications, 
@@ -74,6 +77,17 @@ const RecentActivity: React.FC = () => {
         await markAsRead(activity.id);
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
+      }
+    }
+
+    // Find the original notification and route
+    const allNotifs = [...notifications, ...contactMessages];
+    const notification = allNotifs.find((n) => n.id === activity.id);
+    if (notification) {
+      const role: UserRole = user?.role === 'processor' ? 'processor' : 'farmer';
+      const route = resolveNotificationRoute(notification, role);
+      if (route) {
+        router.push(route);
       }
     }
   };

@@ -151,20 +151,8 @@ export async function POST(request: NextRequest) {
     
     const response = await apiClient.post(endpoint, requestData);
 
-    // For forgot password and reset password, return standardized response
-    if (action === 'forgot-password' || action === 'reset-password') {
-      return NextResponse.json(
-        {
-          statusCode: 200,
-          message: response.data.message || `${action} successful`,
-          data: response.data.data || null
-        } as ApiResponse,
-        { status: 200 }
-      );
-    }
-
-    // Return the response from the backend as-is (including refresh)
-    // so clients get { statusCode, data: { accessToken } } without double-wrapping
+    // Return the response from the backend as-is (including forgot/reset password)
+    // so clients get the real statusCode (e.g. 404 for unknown email) without rewriting to 200
     return NextResponse.json(response.data as ApiResponse, {
       status: response.status,
     });

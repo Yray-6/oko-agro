@@ -27,6 +27,7 @@ export default function FarmerDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const farmerId = searchParams.get("farmerId");
+  const highlightProductId = searchParams.get("productId");
 
   const { products, isFetching, fetchError, fetchApprovedUserProducts } = useProductStore();
   const { events, isFetching: isFetchingEvents, fetchUserEvents } = useEventStore();
@@ -288,6 +289,7 @@ export default function FarmerDetailsPage() {
           ) : mappedProducts.length > 0 ? (
             <ProductCardContainerDetailedProcessor
               products={mappedProducts}
+              highlightProductId={highlightProductId || undefined}
               sellerInfo={farmerDetails ? {
                 farmName: farmerDetails.farmName ?? undefined,
                 firstName: farmerDetails.firstName || '',

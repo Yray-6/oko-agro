@@ -16,6 +16,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useNotificationStore } from "../store/useNotificationStore";
 import { useTokenMonitor } from "../hooks/useTokenMonitor";
 import AnimatedLoading from "../Loading";
+import NotificationsSidebar from "../components/dashboard/NotificationsSidebar";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -27,6 +28,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isNotificationSidebarOpen, setIsNotificationSidebarOpen] = useState(false);
 
   // Get user data, tokens, and functions from auth store
   const {
@@ -303,7 +305,7 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <Message size={20} />
               </button>
               <button 
-                onClick={() => router.push('/dashboard-processor/notifications')}
+                onClick={() => setIsNotificationSidebarOpen(true)}
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative"
               >
                 <Notification size={20} />
@@ -340,6 +342,11 @@ const Dashboard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {(isLoggingOut || isLoadingProfile) && <AnimatedLoading />}
         </main>
       </div>
+
+      <NotificationsSidebar
+        isOpen={isNotificationSidebarOpen}
+        onClose={() => setIsNotificationSidebarOpen(false)}
+      />
     </div>
   );
 };

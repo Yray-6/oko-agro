@@ -12,9 +12,12 @@ import {
   TextField,
   SelectField,
   FileField,
+  PhoneField,
   countryOptions,
   stateOptions,
   countryStatesMap,
+  countryToPhoneCodeMap,
+  formatPhoneWithCountryCode,
   cropsOptions,
   bankOptions,
   businessTypes,
@@ -35,6 +38,7 @@ interface ProcessorFormValues {
   firstName: string;
   lastName: string;
   email: string;
+  phoneCountryCode: string;
   phoneNumber: string;
   companyLocation: string;
   country: string;
@@ -69,6 +73,7 @@ const initialValues: ProcessorFormValues = {
   firstName: "",
   lastName: "",
   email: "",
+  phoneCountryCode: "+234",
   phoneNumber: "",
   companyLocation: "",
   country: "",
@@ -122,7 +127,15 @@ const stepValidationSchemas = [
     email: Yup.string()
       .email("Invalid email address")
       .required("Email is required"),
-    phoneNumber: Yup.string().required("Phone number is required"),
+    phoneCountryCode: Yup.string().required("Country code is required"),
+    phoneNumber: Yup.string()
+      .required("Phone number is required")
+      .matches(/^\d+$/, "Phone number must contain only digits")
+      .test("length", "Phone number must be 7–15 digits", (value) => {
+        if (!value) return false;
+        const national = value.replace(/^0+/, "");
+        return national.length >= 7 && national.length <= 15;
+      }),
     companyLocation: Yup.string().required("Company location is required"),
     country: Yup.string().required("Country is required"),
     state: Yup.string().required("State is required"),
@@ -344,7 +357,10 @@ const ProcessorRegistrationForm: React.FC = () => {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
-        phoneNumber: values.phoneNumber,
+        phoneNumber: formatPhoneWithCountryCode(
+          values.phoneCountryCode,
+          values.phoneNumber
+        ),
         farmAddress: values.companyLocation, // Using farmAddress field for company location
         country: values.country,
         state: values.state,
@@ -518,12 +534,11 @@ const ProcessorRegistrationForm: React.FC = () => {
                       required
                     />
 
-                    <TextField
+                    <PhoneField
                       name="phoneNumber"
+                      countryCodeName="phoneCountryCode"
                       label="Phone Number"
-                      type="tel"
-                      placeholder="Enter your phone number"
-                      prefix="+234"
+                      placeholder="8012345678"
                       required
                     />
                   </div>
@@ -565,8 +580,13 @@ const ProcessorRegistrationForm: React.FC = () => {
                           as="select"
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none placeholder:text-[#A8A8A8] focus:ring-2 focus:ring-mainGreen focus:border-transparent appearance-none pr-10"
                           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                            setFieldValue("country", e.target.value);
+                            const country = e.target.value;
+                            setFieldValue("country", country);
                             setFieldValue("state", ""); // Reset state when country changes
+                            const dialCode = countryToPhoneCodeMap[country];
+                            if (dialCode) {
+                              setFieldValue("phoneCountryCode", dialCode);
+                            }
                           }}
                         >
                           <option value="" className="text-[#A8A8A8]">

@@ -442,7 +442,7 @@ export default function ProcessorDetailsPage() {
                       className="w-full py-3 bg-mainGreen text-white rounded-lg font-medium hover:bg-green-800 transition-colors flex items-center justify-center gap-2"
                     >
                       <MessageSquare className="w-5 h-5" />
-                      Contact Seller
+                      Contact Processor
                     </button>
                   </div>
                 </div>

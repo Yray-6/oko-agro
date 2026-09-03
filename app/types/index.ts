@@ -962,7 +962,7 @@ export interface UsersListResponse {
 // NOTIFICATION TYPES
 // ============================================
 
-export type NotificationType = 'buy_request' | 'order_status' | 'contact_message';
+export type NotificationType = 'buy_request' | 'order_status' | 'contact_message' | 'system' | 'dispute' | 'rating';
 
 export interface Notification {
   id: string;
@@ -975,10 +975,14 @@ export interface Notification {
   type: NotificationType;
   title: string;
   message: string;
-  relatedEntityType?: 'buy_request' | 'order';
+  relatedEntityType?: 'buy_request' | 'order' | 'product' | 'dispute' | 'event';
   relatedEntityId?: string;
   senderId?: string;
   senderName?: string;
+  /** Selected product ID from the farmer's contact offer */
+  productId?: string;
+  /** Crop ID derived from the selected product (for deep-linking) */
+  cropId?: string;
   isRead: boolean;
   createdAt: string;
   updatedAt: string;
@@ -1017,6 +1021,7 @@ export interface SendContactMessageRequest {
   buyRequestId: string;
   processorId: string;
   message?: string;
+  productId?: string;
 }
 
 export interface SendContactMessageResponse {

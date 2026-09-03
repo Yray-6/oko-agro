@@ -73,6 +73,95 @@ export const TextField: React.FC<TextFieldProps> = ({
   );
 };
 
+// PhoneField — country-code dropdown + national number
+interface PhoneFieldProps {
+  name?: string;
+  countryCodeName?: string;
+  label?: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  disabled?: boolean;
+}
+
+export const PhoneField: React.FC<PhoneFieldProps> = ({
+  name = "phoneNumber",
+  countryCodeName = "phoneCountryCode",
+  label = "Phone Number",
+  placeholder = "8012345678",
+  required = false,
+  className = "",
+  disabled = false,
+}) => {
+  return (
+    <div className={className}>
+      <label className="block text-sm font-medium text-black mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+
+      <div className="flex">
+        <div className="relative flex-shrink-0">
+          <Field name={countryCodeName}>
+            {({ field }: { field: { name: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; onBlur: (e: React.FocusEvent<HTMLSelectElement>) => void } }) => (
+              <select
+                {...field}
+                disabled={disabled}
+                aria-label="Country calling code"
+                className={`appearance-none pl-3 pr-8 py-2 text-sm border border-r-0 border-gray-300 rounded-l-md bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-mainGreen focus:border-transparent ${disabled ? "cursor-not-allowed bg-gray-100" : ""}`}
+              >
+                {phoneCountryCodeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <ChevronDown className={`h-3.5 w-3.5 ${disabled ? "text-gray-300" : "text-gray-400"}`} />
+          </div>
+        </div>
+
+        <Field name={name}>
+          {({
+            field,
+            form,
+          }: {
+            field: { name: string; value: string; onBlur: (e: React.FocusEvent<HTMLInputElement>) => void };
+            form: { setFieldValue: (field: string, value: string) => void };
+          }) => (
+            <input
+              {...field}
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              disabled={disabled}
+              placeholder={placeholder}
+              className={`${baseInputStyles} rounded-l-none ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
+              onChange={(e) => {
+                const digitsOnly = e.target.value.replace(/\D/g, "");
+                form.setFieldValue(name, digitsOnly);
+              }}
+            />
+          )}
+        </Field>
+      </div>
+
+      <ErrorMessage name={name} component="div" className="text-red-500 text-xs mt-1" />
+      <ErrorMessage name={countryCodeName} component="div" className="text-red-500 text-xs mt-1" />
+    </div>
+  );
+};
+
+/** Build E.164-style phone from dial code + national number (strips leading zeros). */
+export const formatPhoneWithCountryCode = (
+  countryCode: string,
+  nationalNumber: string
+): string => {
+  const digits = (nationalNumber || "").replace(/\D/g, "").replace(/^0+/, "");
+  return `${countryCode}${digits}`;
+};
+
 // SelectField Component Interface
 interface SelectOption {
   value: string;
@@ -245,6 +334,46 @@ export const countryOptions: SelectOption[] = [
   { value: "Guinea-Bissau", label: "Guinea-Bissau" },
   { value: "Cape Verde", label: "Cape Verde" }
 ];
+
+/** Dial codes aligned with countryOptions (value = E.164 prefix). */
+export const phoneCountryCodeOptions: SelectOption[] = [
+  { value: "+234", label: "+234" },
+  { value: "+233", label: "+233" },
+  { value: "+221", label: "+221" },
+  { value: "+225", label: "+225" },
+  { value: "+223", label: "+223" },
+  { value: "+226", label: "+226" },
+  { value: "+227", label: "+227" },
+  { value: "+224", label: "+224" },
+  { value: "+229", label: "+229" },
+  { value: "+228", label: "+228" },
+  { value: "+232", label: "+232" },
+  { value: "+231", label: "+231" },
+  { value: "+222", label: "+222" },
+  { value: "+220", label: "+220" },
+  { value: "+245", label: "+245" },
+  { value: "+238", label: "+238" },
+];
+
+/** Map registration country name → dial code for syncing the phone dropdown. */
+export const countryToPhoneCodeMap: Record<string, string> = {
+  Nigeria: "+234",
+  Ghana: "+233",
+  Senegal: "+221",
+  "Côte d'Ivoire": "+225",
+  Mali: "+223",
+  "Burkina Faso": "+226",
+  Niger: "+227",
+  Guinea: "+224",
+  Benin: "+229",
+  Togo: "+228",
+  "Sierra Leone": "+232",
+  Liberia: "+231",
+  Mauritania: "+222",
+  Gambia: "+220",
+  "Guinea-Bissau": "+245",
+  "Cape Verde": "+238",
+};
 
 // Country to states mapping
 export const countryStatesMap: Record<string, SelectOption[]> = {
