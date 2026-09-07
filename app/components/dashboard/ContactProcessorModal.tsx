@@ -45,17 +45,14 @@ const ContactProcessorModal: React.FC<ContactProcessorModalProps> = ({
     }
   }, [isOpen, user?.id, fetchApprovedUserProducts]);
 
-  // Filter to only approved, in-stock listings matching the buy request crop
+  // Show all approved in-stock listings (not limited to the buy-request crop)
   const matchingProducts = useMemo(() => {
-    const requestCropId = buyRequest.cropType?.id;
-    if (!requestCropId) return [];
     return allProducts.filter((p: ProductDetails) => {
-      if (p.cropType?.id !== requestCropId) return false;
       if (p.approvalStatus !== 'approved') return false;
       const available = getAvailableQuantityKg(p.quantityKg, p.reservedQuantityKg);
       return available > 0;
     });
-  }, [allProducts, buyRequest.cropType?.id]);
+  }, [allProducts]);
 
   const selectedProduct = useMemo(() => {
     return matchingProducts.find((p: ProductDetails) => p.id === selectedProductId) || null;
@@ -325,7 +322,7 @@ ${farmerName}`;
                             </div>
                           ) : matchingProducts.length === 0 ? (
                             <div className="px-4 py-3 text-sm text-gray-500">
-                              No matching in-stock listings found for {buyRequest.cropType?.name || 'this crop'}.
+                              No in-stock listings found.
                             </div>
                           ) : (
                             matchingProducts.map((product: ProductDetails) => {

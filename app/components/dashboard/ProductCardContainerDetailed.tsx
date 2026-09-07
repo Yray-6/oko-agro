@@ -99,20 +99,22 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     const getStatusStyles = () => {
       switch (status) {
         case "Active":
-          return "bg-green-500 text-white";
+          return "bg-green text-white";
         case "Pending Inspection":
-          return "bg-yellow-500 text-white";
+          return "bg-yellow text-white";
         case "Sold Out":
           return "bg-gray-500 text-white";
         case "Suspended":
-          return "bg-red-500 text-white";
+          return "bg-red text-white";
         default:
           return "bg-gray-400 text-white";
       }
     };
 
     return (
-      <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusStyles()}`}>
+      <span
+        className={`inline-flex items-center justify-center px-3 py-0.5 text-sm font-normal rounded-xl ${getStatusStyles()}`}
+      >
         {status}
       </span>
     );
@@ -123,20 +125,30 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     status,
   }) => {
     return (
-      <div className="w-full mt-8">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-sm font-medium text-gray-700">Inventory</span>
-          <span className="text-xs text-gray-500">{status}</span>
+      <div className="w-full mt-6">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-base font-light text-transparent shrink-0 select-none" aria-hidden>
+            Inventory
+          </span>
+          <span className="flex-1 text-xs font-normal text-black text-right whitespace-nowrap">
+            {status}
+          </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="h-2 rounded-full transition-all duration-300 bg-mainGreen"
-            style={{ width: `${Math.min(percentage, 100)}%` }}
-          />
+        <div className="flex items-center gap-3">
+          <span className="text-base font-light text-black shrink-0">Inventory</span>
+          <div className="flex-1 bg-[#EBEBEB] rounded-[10px] h-2.5 min-w-0">
+            <div
+              className="h-2.5 rounded-[10px] transition-all duration-300 bg-[#EEC41E]"
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
         </div>
       </div>
     );
   };
+
+  const actionButtonClass =
+    "flex items-center justify-center gap-2 w-[138px] h-[35px] bg-white rounded-[10px] text-gray text-xs font-medium cursor-pointer shadow-[0px_0px_1.6px_0px_rgba(0,0,0,0.25)] hover:shadow-[0px_0px_3px_0px_rgba(0,0,0,0.3)] transition-shadow";
 
   // Action Buttons Component
   const ActionButtons: React.FC<{
@@ -144,18 +156,18 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     status: ProductCardData["status"];
   }> = ({ productId }) => {
     return (
-      <div className="flex flex-col items-center justify-end space-y-2 mt-2">
+      <div className="flex flex-col items-end gap-2 mt-2">
         {onEditListing && (
           <button
             onClick={() => onEditListing(productId)}
-            className="flex items-center space-x-2 border px-4 py-2 w-full text-center rounded border-gray-200 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors text-sm"
+            className={actionButtonClass}
             title="Edit this product listing"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
               />
             </svg>
@@ -166,14 +178,14 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
         {onViewLogs && (
           <button
             onClick={() => onViewLogs(productId)}
-            className="flex items-center space-x-2 border px-4 py-2 w-full text-center rounded border-gray-200 text-[#004829] cursor-pointer hover:text-[#004829]/80 transition-colors text-sm"
+            className={actionButtonClass}
             title="View inventory logs"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
               />
             </svg>
@@ -184,14 +196,14 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
         {onDeleteListing && (
           <button
             onClick={() => onDeleteListing(productId)}
-            className="flex items-center space-x-2 border px-4 py-2 w-full text-center rounded border-gray-200 text-red-600 cursor-pointer hover:text-red-800 transition-colors text-sm"
+            className={actionButtonClass}
             title="Delete this product listing"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
               />
             </svg>
@@ -207,79 +219,51 @@ const ProductCardContainerDetailed: React.FC<ProductCardContainerDetailedProps> 
     const productUrl = `/products/${product.slug || product.id}`;
 
     return (
-      <div className="p-6 bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-all duration-200">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-4 flex-1">
+      <div className="p-4 bg-white rounded-xl shadow-[0px_0px_2.35px_0px_rgba(0,0,0,0.25)]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-5 flex-1 min-w-0">
             {/* Product Image */}
-            <Link href={productUrl} className="flex-shrink-0">
-              <div className="relative">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  loader={imageLoader}
-                  width={80}
-                  height={80}
-                  className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                />
-                {/* Status indicator on image */}
-                <div className="absolute -top-2 -right-2">
-                  <div className={`w-4 h-4 rounded-full border-2 border-white ${
-                    product.status === 'Active' ? 'bg-green-500' :
-                    product.status === 'Pending Inspection' ? 'bg-yellow-500' :
-                    product.status === 'Sold Out' ? 'bg-gray-500' : 'bg-red-500'
-                  }`} />
-                </div>
-              </div>
+            <Link href={productUrl} className="shrink-0">
+              <Image
+                src={product.image}
+                alt={product.name}
+                loader={imageLoader}
+                width={81}
+                height={90}
+                className="w-[81px] h-[90px] rounded-[7px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              />
             </Link>
 
             {/* Product Details */}
             <div className="flex-1 min-w-0">
-       
-                <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer truncate">
-                  {product.name}
-                </h3>
-         
-              
-              <div className="space-y-1 mt-2 text-base text-gray-600">
-                <div className="flex flex-wrap gap-4">
-                  <span className="flex items-center">
-                    
-                    Quantity: {product.quantity}
-                  </span>
-                  
-                  <span className="flex items-center">
-                  
-                    Price: {product.price}
-                  </span>
-                </div>
-                
-                <div className="flex items-center">
-                
-                  Certification: {product.certification}
-                </div>
+              <h3 className="text-base font-medium text-black truncate">
+                {product.name}
+              </h3>
 
-                {/* Inventory Progress Bar */}
-                {product.inventoryStatus && product.inventoryPercentage !== undefined && (
-                  <div className="mt-3">
-                    <InventoryBar
-                      percentage={product.inventoryPercentage}
-                      status={product.inventoryStatus}
-                    />
-                  </div>
-                )}
+              <div className="mt-1.5 space-y-1 text-base font-light text-black">
+                <p>
+                  Quantity: {product.quantity}{" "}
+                  <span className="mx-1">|</span> {product.price}
+                </p>
+                <p>Certification: {product.certification}</p>
               </div>
+
+              {/* Inventory Progress Bar */}
+              {product.inventoryStatus && product.inventoryPercentage !== undefined && (
+                <InventoryBar
+                  percentage={product.inventoryPercentage}
+                  status={product.inventoryStatus}
+                />
+              )}
             </div>
           </div>
 
           {/* Right side: Status and Actions */}
-          <div className="flex flex-col items-end space-y-3 ml-4">
+          <div className="flex flex-col items-end shrink-0">
             <StatusBadge status={product.status} />
-            
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Listed</p>
-              <p className="text-base text-gray-700">{product.listedDate}</p>
-            </div>
-
+            <p className="mt-6 text-base font-light text-black text-right whitespace-nowrap">
+              Listed: {product.listedDate}
+            </p>
             <ActionButtons productId={product.id} status={product.status} />
           </div>
         </div>

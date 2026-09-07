@@ -6,6 +6,7 @@ import SuccessStories from "./components/SuccessStories";
 import Footer from "./components/Footer";
 
 export default function Home() {
+
   return <div>
     <Hero/>
     <Choose/>

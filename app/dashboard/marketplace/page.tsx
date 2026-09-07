@@ -1,18 +1,54 @@
 'use client'
-import React, { useState, useRef, useEffect } from "react";
-import { Search, ChevronDown, Loader2, ChevronLeft, ChevronRight, Eye, MessageSquare } from "lucide-react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import {
+  Search,
+  ChevronDown,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  Scale,
+  Banknote,
+  Wallet,
+  MapPin,
+  MessageSquare,
+  Users,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import DashboardIcon from "@/app/assets/icons/Dashboard";
-import { useAuthStore } from "@/app/store/useAuthStore";
 import { useBuyRequestStore } from "@/app/store/useRequestStore";
 import ContactProcessorModal from "@/app/components/dashboard/ContactProcessorModal";
 import { BuyRequest } from "@/app/types";
 import { formatQuantity } from "@/app/helpers";
 
+const formatPaymentMethod = (method?: string): string => {
+  if (!method) return 'N/A';
+  return method.replace(/_/g, ' ');
+};
+
+const formatDeliveryDate = (date?: string): string => {
+  if (!date) return 'TBD';
+  return new Date(date).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const getStatusBadgeClasses = (status?: string): string => {
+  switch (status) {
+    case 'pending':
+      return 'bg-[#FEF9C2] text-[#A65F00]';
+    case 'accepted':
+      return 'bg-mainGreen/10 text-mainGreen';
+    default:
+      return 'bg-gray-100 text-gray-600';
+  }
+};
+
 export default function MarketplacePage() {
-  const router = useRouter();
-  const { user } = useAuthStore();
   const { 
     generalRequests, 
     generalRequestsPagination,
@@ -27,14 +63,25 @@ export default function MarketplacePage() {
   const [pageSize] = useState(20);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  const processorCount = useMemo(
+    () => new Set(generalRequests.map((r) => r.buyer?.id).filter(Boolean)).size,
+    [generalRequests]
+  );
+
+  const cropCategoryCount = useMemo(
+    () => new Set(generalRequests.map((r) => r.cropType?.id).filter(Boolean)).size,
+    [generalRequests]
+  );
+
   // Fetch general buy requests on mount and page change
   useEffect(() => {
     fetchGeneralRequests(currentPage, pageSize);
   }, [currentPage, pageSize, fetchGeneralRequests]);
 
-  // Format price
+  // Format price to match design (e.g. 255.00/kg)
   const formatPrice = (price: string): string => {
-    return `₦${parseFloat(price).toLocaleString('en-NG')}`;
+    const value = parseFloat(price || '0');
+    return `${value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg`;
   };
 
   // Extract numeric quantity for filtering
@@ -149,12 +196,6 @@ export default function MarketplacePage() {
   const handleSendMessage = (request: BuyRequest) => {
     setSelectedRequest(request);
     setShowContactModal(true);
-  };
-
-  const handleViewProcessor = (request: BuyRequest) => {
-    if (request.buyer?.id) {
-      router.push(`/dashboard/find-processor/processor-details?processorId=${request.buyer.id}`);
-    }
   };
 
   // Pagination helpers
@@ -274,52 +315,113 @@ export default function MarketplacePage() {
 
           {/* Buy Requests List */}
           {!isFetching && (
-            <div className="space-y-[18px]">
+            <div className="space-y-4">
               {filteredRequests.map((request) => {
                 const cropName = request.cropType?.name || request.description || 'Product';
-                const companyName = request.buyer?.companyName || `${request.buyer?.firstName} ${request.buyer?.lastName}` || 'Processor';
-                
+                const qualityName = request.qualityStandardType?.name || 'N/A';
+
                 return (
                   <div
                     key={request.id}
-                    className="bg-white rounded-[11.75px] border border-gray-200 shadow-[0px_0px_2.35px_0px_rgba(0,0,0,0.25)] p-4 flex gap-4"
+                    className="bg-white rounded-xl border border-[#E5E7EB] p-6 flex flex-col gap-4"
                   >
-                    {/* Product Details */}
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-base font-medium text-black mb-2">
-                          {cropName} {companyName && `- ${companyName}`}
-                        </h3>
-                        <div className="space-y-1 text-sm font-light text-black">
-                          <p>Quantity: {formatQuantity(request.productQuantityKg)}kg | {formatPrice(request.pricePerKgOffer)}/kg</p>
-                          {request.estimatedDeliveryDate && (
-                            <p className="mt-5">Expected Delivery Date: {new Date(request.estimatedDeliveryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                          )}
-                          <p className="text-xs text-gray-500">Location: {request.deliveryLocation}</p>
+                    {/* Header: crop + request # + status */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-lg bg-[rgba(0,72,41,0.1)] flex items-center justify-center flex-shrink-0">
+                          <Package className="w-6 h-6 text-mainGreen" />
                         </div>
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-semibold text-[#101828] leading-7 truncate">
+                            {cropName}
+                          </h3>
+                          <p className="text-sm text-[#6A7282] leading-5">
+                            Request #{request.requestNumber}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium capitalize flex-shrink-0 ${getStatusBadgeClasses(request.status)}`}
+                      >
+                        {request.status}
+                      </span>
+                    </div>
+
+                    {/* Quality standard */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-normal uppercase text-[#6A7282] tracking-wide">
+                        Quality Standard:
+                      </span>
+                      <span className="px-2 py-1 rounded bg-[#F3E8FF] text-[#8200DB] text-xs font-medium">
+                        {qualityName}
+                      </span>
+                    </div>
+
+                    {/* Metric tiles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                      <div className="bg-[#F9FAFB] rounded-lg p-3 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Scale className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Quantity
+                          </span>
+                        </div>
+                        <p className="text-base font-semibold text-[#101828] leading-6">
+                          {formatQuantity(request.productQuantityKg)}kg
+                        </p>
+                      </div>
+
+                      <div className="bg-[rgba(0,72,41,0.05)] rounded-lg p-3 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Banknote className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Price Offer
+                          </span>
+                        </div>
+                        <p className="text-base font-semibold text-mainGreen leading-6">
+                          {formatPrice(request.pricePerKgOffer)}
+                        </p>
+                      </div>
+
+                      <div className="bg-[#F9FAFB] rounded-lg p-3 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Payment
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-[#101828] leading-5 capitalize">
+                          {formatPaymentMethod(request.preferredPaymentMethod)}
+                        </p>
+                      </div>
+
+                      <div className="bg-[rgba(207,255,246,0.4)] rounded-lg p-3 flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Delivery Details
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-[#101828] leading-5">
+                          {formatDeliveryDate(request.estimatedDeliveryDate)}
+                        </p>
+                        {request.deliveryLocation && (
+                          <p className="text-sm font-semibold text-[#101828] leading-5 truncate">
+                            {request.deliveryLocation}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {/* Right Side - Actions */}
-                    <div className="flex flex-col items-end justify-end gap-2">
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleViewProcessor(request)}
-                          className="px-4 py-2 border border-mainGreen rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)] hover:bg-mainGreen/5 transition-colors flex items-center gap-2"
-                        >
-                          <Eye size={16} className="text-mainGreen" />
-                          <span className="text-sm font-medium text-mainGreen">View Processor</span>
-                        </button>
-                        <button
-                          onClick={() => handleSendMessage(request)}
-                          className="px-4 py-2 border border-mainGreen rounded-[10px] shadow-[0px_0px_1.62px_0px_rgba(0,0,0,0.25)] hover:bg-mainGreen/5 transition-colors flex items-center gap-2"
-                        >
-                          <MessageSquare size={16} className="text-mainGreen" />
-                          <span className="text-sm font-medium text-mainGreen">Send A Message</span>
-                        </button>
-                      </div>
-                    </div>
+                    {/* Contact CTA */}
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage(request)}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-mainGreen text-white rounded-lg text-base font-medium hover:bg-[#003820] transition-colors"
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      Contact Processor
+                    </button>
                   </div>
                 );
               })}
@@ -390,36 +492,84 @@ export default function MarketplacePage() {
         </div>
 
         {/* Stats Sidebar - 3 columns */}
-        <div className="col-span-12 lg:col-span-3 flex flex-col gap-4">
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-3">
           {/* Requests Card */}
-          <div className="bg-white border border-[rgba(45,80,22,0.15)] rounded-2xl p-4">
-            <div className="flex flex-col items-center text-center">
-              <p className="text-2xl font-semibold text-[#2D5016] mb-1">
-                {generalRequestsPagination.totalRecord}
-              </p>
-              <p className="text-sm text-[#6B7C5A]">Requests</p>
+          <div className="flex justify-center items-center flex-col border border-[#B8860B]/30 bg-[#B8860B]/5 text-[#6B7C5A] rounded-xl py-4 w-full transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 mb-1">
+              <Target className="w-4 h-4 text-[#B8860B]" />
             </div>
+            <p className="text-[#B8860B] text-2xl font-bold">
+              {isFetching ? (
+                <span className="animate-pulse">...</span>
+              ) : (
+                generalRequestsPagination.totalRecord
+              )}
+            </p>
+            <p className="text-xs font-medium">Requests</p>
+            {currentPage > 1 && (
+              <p className="text-[10px] text-[#6B7C5A] mt-1">
+                Page {currentPage}
+              </p>
+            )}
           </div>
 
           {/* Processors Card */}
-          <div className="bg-white border border-[rgba(45,80,22,0.15)] rounded-2xl p-4">
-            <div className="flex flex-col items-center text-center">
-              <p className="text-2xl font-semibold text-[#2D5016] mb-1">
-                {new Set(generalRequests.map(r => r.buyer?.id).filter(Boolean)).size}
-              </p>
-              <p className="text-sm text-[#6B7C5A]">Processors</p>
+          <div className="flex justify-center items-center flex-col border border-mainGreen/30 bg-mainGreen/5 text-[#6B7C5A] rounded-xl py-4 w-full transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-mainGreen" />
             </div>
+            <p className="text-mainGreen text-2xl font-bold">
+              {isFetching ? (
+                <span className="animate-pulse">...</span>
+              ) : (
+                processorCount
+              )}
+            </p>
+            <p className="text-xs font-medium">Processors</p>
           </div>
 
           {/* Crop Categories Card */}
-          <div className="bg-white border border-[rgba(45,80,22,0.15)] rounded-2xl p-4">
-            <div className="flex flex-col items-center text-center">
-              <p className="text-2xl font-semibold text-[#2D5016] mb-1">
-                {new Set(generalRequests.map(r => r.cropType?.id).filter(Boolean)).size}
-              </p>
-              <p className="text-sm text-[#6B7C5A]">Crop Categories</p>
+          <div className="flex justify-center items-center flex-col border border-[#6B7C5A]/30 bg-[#6B7C5A]/5 text-[#6B7C5A] rounded-xl py-4 w-full transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-[#6B7C5A]" />
             </div>
+            <p className="text-[#6B7C5A] text-2xl font-bold">
+              {isFetching ? (
+                <span className="animate-pulse">...</span>
+              ) : (
+                cropCategoryCount
+              )}
+            </p>
+            <p className="text-xs font-medium">Crop Categories</p>
+            {cropCategoryCount > 0 && (
+              <p className="text-[10px] text-[#6B7C5A] mt-1">
+                {cropCategoryCount} crop types
+              </p>
+            )}
           </div>
+
+          {/* Quick Stats Summary */}
+          {!isFetching && filteredRequests.length > 0 && (
+            <div className="border border-[#6B7C5A]/30 rounded-xl p-3 text-xs text-[#6B7C5A]">
+              <p className="font-medium mb-2">Search Summary</p>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Showing:</span>
+                  <span className="font-medium">{filteredRequests.length} requests</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Processors:</span>
+                  <span className="font-medium text-mainGreen">{processorCount}</span>
+                </div>
+                {cropCategoryCount > 0 && (
+                  <div className="flex justify-between">
+                    <span>Crops:</span>
+                    <span className="font-medium">{cropCategoryCount} types</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
