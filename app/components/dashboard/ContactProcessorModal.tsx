@@ -349,6 +349,9 @@ ${farmerName}`;
                           )}
                         </div>
                       )}
+                      <p className="text-xs text-gray-500 mt-1.5">
+                        These are your approved in-stock listings.
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -28,6 +28,7 @@ export default function FarmerDetailsPage() {
   const searchParams = useSearchParams();
   const farmerId = searchParams.get("farmerId");
   const highlightProductId = searchParams.get("productId");
+  const openRequest = searchParams.get("openRequest");
 
   const { products, isFetching, fetchError, fetchApprovedUserProducts } = useProductStore();
   const { events, isFetching: isFetchingEvents, fetchUserEvents } = useEventStore();
@@ -136,6 +137,19 @@ export default function FarmerDetailsPage() {
   const handleBack = () => {
     router.back();
   };
+
+  // Drop openRequest from the URL after auto-opening the modal so refresh does not re-open it
+  const handleAutoOpenRequest = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has("openRequest")) return;
+    params.delete("openRequest");
+    const qs = params.toString();
+    router.replace(
+      qs
+        ? `/dashboard-processor/find-farmer/farmer-details?${qs}`
+        : "/dashboard-processor/find-farmer/farmer-details",
+    );
+  }, [router, searchParams]);
 
   if (isLoadingFarmer) {
     return (
@@ -290,6 +304,8 @@ export default function FarmerDetailsPage() {
             <ProductCardContainerDetailedProcessor
               products={mappedProducts}
               highlightProductId={highlightProductId || undefined}
+              autoOpenRequest={openRequest === "1"}
+              onAutoOpenRequest={handleAutoOpenRequest}
               sellerInfo={farmerDetails ? {
                 farmName: farmerDetails.farmName ?? undefined,
                 firstName: farmerDetails.firstName || '',

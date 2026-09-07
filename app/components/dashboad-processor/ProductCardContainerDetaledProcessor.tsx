@@ -40,18 +40,31 @@ interface ProductCardContainerDetailedProps {
   sellerInfo?: CreateRequestParty | null;
   /** Product ID to highlight and scroll into view (from notification deep-link) */
   highlightProductId?: string;
+  /** Auto-open Create New Request for the highlighted product (contact message flow) */
+  autoOpenRequest?: boolean;
+  /** Called once after auto-open succeeds (e.g. to strip openRequest from the URL) */
+  onAutoOpenRequest?: () => void;
 }
 
 type StatusFilter = "All" | "Active" | "Pending Inspection" | "Sold Out";
 
 const ProductCardContainerDetailedProcessor: React.FC<
   ProductCardContainerDetailedProps
-> = ({ products, onRequestSuccess, showQuickOrder = true, sellerInfo, highlightProductId }) => {
+> = ({
+  products,
+  onRequestSuccess,
+  showQuickOrder = true,
+  sellerInfo,
+  highlightProductId,
+  autoOpenRequest = false,
+  onAutoOpenRequest,
+}) => {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("All");
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | ProductDetails | null>(null);
   const [highlightFading, setHighlightFading] = useState(!!highlightProductId);
   const highlightRef = useRef<HTMLDivElement>(null);
+  const autoOpenedRef = useRef(false);
 
   // Scroll to and highlight the target product
   useEffect(() => {
@@ -112,6 +125,38 @@ const ProductCardContainerDetailedProcessor: React.FC<
 
   // Normalize all products
   const normalizedProducts = products.map(normalizeProduct);
+
+  // Auto-open Create New Request for the highlighted product (contact message deep-link)
+  useEffect(() => {
+    if (!autoOpenRequest || !highlightProductId || autoOpenedRef.current) return;
+    if (normalizedProducts.length === 0) return;
+
+    const match = normalizedProducts.find(
+      (product) => String(product.id) === highlightProductId,
+    );
+
+    // Products loaded but target missing — don't retry
+    if (!match) {
+      autoOpenedRef.current = true;
+      return;
+    }
+
+    const available =
+      match.availableQuantityKg ??
+      (match.rawQuantityKg != null ? parseFloat(match.rawQuantityKg) || 0 : 0);
+    if (available <= 0) {
+      autoOpenedRef.current = true;
+      return;
+    }
+
+    autoOpenedRef.current = true;
+    setSelectedProduct(match);
+    setShowCreateRequestModal(true);
+    onAutoOpenRequest?.();
+    // Intentionally depend on products length/ids via normalizedProducts identity from render;
+    // autoOpenedRef prevents repeat opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenRequest, highlightProductId, products, onAutoOpenRequest]);
 
   // Map display names to filter values
   const statusDisplayMap: Record<string, StatusFilter> = {

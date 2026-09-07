@@ -7,14 +7,11 @@ import {
   MapPin,
   ArrowLeft,
   Loader2,
-  Phone,
-  Building2,
-  Calendar,
   Package,
   MessageSquare,
-  TruckIcon,
-  Tag,
-  BoxIcon,
+  Scale,
+  Banknote,
+  Wallet,
 } from "lucide-react";
 import { useProductStore } from "@/app/store/useProductStore";
 import { useEventStore } from "@/app/store/useEventStore";
@@ -25,6 +22,39 @@ import rice from "@/app/assets/images/rice.png";
 import { UserProfile, BuyRequest } from "@/app/types";
 import AnimatedLoading from "@/app/Loading";
 import { formatQuantity } from "@/app/helpers";
+
+const formatPaymentMethod = (method?: string): string => {
+  if (!method) return "N/A";
+  return method.replace(/_/g, " ");
+};
+
+const formatDeliveryDate = (date?: string): string => {
+  if (!date) return "TBD";
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatPrice = (price: string): string => {
+  const value = parseFloat(price || "0");
+  return `${value.toLocaleString("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}/kg`;
+};
+
+const getStatusBadgeClasses = (status?: string): string => {
+  switch (status) {
+    case "pending":
+      return "bg-[#FEF9C2] text-[#A65F00]";
+    case "accepted":
+      return "bg-mainGreen/10 text-mainGreen";
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
 
 export default function ProcessorDetailsPage() {
   const router = useRouter();
@@ -316,137 +346,118 @@ export default function ProcessorDetailsPage() {
             </div>
           ) : availableRequests.length > 0 ? (
             <div className="space-y-4">
-              {availableRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="bg-white rounded-xl border border-gray-200 hover:border-mainGreen/30 hover:shadow-lg transition-all overflow-hidden"
-                >
-                  <div className="p-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-mainGreen/10 rounded-lg flex items-center justify-center">
+              {availableRequests.map((request) => {
+                const cropName = request.cropType?.name || "Unknown Product";
+                const qualityName = request.qualityStandardType?.name || "N/A";
+
+                return (
+                  <div
+                    key={request.id}
+                    className="bg-white rounded-xl border border-[#E5E7EB] p-6 flex flex-col gap-4"
+                  >
+                    {/* Header: crop + request # + status */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-lg bg-[rgba(0,72,41,0.1)] flex items-center justify-center flex-shrink-0">
                           <Package className="w-6 h-6 text-mainGreen" />
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {request.cropType?.name || 'Unknown Product'}
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-semibold text-[#101828] leading-7 truncate">
+                            {cropName}
                           </h3>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-[#6A7282] leading-5">
                             Request #{request.requestNumber}
                           </p>
                         </div>
                       </div>
                       <span
-                        className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          request.status === "pending"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : request.status === "accepted"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium capitalize flex-shrink-0 ${getStatusBadgeClasses(request.status)}`}
                       >
                         {request.status}
                       </span>
                     </div>
 
-                    {/* Description */}
-                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                      {request.description}
-                    </p>
+                    {/* Quality standard */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-normal uppercase text-[#6A7282] tracking-wide">
+                        Quality Standard:
+                      </span>
+                      <span className="px-2 py-1 rounded bg-[#F3E8FF] text-[#8200DB] text-xs font-medium">
+                        {qualityName}
+                      </span>
+                    </div>
 
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      {/* Quantity */}
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Package className="w-4 h-4 text-gray-500" />
-                          <span className="text-xs text-gray-500 uppercase">Quantity</span>
+                    {/* Metric tiles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                      <div className="bg-[#F9FAFB] rounded-lg p-3 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Scale className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Quantity
+                          </span>
                         </div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="text-base font-semibold text-[#101828] leading-6">
                           {formatQuantity(request.productQuantityKg)}kg
                         </p>
                       </div>
 
-                      {/* Price Offer */}
-                      <div className="bg-mainGreen/5 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <BoxIcon className="w-4 h-4 text-mainGreen" />
-                          <span className="text-xs text-gray-500 uppercase">Price Offer</span>
-                        </div>
-                        <p className="font-semibold text-mainGreen">
-                          {request.pricePerKgOffer}/kg
-                        </p>
-                      </div>
-
-                      {/* Delivery Date */}
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <span className="text-xs text-gray-500 uppercase">Delivery</span>
-                        </div>
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {new Date(request.estimatedDeliveryDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </div>
-
-                      {/* Payment Method */}
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Tag className="w-4 h-4 text-gray-500" />
-                          <span className="text-xs text-gray-500 uppercase">Payment</span>
-                        </div>
-                        <p className="font-semibold text-gray-900 text-sm capitalize">
-                          {request.preferredPaymentMethod.replace(/_/g, ' ')}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Delivery Location */}
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <TruckIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs text-blue-600 uppercase font-medium mb-1">
-                            Delivery Location
-                          </p>
-                          <p className="text-sm text-gray-900">
-                            {request.deliveryLocation}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quality Standard */}
-                    {request.qualityStandardType && (
-                      <div className="mb-4">
+                      <div className="bg-[rgba(0,72,41,0.05)] rounded-lg p-3 flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 uppercase">Quality Standard:</span>
-                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                            {request.qualityStandardType?.name || 'N/A'}
+                          <Banknote className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Price Offer
                           </span>
                         </div>
+                        <p className="text-base font-semibold text-mainGreen leading-6">
+                          {formatPrice(request.pricePerKgOffer)}
+                        </p>
                       </div>
-                    )}
 
-                    {/* Action Button */}
+                      <div className="bg-[#F9FAFB] rounded-lg p-3 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Payment
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-[#101828] leading-5 capitalize">
+                          {formatPaymentMethod(request.preferredPaymentMethod)}
+                        </p>
+                      </div>
+
+                      <div className="bg-[rgba(207,255,246,0.4)] rounded-lg p-3 flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#6A7282]" />
+                          <span className="text-xs font-normal uppercase text-[#6A7282]">
+                            Delivery Details
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-[#101828] leading-5">
+                          {formatDeliveryDate(request.estimatedDeliveryDate)}
+                        </p>
+                        {request.deliveryLocation && (
+                          <p className="text-sm font-semibold text-[#101828] leading-5 truncate">
+                            {request.deliveryLocation}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Contact CTA */}
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleContactRequest(request);
                       }}
-                      className="w-full py-3 bg-mainGreen text-white rounded-lg font-medium hover:bg-green-800 transition-colors flex items-center justify-center gap-2"
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-mainGreen text-white rounded-lg text-base font-medium hover:bg-[#003820] transition-colors"
                     >
                       <MessageSquare className="w-5 h-5" />
                       Contact Processor
                     </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="bg-white rounded-lg p-12 text-center">

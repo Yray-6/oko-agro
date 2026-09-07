@@ -14,11 +14,12 @@ export function resolveNotificationRoute(
 
   // --- Processor-specific routing ---
   if (role === 'processor') {
-    // Contact message from a farmer → farmer profile with product highlight
+    // Contact message from a farmer → farmer profile with product highlight + auto-open request
     if (notification.type === 'contact_message' && notification.senderId) {
       const params = new URLSearchParams({ farmerId: notification.senderId });
       if (notification.productId) params.set('productId', notification.productId);
       if (notification.cropId) params.set('cropId', notification.cropId);
+      params.set('openRequest', '1');
       return `${prefix}/find-farmer/farmer-details?${params.toString()}`;
     }
 
