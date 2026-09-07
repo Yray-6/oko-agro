@@ -35,10 +35,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   isMarking,
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-[0_0_1px_rgba(0,0,0,0.25)] p-3 flex flex-col gap-1">
+    <div className="bg-white rounded-lg shadow-[0_0_1px_rgba(0,0,0,0.25)] p-4 flex flex-col gap-1.5">
       <div className="flex items-start gap-3">
         {/* Unread dot */}
-        <div className="mt-[7px] flex-shrink-0">
+        <div className="mt-1.5 flex-shrink-0">
           {!notification.isRead ? (
             <div className={`w-2.5 h-2.5 rounded-full ${getUnreadDotColor(notification.type)}`} />
           ) : (
@@ -48,10 +48,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-normal leading-[1.5em] tracking-[-0.011em] text-black truncate">
+          <p className="text-sm font-semibold leading-[1.4em] tracking-[-0.011em] text-black truncate">
             {notification.title}
           </p>
-          <p className="text-[10px] font-light leading-[1.5em] tracking-[-0.011em] text-black mt-0.5 line-clamp-2">
+          <p className="text-sm font-normal leading-[1.5em] tracking-[-0.011em] text-gray-700 mt-1 line-clamp-3">
             {notification.message}
           </p>
         </div>
@@ -64,7 +64,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               onMarkAsRead(notification.id);
             }}
             disabled={isMarking}
-            className="flex-shrink-0 bg-white shadow-[0_0_1.16px_rgba(0,0,0,0.25)] rounded-md px-2.5 py-1 text-[10px] font-medium text-[#666666] hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-shrink-0 bg-white shadow-[0_0_1.16px_rgba(0,0,0,0.25)] rounded-md px-2.5 py-1 text-xs font-medium text-[#666666] hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Mark as read
           </button>
@@ -78,7 +78,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             e.stopPropagation();
             onViewMore(notification);
           }}
-          className="text-[10px] font-medium text-[#004829] underline hover:text-[#006B3F] transition-colors"
+          className="text-sm font-medium text-[#004829] underline hover:text-[#006B3F] transition-colors"
         >
           View more
         </button>
